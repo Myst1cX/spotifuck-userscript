@@ -33,20 +33,6 @@
 
 ## Installation
 
-> 1. Install [Violentmonkey](https://violentmonkey.github.io/)
-> 2. Recommended: [Ublock Origin](https://addons.mozilla.org/en-US/firefox/addon/ublock-origin/)
-> 3. Recommended: [Spotify AdBlocker](https://greasyfork.org/en/scripts/522592-spotify-adblocker)
-> 4. Recommended: [Spotify Lyrics+](https://raw.githubusercontent.com/Myst1cX/spotify-web-lyrics-plus/main/pip-gui.user.js)
-> 5. Install [Spotifuck Userscript v2](https://raw.githubusercontent.com/Myst1cX/spotifuck-userscript/main/spotifuck-v2.user.js)
-> 6. Open [Spotify Web Player](https://open.spotify.com/)
-> 7. Enjoy the enhanced experience! Playback and UI will be upgraded automatically.
-
-* * *
-
-> **TIP:** All UI changes and playback controls apply instantly. No configuration needed!
-
-## Mobile Support
-
 > 1. Download the latest version of Firefox (Original version! - Nightly or other releases might break your userscript manager).
 > 2. Install [Violentmonkey](https://violentmonkey.github.io/)  
 > 3. Recommended: [Ublock Origin](https://addons.mozilla.org/en-US/firefox/addon/ublock-origin/)
@@ -63,8 +49,8 @@
 > 14. The interface should be mobile-friendly > If it ever resets, repeat steps 7 and 8 > Keep Desktop Mode Disabled 
 
 * * *
-
-> **FINAL TIP:** Add Spotify Web Player to your home screen for a PWA-like experience.  
+> **TIP 1:** All UI changes and playback controls apply instantly. No configuration needed!
+> **TIP 2:** Add Spotify Web Player to your home screen for a PWA-like experience.  
 
 * * *
 
