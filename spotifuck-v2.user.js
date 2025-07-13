@@ -1,9 +1,9 @@
 // ==UserScript==
-// @name         Spotifuck Userscript v6
+// @name         Spotifuck Userscript v2
 // @namespace    https://github.com/yourname/spotifuck-userscript
-// @version      6.0.0
-// @description  Full Spotifuck 1.4.1 UI hack + playback control + spoof + silent ad blocking on open.spotify.com
-// @author       ChatGPT (adapted from Spotifuck reverse-engineering)
+// @version      2.0.0
+// @description  Full Spotifuck 1.4.1 UI hack for mobile browser + playback control + spoofclient + silent ad blocking
+// @author       Myst1cX (adapted from Spotifuck reverse-engineering)
 // @match        https://open.spotify.com/*
 // @grant        GM_addStyle
 // @run-at       document-start
@@ -211,66 +211,6 @@
         rg.value = pos;
         rg.dispatchEvent(new Event('change', { bubbles: true }));
     };
-
-    // --- Floating Playback Bar ---
-function createFloatingBar() {
-    if (document.getElementById('spotifuck-floating-bar')) return;
-    const bar = document.createElement('div');
-    bar.id = 'spotifuck-floating-bar';
-    bar.style.position = 'fixed';
-    bar.style.bottom = '24px';
-    bar.style.right = '24px';
-    bar.style.background = 'rgba(51,0,0,0.95)';
-    bar.style.borderRadius = '16px';
-    bar.style.padding = '14px 22px';
-    bar.style.zIndex = '99999';
-    bar.style.color = '#fff';
-    bar.style.display = 'flex';
-    bar.style.alignItems = 'center';
-    bar.style.boxShadow = '0 2px 16px rgba(0,0,0,0.45)';
-    bar.style.fontFamily = 'sans-serif';
-    bar.style.userSelect = 'none';
-
-    // Buttons
-    function makeBtn(txt, title, fn) {
-        const btn = document.createElement('button');
-        btn.textContent = txt;
-        btn.title = title;
-        btn.style.fontSize = '22px';
-        btn.style.margin = '0 6px';
-        btn.style.background = 'none';
-        btn.style.border = 'none';
-        btn.style.color = '#fff';
-        btn.style.cursor = 'pointer';
-        btn.style.borderRadius = '8px';
-        btn.style.padding = '0 7px';
-        btn.onclick = fn;
-        return btn;
-    }
-    bar.appendChild(makeBtn('⏮', 'Previous', window.actSkipBack));
-    bar.appendChild(makeBtn('⏯', 'Play/Pause', () => window.actPlayPause()));
-    bar.appendChild(makeBtn('⏭', 'Next', window.actSkipForward));
-
-    // Track info
-    const info = document.createElement('span');
-    info.id = 'spotifuck-bar-info';
-    info.style.marginLeft = '20px';
-    bar.appendChild(info);
-
-    document.body.appendChild(bar);
-
-    setInterval(() => {
-        const track = document.querySelector('a[data-testid=context-item-link]');
-        const artist = document.querySelector('a[data-testid=context-item-info-artist]');
-        const pb = document.querySelector('aside button[data-testid=control-button-playpause]');
-        const playing = pb && pb.getAttribute('aria-label') !== 'Play';
-        info.textContent = `${track ? track.text : 'No Track'} — ${artist ? artist.text : 'No Artist'} ${playing ? '⏵' : '⏸'}`;
-    }, 1500);
-}
-
-// SPA pages: wait for DOMContentLoaded, and fallback for delayed content
-document.addEventListener('DOMContentLoaded', createFloatingBar);
-setTimeout(createFloatingBar, 3500);
     
     // --- Track status reporting (mock AndBridge) ---
     (function trackStatusReporter() {
@@ -345,101 +285,3 @@ setTimeout(createFloatingBar, 3500);
         injectSidebarFixes();
         addSearchFocusListeners();
     }, 5000);
-
-    // --- Spotifuck Browser Notification Playback Controls ---
-    if ('Notification' in window && 'serviceWorker' in navigator) {
-        if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
-            Notification.requestPermission();
-        }
-
-        function getTrackStatus() {
-            const track = document.querySelector('a[data-testid=context-item-link]');
-            const artist = document.querySelector('a[data-testid=context-item-info-artist]');
-            const pb = document.querySelector('aside button[data-testid=control-button-playpause]');
-            const playing = pb && pb.getAttribute('aria-label') !== 'Play';
-            const cover = document.querySelector('img[data-testid=cover-art-image]');
-            return {
-                track: track ? track.text : 'No Track',
-                artist: artist ? artist.text : 'No Artist',
-                playing,
-                cover: cover ? cover.src : 'https://open.spotify.com/favicon.ico'
-            };
-        }
-
-        function injectServiceWorker() {
-            if (!window._spotifuck_sw_injected) {
-                window._spotifuck_sw_injected = true;
-                const swCode = `
-self.addEventListener('notificationclick', function(event) {
-    event.notification.close();
-    if (event.action === 'prev') {
-        self.clients.matchAll().then(function(clients) {
-            clients.forEach(function(client) {
-                client.postMessage({cmd: 'prev'});
-            });
-        });
-    } else if (event.action === 'play' || event.action === 'pause') {
-        self.clients.matchAll().then(function(clients) {
-            clients.forEach(function(client) {
-                client.postMessage({cmd: 'toggle'});
-            });
-        });
-    } else if (event.action === 'next') {
-        self.clients.matchAll().then(function(clients) {
-            clients.forEach(function(client) {
-                client.postMessage({cmd: 'next'});
-            });
-        });
-    }
-}, false);
-`;
-                const blob = new Blob([swCode], { type: 'application/javascript' });
-                const swUrl = URL.createObjectURL(blob);
-                navigator.serviceWorker.register(swUrl, {scope: './'});
-            }
-        }
-
-        function showSpotifuckNotification() {
-            if (Notification.permission !== 'granted') return;
-            injectServiceWorker();
-            const status = getTrackStatus();
-            navigator.serviceWorker.getRegistration().then(function(reg) {
-                if (!reg) return;
-                const notifOptions = {
-                    body: `${status.artist} — ${status.track}`,
-                    icon: status.cover,
-                    badge: status.cover,
-                    image: status.cover,
-                    actions: [
-                        { action: 'prev', title: '⏮ Prev' },
-                        { action: status.playing ? 'pause' : 'play', title: status.playing ? '⏸ Pause' : '▶ Play' },
-                        { action: 'next', title: '⏭ Next' }
-                    ],
-                    tag: 'spotifuck-player',
-                    renotify: true
-                };
-                reg.showNotification('Spotifuck Player', notifOptions);
-            });
-        }
-
-        navigator.serviceWorker.addEventListener('message', function(event) {
-            if (event.data && event.data.cmd) {
-                if (event.data.cmd === 'prev') window.actSkipBack();
-                if (event.data.cmd === 'toggle') window.actPlayPause();
-                if (event.data.cmd === 'next') window.actSkipForward();
-            }
-        });
-
-        let lastNotifState = '';
-        setInterval(() => {
-            const status = getTrackStatus();
-            const state = `${status.track}|${status.artist}|${status.playing}`;
-            if (state !== lastNotifState) {
-                lastNotifState = state;
-                showSpotifuckNotification();
-            }
-        }, 8000);
-
-        window.showSpotifuckNotification = showSpotifuckNotification;
-    }
-})();
