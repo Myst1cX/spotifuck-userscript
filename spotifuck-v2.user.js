@@ -212,6 +212,34 @@
         rg.dispatchEvent(new Event('change', { bubbles: true }));
     };
 
+    function updateMediaSession() {
+    const track = document.querySelector('a[data-testid=context-item-link]');
+    const artist = document.querySelector('a[data-testid=context-item-info-artist]');
+    const cover = document.querySelector('img[data-testid=cover-art-image]');
+    const pb = document.querySelector('aside button[data-testid=control-button-playpause]');
+    const playing = pb && pb.getAttribute('aria-label') !== 'Play';
+
+    if ('mediaSession' in navigator) {
+        navigator.mediaSession.metadata = new window.MediaMetadata({
+            title: track ? track.text : 'No Track',
+            artist: artist ? artist.text : 'No Artist',
+            album: '', // Optional, set if you want
+            artwork: cover ? [{ src: cover.src, sizes: '512x512', type: 'image/png' }] : []
+        });
+
+        navigator.mediaSession.playbackState = playing ? "playing" : "paused";
+
+        navigator.mediaSession.setActionHandler('play',    () => window.actPlayPause(true));
+        navigator.mediaSession.setActionHandler('pause',   () => window.actPlayPause(false));
+        navigator.mediaSession.setActionHandler('previoustrack', window.actSkipBack);
+        navigator.mediaSession.setActionHandler('nexttrack',     window.actSkipForward);
+        // You can also add seek handlers if needed
+    }
+}
+
+// Keep media session updated on track change
+setInterval(updateMediaSession, 2000);
+    
     // --- Track status reporting (mock AndBridge) ---
     (function trackStatusReporter() {
         let lastState = null;
