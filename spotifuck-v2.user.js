@@ -273,33 +273,11 @@
         };
     })();
 
-    // --- Initialization ---
-    function init() {
-        injectSidebarFixes();
-        addSearchFocusListeners();
-    }
-
-    // Wait for the page content to load and inject fixes periodically (some elements load late)
-    const readyInterval = setInterval(() => {
-        if (document.querySelector('#Desktop_LeftSidebar_Id')) {
-            init();
-            clearInterval(readyInterval);
-        }
-    }, 1000);
-
-    // Also run every 5s in case Spotify redraws UI or navigates internally
-    setInterval(() => {
-        injectSidebarFixes();
-        addSearchFocusListeners();
-    }, 5000);
-
-})();
-
-// --- Spotifuck Browser Notification Playback Controls ---
-    // Check for Notification API support
-    if ('Notification' in window && navigator.serviceWorker) {
+    // --- Spotifuck Browser Notification Playback Controls ---
+    // All notification-related logic is INSIDE the main IIFE!
+    if ('Notification' in window && 'serviceWorker' in navigator) {
         // Request permission ASAP
-        if (Notification.permission !== 'granted') {
+        if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
             Notification.requestPermission();
         }
 
@@ -314,49 +292,11 @@
                 track: track ? track.text : 'No Track',
                 artist: artist ? artist.text : 'No Artist',
                 playing,
-                cover: cover ? cover.src : null
+                cover: cover ? cover.src : 'https://open.spotify.com/favicon.ico'
             };
         }
 
-        // Show notification with playback controls
-        function showSpotifuckNotification() {
-            if (Notification.permission !== 'granted') return;
-
-            const status = getTrackStatus();
-
-            // Register a service worker for notification actions
-            navigator.serviceWorker.register('spotifuck-sw.js').then(function(reg) {
-                // Construct notification options
-                const notifOptions = {
-                    body: `${status.artist} — ${status.track}`,
-                    icon: status.cover || 'https://open.spotify.com/favicon.ico',
-                    badge: status.cover || 'https://open.spotify.com/favicon.ico',
-                    image: status.cover,
-                    // Chrome/Edge only: up to 2 actions
-                    actions: [
-                        {
-                            action: 'prev',
-                            title: '⏮ Prev'
-                        },
-                        {
-                            action: status.playing ? 'pause' : 'play',
-                            title: status.playing ? '⏸ Pause' : '▶ Play'
-                        },
-                        {
-                            action: 'next',
-                            title: '⏭ Next'
-                        }
-                    ],
-                    tag: 'spotifuck-player',
-                    renotify: true
-                };
-
-                reg.showNotification('Spotifuck Player', notifOptions);
-            });
-        }
-
         // Service worker logic to handle notification actions
-        // This is injected as a string (spotifuck-sw.js)
         function injectServiceWorker() {
             // Only inject if not already present
             if (!window._spotifuck_sw_injected) {
@@ -392,6 +332,45 @@ self.addEventListener('notificationclick', function(event) {
             }
         }
 
+        // Show notification with playback controls
+        function showSpotifuckNotification() {
+            if (Notification.permission !== 'granted') return;
+
+            const status = getTrackStatus();
+
+            // Register a service worker for notification actions, if not done
+            injectServiceWorker();
+
+            navigator.serviceWorker.getRegistration().then(function(reg) {
+                if (!reg) return;
+                // Construct notification options (only up to 2 action buttons may show in some browsers!)
+                const notifOptions = {
+                    body: `${status.artist} — ${status.track}`,
+                    icon: status.cover,
+                    badge: status.cover,
+                    image: status.cover,
+                    actions: [
+                        {
+                            action: 'prev',
+                            title: '⏮ Prev'
+                        },
+                        {
+                            action: status.playing ? 'pause' : 'play',
+                            title: status.playing ? '⏸ Pause' : '▶ Play'
+                        },
+                        {
+                            action: 'next',
+                            title: '⏭ Next'
+                        }
+                    ],
+                    tag: 'spotifuck-player',
+                    renotify: true
+                };
+
+                reg.showNotification('Spotifuck Player', notifOptions);
+            });
+        }
+
         // Listen for messages from service worker and trigger playback actions
         navigator.serviceWorker.addEventListener('message', function(event) {
             if (event.data && event.data.cmd) {
@@ -401,10 +380,7 @@ self.addEventListener('notificationclick', function(event) {
             }
         });
 
-        // Inject service worker on load
-        injectServiceWorker();
-
-        // Show notification on track change or on demand (add your own trigger logic!)
+        // Show notification on track change (every 8s)
         let lastNotifState = '';
         setInterval(() => {
             const status = getTrackStatus();
@@ -415,9 +391,29 @@ self.addEventListener('notificationclick', function(event) {
             }
         }, 8000); // update every 8s
 
-        // You could also expose a manual trigger, e.g. a hotkey:
-        // window.showSpotifuckNotification = showSpotifuckNotification;
+        // Optional: expose manual trigger
+        window.showSpotifuckNotification = showSpotifuckNotification;
     }
-
 })();
 
+    // --- Initialization ---
+    function init() {
+        injectSidebarFixes();
+        addSearchFocusListeners();
+    }
+
+    // Wait for the page content to load and inject fixes periodically (some elements load late)
+    const readyInterval = setInterval(() => {
+        if (document.querySelector('#Desktop_LeftSidebar_Id')) {
+            init();
+            clearInterval(readyInterval);
+        }
+    }, 1000);
+
+    // Also run every 5s in case Spotify redraws UI or navigates internally
+    setInterval(() => {
+        injectSidebarFixes();
+        addSearchFocusListeners();
+    }, 5000);
+
+})();
