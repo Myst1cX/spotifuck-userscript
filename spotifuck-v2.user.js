@@ -285,3 +285,4 @@
         injectSidebarFixes();
         addSearchFocusListeners();
     }, 5000);
+ })();
