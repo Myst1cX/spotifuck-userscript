@@ -212,33 +212,65 @@
         rg.dispatchEvent(new Event('change', { bubbles: true }));
     };
 
-    function updateMediaSession() {
-    const track = document.querySelector('a[data-testid=context-item-link]');
-    const artist = document.querySelector('a[data-testid=context-item-info-artist]');
-    const cover = document.querySelector('img[data-testid=cover-art-image]');
-    const pb = document.querySelector('aside button[data-testid=control-button-playpause]');
-    const playing = pb && pb.getAttribute('aria-label') !== 'Play';
+    // --- Floating Playback Bar ---
+function createFloatingBar() {
+    if (document.getElementById('spotifuck-floating-bar')) return;
+    const bar = document.createElement('div');
+    bar.id = 'spotifuck-floating-bar';
+    bar.style.position = 'fixed';
+    bar.style.bottom = '24px';
+    bar.style.right = '24px';
+    bar.style.background = 'rgba(51,0,0,0.95)';
+    bar.style.borderRadius = '16px';
+    bar.style.padding = '14px 22px';
+    bar.style.zIndex = '99999';
+    bar.style.color = '#fff';
+    bar.style.display = 'flex';
+    bar.style.alignItems = 'center';
+    bar.style.boxShadow = '0 2px 16px rgba(0,0,0,0.45)';
+    bar.style.fontFamily = 'sans-serif';
+    bar.style.userSelect = 'none';
 
-    if ('mediaSession' in navigator) {
-        navigator.mediaSession.metadata = new window.MediaMetadata({
-            title: track ? track.text : 'No Track',
-            artist: artist ? artist.text : 'No Artist',
-            album: '', // Optional, set if you want
-            artwork: cover ? [{ src: cover.src, sizes: '512x512', type: 'image/png' }] : []
-        });
-
-        navigator.mediaSession.playbackState = playing ? "playing" : "paused";
-
-        navigator.mediaSession.setActionHandler('play',    () => window.actPlayPause(true));
-        navigator.mediaSession.setActionHandler('pause',   () => window.actPlayPause(false));
-        navigator.mediaSession.setActionHandler('previoustrack', window.actSkipBack);
-        navigator.mediaSession.setActionHandler('nexttrack',     window.actSkipForward);
-        // You can also add seek handlers if needed
+    // Buttons
+    function makeBtn(txt, title, fn) {
+        const btn = document.createElement('button');
+        btn.textContent = txt;
+        btn.title = title;
+        btn.style.fontSize = '22px';
+        btn.style.margin = '0 6px';
+        btn.style.background = 'none';
+        btn.style.border = 'none';
+        btn.style.color = '#fff';
+        btn.style.cursor = 'pointer';
+        btn.style.borderRadius = '8px';
+        btn.style.padding = '0 7px';
+        btn.onclick = fn;
+        return btn;
     }
+    bar.appendChild(makeBtn('⏮', 'Previous', window.actSkipBack));
+    bar.appendChild(makeBtn('⏯', 'Play/Pause', () => window.actPlayPause()));
+    bar.appendChild(makeBtn('⏭', 'Next', window.actSkipForward));
+
+    // Track info
+    const info = document.createElement('span');
+    info.id = 'spotifuck-bar-info';
+    info.style.marginLeft = '20px';
+    bar.appendChild(info);
+
+    document.body.appendChild(bar);
+
+    setInterval(() => {
+        const track = document.querySelector('a[data-testid=context-item-link]');
+        const artist = document.querySelector('a[data-testid=context-item-info-artist]');
+        const pb = document.querySelector('aside button[data-testid=control-button-playpause]');
+        const playing = pb && pb.getAttribute('aria-label') !== 'Play';
+        info.textContent = `${track ? track.text : 'No Track'} — ${artist ? artist.text : 'No Artist'} ${playing ? '⏵' : '⏸'}`;
+    }, 1500);
 }
 
-// Keep media session updated on track change
-setInterval(updateMediaSession, 2000);
+// SPA pages: wait for DOMContentLoaded, and fallback for delayed content
+document.addEventListener('DOMContentLoaded', createFloatingBar);
+setTimeout(createFloatingBar, 3500);
     
     // --- Track status reporting (mock AndBridge) ---
     (function trackStatusReporter() {
