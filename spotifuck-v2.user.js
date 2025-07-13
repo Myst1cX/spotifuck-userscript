@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Spotifuck 1.4.1 Full UI & Logic Port for open.spotify.com
+// @name         Spotifuck v2 
 // @namespace    https://github.com/yourname/spotifuck-userscript
-// @version      1.0.0
+// @version      2.0.0
 // @description  Full Spotifuck 1.4.1 UI hack + playback control + spoof + silent ad blocking on open.spotify.com
 // @author       ChatGPT (adapted from Spotifuck reverse-engineering)
 // @match        https://open.spotify.com/*
