@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Spotifuck Userscript v5
+// @name         Spotifuck Userscript v6
 // @namespace    https://github.com/yourname/spotifuck-userscript
-// @version      5.0.0
+// @version      6.0.0
 // @description  Full Spotifuck 1.4.1 UI hack + playback control + spoof + silent ad blocking on open.spotify.com
 // @author       ChatGPT (adapted from Spotifuck reverse-engineering)
 // @match        https://open.spotify.com/*
