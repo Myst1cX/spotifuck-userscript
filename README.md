@@ -50,6 +50,7 @@
 
 * * *
 > **TIP 1:** All UI changes and playback controls apply instantly. No configuration needed!
+
 > **TIP 2:** Add Spotify Web Player to your home screen for a PWA-like experience.  
 
 * * *
