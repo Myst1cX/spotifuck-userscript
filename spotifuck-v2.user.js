@@ -113,29 +113,29 @@
     `);
 
     // --- Sidebar toggle logic ---
-    function switchLs() {
-        const ls = document.querySelector('#Desktop_LeftSidebar_Id');
-        if (!ls) return;
-        const navFirstChild = ls.querySelector('nav > div > div:first-child');
+    function switchLeftSidebar() {
+        const leftSidebar = document.querySelector('#Desktop_LeftSidebar_Id');
+        if (!leftSidebar) return;
+        const navFirstChild = leftSidebar.querySelector('nav > div > div:first-child');
         if (!navFirstChild) return;
-        const exp = navFirstChild.classList.length;
-        if (exp === 2) {
+        const isExpanded = navFirstChild.classList.length === 2;
+        if (isExpanded) {
             // Expanded
-            ls.style.position = 'fixed';
-            ls.style.width = '100%';
-            ls.style.height = '92%';
-            ls.style.left = '0';
-            ls.style.zIndex = '20';
-            const lh = ls.querySelector('header > div > div:first-child h1');
-            if (lh) lh.innerText = '✖ Close Library';
+            leftSidebar.style.position = 'fixed';
+            leftSidebar.style.width = '100%';
+            leftSidebar.style.height = '92%';
+            leftSidebar.style.left = '0';
+            leftSidebar.style.zIndex = '20';
+            const libraryHeader = leftSidebar.querySelector('header > div > div:first-child h1');
+            if (libraryHeader) libraryHeader.innerText = '✖ Close Library';
         } else {
             // Collapsed
-            ls.style.zIndex = '1';
-            ls.style.position = 'fixed';
-            ls.style.top = '2px';
-            ls.style.left = '120px';
-            ls.style.width = '50px';
-            ls.style.height = '40px';
+            leftSidebar.style.zIndex = '1';
+            leftSidebar.style.position = 'fixed';
+            leftSidebar.style.top = '2px';
+            leftSidebar.style.left = '120px';
+            leftSidebar.style.width = '50px';
+            leftSidebar.style.height = '40px';
         }
     }
 
@@ -144,89 +144,89 @@
         // Prevent double-inject
         if (document.querySelector('#Desktop_LeftSidebar_Id .fuckd')) return;
 
-        const lb = document.querySelector('#Desktop_LeftSidebar_Id header > div > div:first-child button:not(.fuckd)');
-        if (lb) {
-            lb.classList.add('fuckd');
-            lb.style.padding = '0';
-            lb.style.height = '20px';
-            lb.addEventListener('click', () => setTimeout(switchLs, 0));
-            switchLs();
+        const libraryButton = document.querySelector('#Desktop_LeftSidebar_Id header > div > div:first-child button:not(.fuckd)');
+        if (libraryButton) {
+            libraryButton.classList.add('fuckd');
+            libraryButton.style.padding = '0';
+            libraryButton.style.height = '20px';
+            libraryButton.addEventListener('click', () => setTimeout(switchLeftSidebar, 0));
+            switchLeftSidebar();
         }
 
-        const lbit = document.querySelector('#Desktop_LeftSidebar_Id div[role=grid]:not(.fuckd)');
-        if (lbit) {
-            lbit.classList.add('fuckd');
-            lbit.addEventListener('click', () => setTimeout(() => {
-                const lbb = document.querySelector('button.fuckd');
-                if (lbb) lbb.click();
+        const libraryGridItems = document.querySelector('#Desktop_LeftSidebar_Id div[role=grid]:not(.fuckd)');
+        if (libraryGridItems) {
+            libraryGridItems.classList.add('fuckd');
+            libraryGridItems.addEventListener('click', () => setTimeout(() => {
+                const libraryButtonClicked = document.querySelector('button.fuckd');
+                if (libraryButtonClicked) libraryButtonClicked.click();
             }, 0));
         }
 
-        const cb = document.querySelector('#Desktop_LeftSidebar_Id header > div > div:last-child');
-        if (cb) cb.style.display = 'none';
+        const createButton = document.querySelector('#Desktop_LeftSidebar_Id header > div > div:last-child');
+        if (createButton) createButton.style.display = 'none';
 
-        const ft = document.querySelector('div.main-view-container__mh-footer-container');
-        if (ft) ft.style.display = 'none';
+        const footerContainer = document.querySelector('div.main-view-container__mh-footer-container');
+        if (footerContainer) footerContainer.style.display = 'none';
     }
 
     // --- Hide now playing bar on search focus ---
     function addSearchFocusListeners() {
-        const sr = document.querySelector('input[data-testid=search-input]:not(.fuckd)');
-        if (!sr) return;
-        sr.classList.add('fuckd');
-        sr.addEventListener('focus', () => {
-            const npb = document.querySelector('aside[data-testid=now-playing-bar]');
-            if (npb) npb.style.display = 'none';
-            const cb = document.querySelector('button[data-testid=control-button-npv][aria-pressed=true]');
-            if (cb) cb.click();
+        const searchInput = document.querySelector('input[data-testid=search-input]:not(.fuckd)');
+        if (!searchInput) return;
+        searchInput.classList.add('fuckd');
+        searchInput.addEventListener('focus', () => {
+            const nowPlayingBar = document.querySelector('aside[data-testid=now-playing-bar]');
+            if (nowPlayingBar) nowPlayingBar.style.display = 'none';
+            const controlButtonNpv = document.querySelector('button[data-testid=control-button-npv][aria-pressed=true]');
+            if (controlButtonNpv) controlButtonNpv.click();
         });
-        sr.addEventListener('blur', () => {
-            const npb = document.querySelector('aside[data-testid=now-playing-bar]');
-            if (npb) npb.style.display = 'inherit';
+        searchInput.addEventListener('blur', () => {
+            const nowPlayingBar = document.querySelector('aside[data-testid=now-playing-bar]');
+            if (nowPlayingBar) nowPlayingBar.style.display = 'inherit';
         });
     }
 
     // --- Playback control injection ---
     window.actPlayPause = function(play) {
-        const pb = document.querySelector('aside button[data-testid=control-button-playpause]');
-        if (!pb) return;
-        const ariaLabel = pb.getAttribute('aria-label');
+        const playPauseButton = document.querySelector('aside button[data-testid=control-button-playpause]');
+        if (!playPauseButton) return;
+        const ariaLabel = playPauseButton.getAttribute('aria-label');
         if (ariaLabel === 'Play') {
-            if (play === undefined || play) pb.click();
+            if (play === undefined || play) playPauseButton.click();
         } else {
-            if (play === undefined || !play) pb.click();
+            if (play === undefined || !play) playPauseButton.click();
         }
     };
     window.actSkipBack = function() {
-        const bb = document.querySelector('button[data-testid=control-button-skip-back]');
-        if (bb) bb.click();
+        const skipBackButton = document.querySelector('button[data-testid=control-button-skip-back]');
+        if (skipBackButton) skipBackButton.click();
     };
     window.actSkipForward = function() {
-        const fb = document.querySelector('button[data-testid=control-button-skip-forward]');
-        if (fb) fb.click();
+        const skipForwardButton = document.querySelector('button[data-testid=control-button-skip-forward]');
+        if (skipForwardButton) skipForwardButton.click();
     };
     window.actSeek = function(pos) {
-        const rg = document.querySelector('div[data-testid=playback-progressbar] input[type=range]');
-        if (!rg) return;
-        rg.value = pos;
-        rg.dispatchEvent(new Event('change', { bubbles: true }));
+        const playbackProgressBar = document.querySelector('div[data-testid=playback-progressbar] input[type=range]');
+        if (!playbackProgressBar) return;
+        playbackProgressBar.value = pos;
+        playbackProgressBar.dispatchEvent(new Event('change', { bubbles: true }));
     };
     
     // --- Track status reporting (mock AndBridge) ---
     (function trackStatusReporter() {
         let lastState = null;
         setInterval(() => {
-            const ta = document.querySelector('a[data-testid=context-item-link]');
-            const track = ta ? ta.text : null;
-            const aa = document.querySelector('a[data-testid=context-item-info-artist]');
-            const artist = aa ? aa.text : null;
-            const pb = document.querySelector('aside button[data-testid=control-button-playpause]');
-            const playing = pb && pb.getAttribute('aria-label') !== 'Play';
-            const rg = document.querySelector('div[data-testid=playback-progressbar] input[type=range]');
-            const duration = rg ? parseInt(rg.getAttribute('max')) : null;
-            const position = rg ? parseInt(rg.value) : null;
-            const im = document.querySelector('img[data-testid=cover-art-image]');
-            const cover = im ? im.src : null;
+            const contextItemLink = document.querySelector('a[data-testid=context-item-link]');
+            const track = contextItemLink ? contextItemLink.text : null;
+            const contextItemArtist = document.querySelector('a[data-testid=context-item-info-artist]');
+            const artist = contextItemArtist ? contextItemArtist.text : null;
+            const playPauseButton = document.querySelector('aside button[data-testid=control-button-playpause]');
+            const playing = playPauseButton && playPauseButton.getAttribute('aria-label') !== 'Play';
+            const playbackProgressBar = document.querySelector('div[data-testid=playback-progressbar] input[type=range]');
+            const duration = playbackProgressBar ? parseInt(playbackProgressBar.getAttribute('max')) : null;
+            const position = playbackProgressBar ? parseInt(playbackProgressBar.value) : null;
+            const coverArtImage = document.querySelector('img[data-testid=cover-art-image]');
+            const cover = coverArtImage ? coverArtImage.src : null;
             const currState = track + '|' + artist + '|' + playing;
             if (currState !== lastState) {
                 lastState = currState;
@@ -240,9 +240,9 @@
     (function autoplayOnLoad() {
         let playClicked = false;
         const interval = setInterval(() => {
-            const pb = document.querySelector('aside button[data-testid=control-button-playpause][aria-label=Play]');
-            if (pb && !playClicked) {
-                pb.click();
+            const playPauseButton = document.querySelector('aside button[data-testid=control-button-playpause][aria-label=Play]');
+            if (playPauseButton && !playClicked) {
+                playPauseButton.click();
                 playClicked = true;
                 console.log('[Spotifuck] Autoplay triggered');
                 clearInterval(interval);
