@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Spotifuck Userscript v2
+// @name         Spotifuck Userscript v3
 // @namespace    https://github.com/yourname/spotifuck-userscript
-// @version      2.0.0
+// @version      3.0.0
 // @description  Full Spotifuck 1.4.1 UI hack + playback control + client spoof + silent ad blocking port on open.spotify.com
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        https://open.spotify.com/*
@@ -52,7 +52,7 @@
         }
         aside[data-testid="now-playing-bar"] {
             min-width: 100% !important;
-            background: #330000 !important;
+            background: #000 !important;
         }
         aside[data-testid="now-playing-bar"] > div {
             margin-top: 2px !important;
@@ -211,7 +211,7 @@
         playbackProgressBar.value = pos;
         playbackProgressBar.dispatchEvent(new Event('change', { bubbles: true }));
     };
-    
+
     // --- Track status reporting (mock AndBridge) ---
     (function trackStatusReporter() {
         let lastState = null;
