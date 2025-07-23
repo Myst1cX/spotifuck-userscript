@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         spotifuck userscript v4
+// @name         Testing v%
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      4.0.0
+// @version      5.0.0
 // @description  Complete Spotifuck 1.5.0 port with all features: UI hacks, auto-play, controls, consent automation, ad blocking
 // @author       Myst1cX (ported from Spotifuck Android app)
 // @match        https://open.spotify.com/*
@@ -14,8 +14,8 @@
 // @run-at       document-start
 // @homepageURL  https://github.com/Myst1cX/spotifuck-userscript
 // @supportURL   https://github.com/Myst1cX/spotifuck-userscript/issues
-// @updateURL    https://raw.githubusercontent.com/Myst1cX/spotifuck-userscript/main/spotifuck-v4.user.js
-// @downloadURL  https://raw.githubusercontent.com/Myst1cX/spotifuck-userscript/main/spotifuck-v4.user.js
+// @updateURL    https://raw.githubusercontent.com/Myst1cX/spotifuck-userscript/main/spotifuck-v5.user.js
+// @downloadURL  https://raw.githubusercontent.com/Myst1cX/spotifuck-userscript/main/spotifuck-v5.user.js
 // ==/UserScript==
 
 (function() {
