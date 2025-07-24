@@ -169,6 +169,8 @@
         if (footerContainer) footerContainer.style.display = 'none';
     }
     // --- NowPlayingView logic: Allow only user-initiated opens ---
+    /* The following code is already present in Spotify Lyrics+ Userscript, hence I commented it out below: */
+/*
        let userOpenedNPV = false;
 
 const NPV_BTN_SELECTOR = 'button[data-testid="control-button-npv"]';
@@ -215,7 +217,9 @@ setTimeout(() => {
     if (npv && npv.offsetParent !== null && !userOpenedNPV) {
         closeNPV();
     }
-}, 1000);
+}, 1000); 
+
+*/
 
     // --- Playback control injection ---
     window.actPlayPause = function(play) {
