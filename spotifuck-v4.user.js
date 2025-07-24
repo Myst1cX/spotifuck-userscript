@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Userscript v4
 // @namespace    https://github.com/yourname/spotifuck-userscript
-// @version      4.0.0
+// @version      4.1.0
 // @description  Full Spotifuck 1.4.1 UI hack + playback control + client spoof + silent ad blocking port on open.spotify.com
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        https://open.spotify.com/*
