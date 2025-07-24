@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Userscript v2
 // @namespace    https://github.com/yourname/spotifuck-userscript
-// @version      2.0.1
+// @version      2.1.0
 // @description  Full Spotifuck 1.4.1 UI hack for mobile browser + playback control + spoofclient + silent ad blocking
 // @author       Myst1cX (adapted from Spotifuck reverse-engineering)
 // @match        https://open.spotify.com/*
