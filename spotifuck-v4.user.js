@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Userscript v4
 // @namespace    https://github.com/yourname/spotifuck-userscript
-// @version      4.1.0
+// @version      4.2.0
 // @description  Full Spotifuck 1.4.1 UI hack + playback control + client spoof + silent ad blocking port on open.spotify.com
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        https://open.spotify.com/*
@@ -168,58 +168,30 @@
         const footerContainer = document.querySelector('div.main-view-container__mh-footer-container');
         if (footerContainer) footerContainer.style.display = 'none';
     }
-    // --- NowPlayingView logic: Allow only user-initiated opens ---
-    /* The following code is already present in Spotify Lyrics+ Userscript, hence I commented it out below: */
-/*
-       let userOpenedNPV = false;
 
-const NPV_BTN_SELECTOR = 'button[data-testid="control-button-npv"]';
-const NPV_VIEW_SELECTOR = '.NowPlayingView, aside[data-testid="now-playing-bar"]';
-const HIDE_BTN_SELECTOR = 'button[aria-label="Hide Now Playing view"]';
+// --- Forcibly hide NowPlayingView and its button in the playback controls menu ---
+/* The following code is already present in Spotify Lyrics+ Userscript, hence I commented it out below: */
 
-// Track user opening NPV
-document.addEventListener('click', function(e) {
-    const openBtn = e.target.closest(NPV_BTN_SELECTOR);
-    const closeBtn = e.target.closest(HIDE_BTN_SELECTOR);
-    if (openBtn && e.isTrusted) {
-        userOpenedNPV = true;
+    /*
+    
+    const styleId = 'lyricsplus-hide-npv-style';
+    if (!document.getElementById(styleId)) {
+        const style = document.createElement('style');
+        style.id = styleId;
+        style.textContent = `
+            .NowPlayingView,
+            .OTfMDdomT5S7B5dbYTT8:has(.NowPlayingView) {
+                width: 0 !important;
+                display: none !important;
+            }
+            [data-testid=control-button-npv] {
+                display: none !important;
+            }
+        `;
+        document.head.appendChild(style);
     }
-    if (closeBtn && e.isTrusted) {
-        userOpenedNPV = false;
-    }
-    // Still block synthetic (non-trusted) opens
-    if (openBtn && !e.isTrusted) {
-        e.stopImmediatePropagation();
-        e.preventDefault();
-    }
-}, true);
 
-// Close NPV only if it was NOT opened by the user
-function closeNPV() {
-    const hideBtn = document.querySelector(HIDE_BTN_SELECTOR);
-    if (hideBtn && hideBtn.offsetParent !== null) {
-        hideBtn.click();
-    }
-}
-
-const observer = new MutationObserver(() => {
-    const npv = document.querySelector(NPV_VIEW_SELECTOR);
-    // If NPV is open and user didn't open it, close it
-    if (npv && npv.offsetParent !== null && !userOpenedNPV) {
-        closeNPV();
-    }
-});
-observer.observe(document.body, { childList: true, subtree: true });
-
-// On page load, ensure NPV is closed if not user-initiated
-setTimeout(() => {
-    const npv = document.querySelector(NPV_VIEW_SELECTOR);
-    if (npv && npv.offsetParent !== null && !userOpenedNPV) {
-        closeNPV();
-    }
-}, 1000); 
-
-*/
+    */
 
     // --- Playback control injection ---
     window.actPlayPause = function(play) {
