@@ -1,11 +1,15 @@
 // ==UserScript==
-// @name         Spotifuck Userscript v4 - Complete Android Port
+// @name         Spotifuck Userscript v5 - Complete Android Port with Settings UI
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      4.4.0
-// @description  Complete port of Spotifuck 1.5.2 with full feature parity
+// @version      5.0.0
+// @description  Complete port of Spotifuck 1.5.2 with full feature parity and user-friendly settings UI
 // @author       Myst1cX (ported from Spotifuck Android app)
 // @match        https://open.spotify.com/*
 // @grant        GM_addStyle
+// @grant        GM_getValue
+// @grant        GM_setValue
+// @grant        GM_registerMenuCommand
+// @require      https://openuserjs.org/src/libs/sizzle/GM_config.js
 // @run-at       document-start
 // @homepageURL  https://github.com/Myst1cX/spotifuck-userscript
 // @supportURL   https://github.com/Myst1cX/spotifuck-userscript/issues
@@ -79,12 +83,32 @@
  * CONFIGURATION:
  * -------------
  * All features are enabled by default to match Android app defaults.
- * Configuration can be modified by changing localStorage values:
+ * 
+ * SETTINGS UI ACCESS:
+ * Access the settings through your userscript manager menu:
+ * - Violentmonkey: Click extension icon → "Spotifuck Settings"
+ * - Tampermonkey: Click extension icon → "Spotifuck Settings"
+ * 
+ * AVAILABLE SETTINGS:
+ * - GUI Mode: Controls UI modifications ("csshack" enables full UI hacks, "disabled" uses default UI)
+ * - Autoplay Mode: Controls automatic playback ("disabled", "onetime", "permanent")
+ * - Take Control: Automatically takes playback control from other devices
+ * - Close Now Playing: Automatically closes the now playing view
+ * - Android Auto: Enables media status reporting and library management
+ * - Force English: Forces English language interface
+ * - Swipe Stop: Enables swipe gestures for playback control
+ * - Auto Sleep Duration: Automatic sleep timer (0 = disabled)
+ * 
+ * LEGACY CONFIGURATION (still supported):
+ * Configuration can also be modified by changing localStorage values:
  * - spotifuck_APlayMode: "disabled" | "onetime" | "permanent"
  * - spotifuck_CloseNowPlay: "true" | "false"
  * - spotifuck_TakeControl: "true" | "false"
  * - spotifuck_GuiMode: "csshack" | "disabled"
  * - spotifuck_AndAuto: "true" | "false"
+ * - spotifuck_ForceEn: "true" | "false"
+ * - spotifuck_SwipeStop: "true" | "false"
+ * - spotifuck_AutoSleep: "0" (minutes)
  * 
  * DEBUGGING:
  * ---------
@@ -98,6 +122,112 @@
 (function() {
     'use strict';
 
+    // === GM_CONFIG SETTINGS UI ===
+    // Initialize GM_config for user-friendly settings management
+    
+    GM_config.init({
+        'id': 'SpotifuckConfig',
+        'title': 'Spotifuck Settings',
+        'fields': {
+            'guiMode': {
+                'label': 'GUI Mode',
+                'type': 'select',
+                'options': ['csshack', 'disabled'],
+                'default': 'csshack',
+                'save': true
+            },
+            'autoPlayMode': {
+                'label': 'Autoplay Mode',
+                'type': 'select',
+                'options': ['disabled', 'onetime', 'permanent'],
+                'default': 'disabled',
+                'save': true
+            },
+            'shouldTakeControl': {
+                'label': 'Take Control',
+                'type': 'checkbox',
+                'default': true,
+                'save': true
+            },
+            'shouldCloseNowPlaying': {
+                'label': 'Close Now Playing',
+                'type': 'checkbox',
+                'default': false,
+                'save': true
+            },
+            'androidAutoEnabled': {
+                'label': 'Android Auto',
+                'type': 'checkbox',
+                'default': true,
+                'save': true
+            },
+            'forceEnglish': {
+                'label': 'Force English',
+                'type': 'checkbox',
+                'default': false,
+                'save': true
+            },
+            'swipeStopEnabled': {
+                'label': 'Swipe Stop',
+                'type': 'checkbox',
+                'default': true,
+                'save': true
+            },
+            'autoSleepDuration': {
+                'label': 'Auto Sleep Duration (minutes)',
+                'type': 'int',
+                'default': 0,
+                'save': true
+            }
+        },
+        'events': {
+            'save': function() {
+                GM_config.close();
+                // Force reload to apply new settings
+                if (confirm('Settings saved! Reload the page to apply changes?')) {
+                    window.location.reload();
+                }
+            }
+        },
+        'css': `
+            #SpotifuckConfig {
+                background: #1db954 !important;
+                color: #fff !important;
+            }
+            #SpotifuckConfig .config_header {
+                background: #191414 !important;
+                color: #fff !important;
+                font-size: 16px !important;
+                padding: 15px !important;
+            }
+            #SpotifuckConfig .field_label {
+                color: #fff !important;
+                font-weight: bold !important;
+            }
+            #SpotifuckConfig input, #SpotifuckConfig select {
+                background: #333 !important;
+                color: #fff !important;
+                border: 1px solid #1db954 !important;
+            }
+            #SpotifuckConfig button {
+                background: #1db954 !important;
+                color: #fff !important;
+                border: none !important;
+                padding: 8px 16px !important;
+                border-radius: 4px !important;
+                cursor: pointer !important;
+            }
+            #SpotifuckConfig button:hover {
+                background: #1ed760 !important;
+            }
+        `
+    });
+
+    // Register menu command for settings access
+    GM_registerMenuCommand('Spotifuck Settings', function() {
+        GM_config.open();
+    });
+
     // === SPOTIFUCK STATE MANAGEMENT ===
     // Port of AppSingleton.java configuration system using localStorage
     // Maps all static variables (f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w) to descriptive names
@@ -105,22 +235,46 @@
     class SpotifuckConfig {
         constructor() {
             // Default values matching AppSingleton.java defaults
+            // Read from GM_config first, then localStorage for backwards compatibility
             this.serviceEnabled = this.getBoolean("ServiceOn", true);           // AppSingleton.m
             this.isLoggedIn = this.getBoolean("LoggedIn", false);               // AppSingleton.n
-            this.autoPlayMode = this.getString("APlayMode", "disabled");        // AppSingleton.k 
-            this.shouldCloseNowPlaying = this.getBoolean("CloseNowPlay", false); // AppSingleton.p
-            this.shouldTakeControl = this.getBoolean("TakeControl", true);      // AppSingleton.o
-            this.guiMode = this.getString("GuiMode", "csshack");                // AppSingleton.l
-            this.androidAutoEnabled = this.getBoolean("AndAuto", true);         // AppSingleton.q
-            this.swipeStopEnabled = this.getBoolean("SwipeStop", true);         // AppSingleton.r
-            this.autoSleepDuration = parseInt(this.getString("AutoSleep", "0")); // AppSingleton.t
-            this.forceEnglish = this.getBoolean("ForceEn", false);              // AppSingleton.s
+            this.autoPlayMode = this.getConfigValue("autoPlayMode", "APlayMode", "disabled");        // AppSingleton.k 
+            this.shouldCloseNowPlaying = this.getConfigValue("shouldCloseNowPlaying", "CloseNowPlay", false); // AppSingleton.p
+            this.shouldTakeControl = this.getConfigValue("shouldTakeControl", "TakeControl", true);      // AppSingleton.o
+            this.guiMode = this.getConfigValue("guiMode", "GuiMode", "csshack");                // AppSingleton.l
+            this.androidAutoEnabled = this.getConfigValue("androidAutoEnabled", "AndAuto", true);         // AppSingleton.q
+            this.swipeStopEnabled = this.getConfigValue("swipeStopEnabled", "SwipeStop", true);         // AppSingleton.r
+            this.autoSleepDuration = this.getConfigValue("autoSleepDuration", "AutoSleep", 0); // AppSingleton.t
+            this.forceEnglish = this.getConfigValue("forceEnglish", "ForceEn", false);              // AppSingleton.s
             
             // Runtime state variables (non-persistent) - AppSingleton static vars
             this.mainActivityRef = null;        // AppSingleton.g (WeakReference simulation)
             this.webViewInstance = null;        // AppSingleton.j (c type WebView)
             this.webViewClientInstance = null;  // AppSingleton.w (e type)
             this.isInitialized = false;         // AppSingleton.u
+        }
+        
+        // Get value from GM_config first, then localStorage, then default
+        getConfigValue(gmKey, localKey, defaultValue) {
+            // Try GM_config first
+            const gmValue = GM_config.get(gmKey);
+            if (gmValue !== undefined && gmValue !== null) {
+                return gmValue;
+            }
+            
+            // Fall back to localStorage for backwards compatibility
+            const stored = localStorage.getItem(`spotifuck_${localKey}`);
+            if (stored !== null) {
+                if (typeof defaultValue === 'boolean') {
+                    return stored === 'true';
+                } else if (typeof defaultValue === 'number') {
+                    return parseInt(stored) || defaultValue;
+                } else {
+                    return stored;
+                }
+            }
+            
+            return defaultValue;
         }
         
         getBoolean(key, defaultValue) {
