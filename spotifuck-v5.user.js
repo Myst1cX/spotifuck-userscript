@@ -303,6 +303,18 @@
     
     // Global configuration instance (replaces AppSingleton static variables)
     const spotifuckState = new SpotifuckConfig();
+    
+    // Debug: Log current configuration
+    console.log('[Spotifuck Config] Current settings:', {
+        guiMode: spotifuckState.guiMode,
+        autoPlayMode: spotifuckState.autoPlayMode,
+        shouldTakeControl: spotifuckState.shouldTakeControl,
+        shouldCloseNowPlaying: spotifuckState.shouldCloseNowPlaying,
+        androidAutoEnabled: spotifuckState.androidAutoEnabled,
+        forceEnglish: spotifuckState.forceEnglish,
+        swipeStopEnabled: spotifuckState.swipeStopEnabled,
+        autoSleepDuration: spotifuckState.autoSleepDuration
+    });
 
     // === CLIENT SPOOFING ===
     // Port of R0.e.onPageStarted() - spoof screen and navigator properties
