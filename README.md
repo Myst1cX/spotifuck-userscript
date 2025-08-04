@@ -39,7 +39,7 @@
 > 4. Recommended: [Spotify AdBlocker](https://greasyfork.org/en/scripts/522592-spotify-adblocker)
 > 5. Recommended - for stock lyrics button: [Cigi Spotify Translator](https://greasyfork.org/en/scripts/523415-cigi-spotify-translator)
 > 6. Recommended: [Spotify Lyrics+](https://raw.githubusercontent.com/Myst1cX/spotify-web-lyrics-plus/main/pip-gui.user.js)
-> 7. Install [Spotifuck](https://raw.githubusercontent.com/Myst1cX/spotifuck-userscript/main/spotifuck-v2.user.js)
+> 7. Install [Spotifuck](https://raw.githubusercontent.com/Myst1cX/spotifuck-userscript/main/spotifuck-v5.user.js)
 > 8. Install Chameleon extension
 > 9. Chameleon extension settings > Profile Panel (globe icon) > Select Random Profile (Desktop)
 > 10. Chameleon extension settings > Options Panel > Select the 'Profile' option under the 'Screen size' option
