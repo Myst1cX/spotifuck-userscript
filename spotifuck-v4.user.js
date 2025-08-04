@@ -8,6 +8,7 @@
 // @grant        GM_addStyle
 // @grant        GM_getValue
 // @grant        GM_setValue
+// @grant        GM_registerMenuCommand
 // @run-at       document-start
 // @homepageURL  https://github.com/Myst1cX/spotifuck-userscript
 // @supportURL   https://github.com/Myst1cX/spotifuck-userscript/issues
@@ -15,16 +16,29 @@
 // @downloadURL  https://raw.githubusercontent.com/Myst1cX/spotifuck-userscript/main/spotifuck-v4.user.js
 // 
 // Configuration options matching AppSingleton.java variables:
-// @config       l {select:"disabled":disabled,"csshack":"csshack","widewindow":"widewindow","mobile+js csshack":"mobile+js csshack"} GuiMode - GUI display mode 
-// @config       k {select:"disabled":"disabled","onetime":"onetime","permanent":"permanent"} APlayMode - Auto-play mode
-// @config       m {boolean:true} ServiceOn - Enable service functionality
-// @config       n {boolean:false} LoggedIn - User logged in status  
-// @config       o {boolean:true} TakeControl - Take control of playback device
-// @config       p {boolean:false} CloseNowPlay - Auto-close Now Playing view
-// @config       q {boolean:true} AndAuto - Enable Android auto features
-// @config       r {boolean:true} SwipeStop - Enable swipe to stop
-// @config       s {boolean:false} ForceEn - Force English language
-// @config       t {number:0} AutoSleep - Auto sleep timer (minutes)
+// 
+// GuiMode options (AppSingleton.l):
+//   - "disabled": No GUI modifications applied
+//   - "csshack": Full CSS modifications for mobile-optimized layout (default)
+//   - "widewindow": Wide window layout for larger screens  
+//   - "mobile+js csshack": Mobile layout with enhanced JavaScript features
+//
+// APlayMode options (AppSingleton.k): 
+//   - "disabled": No auto-play functionality (default)
+//   - "onetime": Auto-play once when page loads
+//   - "permanent": Continuously auto-play when paused
+//
+// Boolean options map directly to AppSingleton Java variables:
+//   - ServiceOn (m): Enable core service functionality [default: true]
+//   - LoggedIn (n): User login status detection [default: false] 
+//   - TakeControl (o): Auto-take control of playback device [default: true]
+//   - CloseNowPlay (p): Auto-close Now Playing view [default: false]
+//   - AndAuto (q): Enable media tracking and Android auto features [default: true]
+//   - SwipeStop (r): Enable swipe gesture detection [default: true]*
+//   - ForceEn (s): Force English language [default: false]*
+//   - AutoSleep (t): Auto-sleep timer in minutes [default: 0 = disabled]
+//
+// * Features marked with * have limited userscript implementation
 // ==/UserScript==
 
 (function() {
@@ -67,6 +81,42 @@
     let position = null;
     let cover = null;
 
+    // --- Settings configuration menu ---
+    if (typeof GM_registerMenuCommand !== 'undefined') {
+        GM_registerMenuCommand('Spotifuck Settings', showSettingsDialog);
+    }
+
+    function showSettingsDialog() {
+        const settings = [
+            { key: 'l', name: 'GuiMode', type: 'select', options: ['disabled', 'csshack', 'widewindow', 'mobile+js csshack'], current: AppSingleton.l },
+            { key: 'k', name: 'APlayMode', type: 'select', options: ['disabled', 'onetime', 'permanent'], current: AppSingleton.k },
+            { key: 'm', name: 'ServiceOn', type: 'boolean', current: AppSingleton.m },
+            { key: 'n', name: 'LoggedIn', type: 'boolean', current: AppSingleton.n },
+            { key: 'o', name: 'TakeControl', type: 'boolean', current: AppSingleton.o },
+            { key: 'p', name: 'CloseNowPlay', type: 'boolean', current: AppSingleton.p },
+            { key: 'q', name: 'AndAuto', type: 'boolean', current: AppSingleton.q },
+            { key: 'r', name: 'SwipeStop', type: 'boolean', current: AppSingleton.r },
+            { key: 's', name: 'ForceEn', type: 'boolean', current: AppSingleton.s },
+            { key: 't', name: 'AutoSleep (minutes)', type: 'number', current: AppSingleton.t }
+        ];
+
+        let dialog = 'Spotifuck Settings:\n\n';
+        settings.forEach((setting, index) => {
+            if (setting.type === 'select') {
+                dialog += `${index + 1}. ${setting.name}: ${setting.current} (options: ${setting.options.join(', ')})\n`;
+            } else if (setting.type === 'boolean') {
+                dialog += `${index + 1}. ${setting.name}: ${setting.current ? 'enabled' : 'disabled'}\n`;
+            } else {
+                dialog += `${index + 1}. ${setting.name}: ${setting.current}\n`;
+            }
+        });
+
+        dialog += '\nTo change settings, use your userscript manager\'s built-in configuration or edit the script values directly.\n';
+        dialog += 'Current values are shown above. Reload the page after making changes.';
+        
+        alert(dialog);
+    }
+
     // --- Mock AndBridge interface (userscript equivalent of Android bridge) ---
     const AndBridge = {
         wakeUp: () => {
@@ -85,11 +135,29 @@
             console.log('[AndBridge] playLoaded() - Play button detected');
         },
         manageSleep: (enable) => {
-            // TODO: Sleep management handled differently in userscript context
+            // Auto-sleep functionality based on AppSingleton.t 
             console.log(`[AndBridge] manageSleep(${enable})`);
-            if (AppSingleton.t > 0 && !enable) {
-                // Auto-sleep timer logic could be implemented here
-                console.log(`[AndBridge] Auto-sleep timer: ${AppSingleton.t} minutes`);
+            if (AppSingleton.t > 0) {
+                if (!enable) {
+                    // Start sleep timer when playback stops
+                    if (window.spotifuckSleepTimer) {
+                        clearTimeout(window.spotifuckSleepTimer);
+                    }
+                    window.spotifuckSleepTimer = setTimeout(() => {
+                        console.log(`[AndBridge] Auto-sleep triggered after ${AppSingleton.t} minutes`);
+                        // TODO: In userscript context, we can't actually put device to sleep
+                        // This could be extended to pause playback or show notification
+                        if (window.pBtn && window.pBtn.getAttribute('aria-label') !== 'Play') {
+                            window.pBtn.click(); // Pause playback
+                        }
+                    }, AppSingleton.t * 60 * 1000); // Convert minutes to milliseconds
+                } else {
+                    // Cancel sleep timer when playback starts
+                    if (window.spotifuckSleepTimer) {
+                        clearTimeout(window.spotifuckSleepTimer);
+                        window.spotifuckSleepTimer = null;
+                    }
+                }
             }
         },
         deferMessage: (msg) => {
@@ -728,6 +796,7 @@
     // --- Main initialization function (equivalent to R0.e.java onPageFinished) ---
     function initSpotifuck() {
         console.log('[Spotifuck] Initializing with settings:', AppSingleton);
+        console.log('[Spotifuck] GuiMode:', AppSingleton.l, '| APlayMode:', AppSingleton.k, '| ServiceOn:', AppSingleton.m);
         
         // Check for login first
         if (checkForLogin()) {
