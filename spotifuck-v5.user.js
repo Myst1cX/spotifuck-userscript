@@ -1,16 +1,16 @@
 // ==UserScript==
-// @name         Spotifuck Userscript v7
+// @name         Spotifuck Userscript v5
 // @namespace    https://github.com/yourname/spotifuck-userscript
-// @version      4.5.0
-// @description  Full Spotifuck 1.4.1 UI hack + playback control + client spoof + silent ad blocking port on open.spotify.com
+// @version      5.0.0
+// @description  Full Spotifuck 1.5.2 UI hack (with minor tweaks) + playback control + silent ad blocking port on open.spotify.com
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        https://open.spotify.com/*
 // @grant        GM_addStyle
 // @run-at       document-start
 // @homepageURL  https://github.com/Myst1cX/spotifuck-userscript
 // @supportURL   https://github.com/Myst1cX/spotifuck-userscript/issues
-// @updateURL    https://raw.githubusercontent.com/Myst1cX/spotifuck-userscript/main/spotifuck-v7.user.js
-// @downloadURL  https://raw.githubusercontent.com/Myst1cX/spotifuck-userscript/main/spotifuck-v7.user.js
+// @updateURL    https://raw.githubusercontent.com/Myst1cX/spotifuck-userscript/main/spotifuck-v5.user.js
+// @downloadURL  https://raw.githubusercontent.com/Myst1cX/spotifuck-userscript/main/spotifuck-v5.user.js
 // ==/UserScript==
 
 (function() {
@@ -36,7 +36,6 @@
 
     // --- Inject Spotifuck CSS hacks ---
     GM_addStyle(`
-            /* Core body and root styling */
             body {
                 min-width: 100% !important;
                 min-height: 100% !important;
@@ -222,11 +221,6 @@
                 overflow: hidden;
             }
 
-            form[role="search"] {
-                z-index: 10;
-                margin-left: 50px;
-            }
-
             div[data-testid="now-playing-widget"] > div:last-child > button {
                 transform: scale(1.3);
             }
@@ -258,7 +252,7 @@
                 transform: none !important;
                 overflow: hidden !important;
             }
-        `;
+        `);
     
     // --- Sidebar toggle logic ---
     function switchLeftSidebar() {
