@@ -258,7 +258,7 @@
                 transform: none !important;
                 overflow: hidden !important;
             }
-        `;
+        `);
     
     // --- Sidebar toggle logic ---
     function switchLeftSidebar() {
