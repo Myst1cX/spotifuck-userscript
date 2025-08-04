@@ -30,7 +30,6 @@
         ServiceOn: true,
         LoggedIn: false,
         APlayMode: "disabled", // "disabled", "onetime", "permanent"
-        CloseNowPlay: false,   // Updated from Java: default false
         TakeControl: true,
         GuiMode: "csshack", // "csshack" or other modes
         AndAuto: true,
@@ -57,10 +56,6 @@
 
         GM_registerMenuCommand(`🎵 Auto-Play: ${settings.APlayMode}`, () => {
             cycleSetting('APlayMode', ['disabled', 'onetime', 'permanent']);
-        });
-
-        GM_registerMenuCommand(`❌ Close Now Playing: ${settings.CloseNowPlay ? 'ON' : 'OFF'}`, () => {
-            toggleSetting('CloseNowPlay');
         });
 
         GM_registerMenuCommand(`🎮 Take Control: ${settings.TakeControl ? 'ON' : 'OFF'}`, () => {
@@ -111,7 +106,6 @@ Current Spotifuck Settings:
 ⚡ Service: ${settings.ServiceOn ? 'ON' : 'OFF'}
 🔐 Logged In: ${settings.LoggedIn ? 'YES' : 'NO'}
 🎵 Auto-Play Mode: ${settings.APlayMode}
-❌ Close Now Playing: ${settings.CloseNowPlay ? 'ON' : 'OFF'}
 🎮 Take Control: ${settings.TakeControl ? 'ON' : 'OFF'}
 🎨 GUI Mode: ${settings.GuiMode}
 🤖 Android Auto: ${settings.AndAuto ? 'ON' : 'OFF'}
@@ -719,17 +713,6 @@ Changes require page reload to take effect.`;
             }
         }
 
-        // Enhanced CloseNowPlay feature
-        if (settings.CloseNowPlay) {
-            const closeNowPlayInterval = setInterval(() => {
-                const nowPlayingOverlay = document.querySelector('button[data-testid="control-button-npv"][aria-pressed="true"]');
-                if (nowPlayingOverlay) {
-                    console.log('[Spotifuck] Closing now playing overlay');
-                    nowPlayingOverlay.click();
-                }
-            }, 5000);
-        }
-
         // Enhanced TakeControl feature with improved selectors
         if (settings.TakeControl) {
             const takeControlInterval = setInterval(() => {
@@ -771,11 +754,6 @@ Changes require page reload to take effect.`;
                 libraryGrid.addEventListener('click', () => setTimeout(() => {
                     console.log('[Spotifuck] Auto-closing library on grid click');
                     if (leftSidebarButton) leftSidebarButton.click();
-                    // Close now playing if enabled
-                    if (settings.CloseNowPlay) {
-                        const nowPlayingButton = document.querySelector('button[data-testid="control-button-npv"][aria-pressed="true"]');
-                        if (nowPlayingButton) nowPlayingButton.click();
-                    }
                 }, 0));
             }
 
