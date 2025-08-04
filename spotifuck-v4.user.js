@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Userscript v4 - Complete Android Port
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      4.3.0
+// @version      4.4.0
 // @description  Complete port of Spotifuck Android app (AppSingleton.java + R0.e.java) with full feature parity
 // @author       Myst1cX (ported from Spotifuck Android app)
 // @match        https://open.spotify.com/*
@@ -13,11 +13,94 @@
 // @downloadURL  https://raw.githubusercontent.com/Myst1cX/spotifuck-userscript/main/spotifuck-v4.user.js
 // ==/UserScript==
 
+/*
+ * SPOTIFUCK ANDROID APP COMPLETE PORT
+ * ===================================
+ * 
+ * This userscript is a complete 1:1 port of the Spotifuck Android application,
+ * specifically porting AppSingleton.java and R0.e.java to achieve full feature parity.
+ * 
+ * ANDROID APP MAPPING:
+ * -------------------
+ * AppSingleton.java -> SpotifuckConfig class (state management)
+ * R0.e.java -> SpotifuckJavaScriptInjector class (main logic)
+ * AndBridge interface -> AndBridgeSimulator class (native bridge simulation)
+ * shouldInterceptRequest() -> SpotifuckAdBlocker class (ad blocking)
+ * 
+ * VARIABLE MAPPING FROM ANDROID:
+ * -----------------------------
+ * AppSingleton.f (Context) -> spotifuckState (global config)
+ * AppSingleton.g (WeakReference) -> mainActivityRef (unused in web)
+ * AppSingleton.h (SharedPreferences) -> localStorage wrapper
+ * AppSingleton.i (Editor) -> localStorage setters
+ * AppSingleton.j (WebView) -> webViewInstance (unused in web)
+ * AppSingleton.k (autoplay mode) -> autoPlayMode
+ * AppSingleton.l (GUI mode) -> guiMode
+ * AppSingleton.m (service enabled) -> serviceEnabled
+ * AppSingleton.n (logged in) -> isLoggedIn
+ * AppSingleton.o (take control) -> shouldTakeControl
+ * AppSingleton.p (close now playing) -> shouldCloseNowPlaying
+ * AppSingleton.q (android auto) -> androidAutoEnabled
+ * AppSingleton.r (swipe stop) -> swipeStopEnabled
+ * AppSingleton.s (force english) -> forceEnglish
+ * AppSingleton.t (auto sleep) -> autoSleepDuration
+ * AppSingleton.u (initialized) -> isInitialized
+ * AppSingleton.v (Handler) -> setTimeout/setInterval
+ * AppSingleton.w (WebViewClient) -> webViewClientInstance
+ * 
+ * JAVASCRIPT INJECTION MAPPING:
+ * -----------------------------
+ * R0.e.onPageFinished() -> injectMainFeatures()
+ * R0.e.onPageStarted() -> injectClientSpoofing()
+ * R0.e.shouldInterceptRequest() -> SpotifuckAdBlocker
+ * firstFuck() -> initializePlaybackFeatures()
+ * addAutoFeatures() -> buildAutoFeaturesScript()
+ * addCSSJSHack() -> buildCSSHacksScript()
+ * addAndAuto() -> buildAndroidAutoScript()
+ * 
+ * KEY FEATURES PORTED:
+ * -------------------
+ * ✓ Complete state management system
+ * ✓ Client spoofing (1920x1080 Windows Chrome)
+ * ✓ AndBridge native interface simulation
+ * ✓ Conditional JavaScript injection
+ * ✓ Auto-play modes (disabled/onetime/permanent)
+ * ✓ Take control and close now playing
+ * ✓ Comprehensive CSS hacks and UI modifications
+ * ✓ Silent ad blocking with request interception
+ * ✓ Media status reporting and position tracking
+ * ✓ Player unlock mechanisms for locked states
+ * ✓ Library management and navigation
+ * ✓ Fetch interception for playback state tracking
+ * ✓ Proper interval lifecycle management
+ * ✓ Facebook consent page handling
+ * ✓ SPA navigation change detection
+ * 
+ * CONFIGURATION:
+ * -------------
+ * All features are enabled by default to match Android app defaults.
+ * Configuration can be modified by changing localStorage values:
+ * - spotifuck_APlayMode: "disabled" | "onetime" | "permanent"
+ * - spotifuck_CloseNowPlay: "true" | "false"
+ * - spotifuck_TakeControl: "true" | "false"
+ * - spotifuck_GuiMode: "csshack" | "disabled"
+ * - spotifuck_AndAuto: "true" | "false"
+ * 
+ * DEBUGGING:
+ * ---------
+ * Console logs are enabled for debugging. Look for:
+ * [Spotifuck] - General app messages
+ * [AndBridge] - Native bridge simulation
+ * [AdBlock] - Ad blocking activity
+ * #Spotifuck comments - Injected script activity
+ */
+
 (function() {
     'use strict';
 
     // === SPOTIFUCK STATE MANAGEMENT ===
     // Port of AppSingleton.java configuration system using localStorage
+    // Maps all static variables (f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w) to descriptive names
     
     class SpotifuckConfig {
         constructor() {
@@ -33,7 +116,7 @@
             this.autoSleepDuration = parseInt(this.getString("AutoSleep", "0")); // AppSingleton.t
             this.forceEnglish = this.getBoolean("ForceEn", false);              // AppSingleton.s
             
-            // Runtime state variables (non-persistent)
+            // Runtime state variables (non-persistent) - AppSingleton static vars
             this.mainActivityRef = null;        // AppSingleton.g (WeakReference simulation)
             this.webViewInstance = null;        // AppSingleton.j (c type WebView)
             this.webViewClientInstance = null;  // AppSingleton.w (e type)
@@ -102,6 +185,7 @@
     // === ANDBRIDGE SIMULATION ===
     // Port of android.webkit.addJavascriptInterface() functionality
     // Simulates the native Android bridge for JavaScript communication
+    // Replaces all "AndBridge.methodName()" calls from original R0.e.java
     
     class AndBridgeSimulator {
         constructor(config) {
@@ -184,6 +268,7 @@
 
     // === CORE JAVASCRIPT INJECTION SYSTEM ===
     // Port of R0.e.onPageFinished() - complex conditional JavaScript injection
+    // This is the heart of the Android app, injecting different scripts based on configuration
     
     class SpotifuckJavaScriptInjector {
         constructor(config, bridge) {
@@ -593,8 +678,10 @@
         
         // Execute JavaScript in page context
         executeScript(scriptContent) {
-            // Remove console.log statements if needed (like in original R0.e.java)
-            const cleanedScript = scriptContent.replaceAll(/console\.log\('[^']+'\);/g, "");
+            // Remove console.log statements for production (like original R0.e.java)
+            // const cleanedScript = scriptContent.replaceAll(/console\.log\('[^']+'\);/g, "");
+            // For debugging, keep console logs enabled
+            const cleanedScript = scriptContent;
             
             const scriptElement = document.createElement('script');
             scriptElement.textContent = cleanedScript;
@@ -999,16 +1086,20 @@
         initialize() {
             if (this.isInitialized) return;
             
-            console.log('[Spotifuck] Initializing complete Android app port...');
-            
-            // Inject main features based on login status
-            this.injector.injectMainFeatures();
-            
-            // Set up periodic re-injection for dynamic content
-            this.setupPeriodicInjection();
-            
-            this.isInitialized = true;
-            console.log('[Spotifuck] Initialization complete');
+            try {
+                console.log('[Spotifuck] Initializing complete Android app port...');
+                
+                // Inject main features based on login status
+                this.injector.injectMainFeatures();
+                
+                // Set up periodic re-injection for dynamic content
+                this.setupPeriodicInjection();
+                
+                this.isInitialized = true;
+                console.log('[Spotifuck] Initialization complete - all Android app features active');
+            } catch (error) {
+                console.error('[Spotifuck] Initialization failed:', error);
+            }
         }
         
         // Setup periodic injection to handle dynamic content loading
