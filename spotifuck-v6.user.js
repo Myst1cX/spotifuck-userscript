@@ -266,7 +266,7 @@
         `);
     console.log('[Spotifuck v6] CSS styles injected');
 
-    // --- Move library button to beginning of nav bar ---
+    // --- Move library button between home and search in nav bar ---
     function moveLibraryButtonToNavBar() {
         console.log('[Spotifuck v6] moveLibraryButtonToNavBar() called');
         
@@ -283,6 +283,13 @@
             return;
         }
         
+        // Find home button in nav bar
+        const homeButton = navBar.querySelector('button[data-testid="home-button"]');
+        if (!homeButton) {
+            console.log('[Spotifuck v6] Home button not found in nav bar');
+            return;
+        }
+        
         // Find the original library button in the hidden sidebar
         const libraryButton = document.querySelector('#Desktop_LeftSidebar_Id header > div > div:first-child button');
         if (!libraryButton) {
@@ -290,13 +297,13 @@
             return;
         }
         
-        console.log('[Spotifuck v6] Moving library button to nav bar');
+        console.log('[Spotifuck v6] Moving library button between home and search');
         // Mark it so we know it's been moved
         libraryButton.classList.add('spotifuck-library-moved');
         
-        // Move button to be the FIRST child of nav bar
-        navBar.insertBefore(libraryButton, navBar.firstChild);
-        console.log('[Spotifuck v6] Library button moved to beginning of nav bar');
+        // Insert library button AFTER home button (before search)
+        homeButton.parentNode.insertBefore(libraryButton, homeButton.nextSibling);
+        console.log('[Spotifuck v6] Library button placed between home and search');
     }
 
     // --- Sidebar toggle logic ---
