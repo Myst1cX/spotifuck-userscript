@@ -1,8 +1,11 @@
 ## SPOTIFUCK USERSCRIPT
 
-> Ports the full Spotifuck 1.4.1 UI hack experience directly to the Spotify Web Player for use in the Firefox mobile browser.  
-> Provides **UI enhancements**, **playback controls**, **desktop client spoof**, and **silent ad blocking** for a cleaner and unrestricted Spotify experience.  
+> Ports the full Spotifuck 1.6.4 UI hack experience directly to the Spotify Web Player for use in the Firefox mobile browser.  
+> Provides **UI enhancements**, **playback controls**, **desktop client spoof**, **enhanced ad blocking**, and **Now Playing panel toggle** for a cleaner and unrestricted Spotify experience.  
 > **Recommended userscript manager:** [Violentmonkey](https://violentmonkey.github.io/)
+
+### Latest Version: v6
+> **NEW in v6:** Enhanced ad blocking (blocks tracking domains), Now Playing panel toggle button, classic login helper, improved seek precision, and comprehensive debug logging throughout.
 
 ## Features
 
@@ -17,15 +20,21 @@
 > **CLIENT SPOOFING**  
 > Spoofs browser and device properties to unlock desktop features (e.g., screen size, platform, vendor).
 >
-> **SILENT AD BLOCKING**  
+> **SILENT AD BLOCKING (Enhanced in v6)**  
 > Blocks audio ads by intercepting requests and replacing them with silent audio.  
+> Also blocks tracking domains: sentry.io, fastly-insights.com, googlesyndication.com, doubleclick.net.  
 > No visual interruptions or delays.
 >
 > **SIDEBAR & SEARCH FIXES**  
 > Adds improved sidebar toggle, fixes for library/playlist navigation, and better search behavior.
 >
-> **STATUS REPORTING**  
-> Logs current playback status (track, artist, progress) for debugging and automation.
+> **STATUS REPORTING & DEBUG LOGGING (Enhanced in v6)**  
+> Logs current playback status (track, artist, progress) for debugging and automation.  
+> Comprehensive console logging on all critical functions for easy troubleshooting.
+>
+> **NOW PLAYING PANEL TOGGLE (New in v6)**  
+> Custom button next to lyrics button to toggle the Now Playing view panel.  
+> Visual active state indicator when panel is open.
 
 ## Screenshots
 
@@ -39,7 +48,7 @@
 > 4. Recommended: [Spotify AdBlocker](https://greasyfork.org/en/scripts/522592-spotify-adblocker)
 > 5. Recommended - for stock lyrics button: [Cigi Spotify Translator](https://greasyfork.org/en/scripts/523415-cigi-spotify-translator)
 > 6. Recommended: [Spotify Lyrics+](https://raw.githubusercontent.com/Myst1cX/spotify-web-lyrics-plus/main/pip-gui.user.js)
-> 7. Install [Spotifuck](https://raw.githubusercontent.com/Myst1cX/spotifuck-userscript/main/spotifuck-v5.user.js)
+> 7. Install [Spotifuck v6](https://raw.githubusercontent.com/Myst1cX/spotifuck-userscript/main/spotifuck-v6.user.js) (or [v5](https://raw.githubusercontent.com/Myst1cX/spotifuck-userscript/main/spotifuck-v5.user.js) for older version)
 > 8. Install Chameleon extension
 > 9. Chameleon extension settings > Profile Panel (globe icon) > Select Random Profile (Desktop)
 > 10. Chameleon extension settings > Options Panel > Select the 'Profile' option under the 'Screen size' option
