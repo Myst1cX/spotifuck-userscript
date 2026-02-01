@@ -72,44 +72,9 @@
                 display: none !important;
             }
 
-            /* v6: Hide left sidebar by default but keep button visible */
+            /* v6: Hide left sidebar by default */
             #Desktop_LeftSidebar_Id {
                 display: none !important;
-            }
-
-            /* v6: Reposition original library button to top header */
-            #Desktop_LeftSidebar_Id header > div > div:first-child button {
-                display: block !important;
-                position: fixed !important;
-                top: 8px !important;
-                left: 16px !important;
-                z-index: 999 !important;
-                background: transparent !important;
-                border: none !important;
-                color: var(--text-subdued, #b3b3b3) !important;
-                cursor: pointer !important;
-                padding: 8px !important;
-                height: 40px !important;
-                width: 40px !important;
-                border-radius: 50% !important;
-                transition: background-color 0.2s, color 0.2s !important;
-                margin: 0 !important;
-            }
-
-            #Desktop_LeftSidebar_Id header > div > div:first-child button:hover {
-                background-color: rgba(255, 255, 255, 0.1) !important;
-                color: var(--text-base, #fff) !important;
-            }
-
-            #Desktop_LeftSidebar_Id header > div > div:first-child button svg {
-                width: 24px !important;
-                height: 24px !important;
-                fill: currentColor !important;
-            }
-
-            /* v6: Shift nav bar to make room for library button, maintaining natural spacing */
-            #global-nav-bar {
-                margin-left: 56px !important;
             }
 
             /* Artist page layout optimization */
@@ -300,6 +265,39 @@
 
         `);
     console.log('[Spotifuck v6] CSS styles injected');
+
+    // --- Move library button to beginning of nav bar ---
+    function moveLibraryButtonToNavBar() {
+        console.log('[Spotifuck v6] moveLibraryButtonToNavBar() called');
+        
+        // Check if already moved
+        const navBar = document.querySelector('#global-nav-bar');
+        if (!navBar) {
+            console.log('[Spotifuck v6] Nav bar not found');
+            return;
+        }
+        
+        // Check if button already in nav bar
+        if (navBar.querySelector('.spotifuck-library-moved')) {
+            console.log('[Spotifuck v6] Library button already in nav bar');
+            return;
+        }
+        
+        // Find the original library button in the hidden sidebar
+        const libraryButton = document.querySelector('#Desktop_LeftSidebar_Id header > div > div:first-child button');
+        if (!libraryButton) {
+            console.log('[Spotifuck v6] Library button not found in sidebar');
+            return;
+        }
+        
+        console.log('[Spotifuck v6] Moving library button to nav bar');
+        // Mark it so we know it's been moved
+        libraryButton.classList.add('spotifuck-library-moved');
+        
+        // Move button to be the FIRST child of nav bar
+        navBar.insertBefore(libraryButton, navBar.firstChild);
+        console.log('[Spotifuck v6] Library button moved to beginning of nav bar');
+    }
 
     // --- Sidebar toggle logic ---
     function switchLeftSidebar() {
@@ -586,13 +584,14 @@
     // --- Initialization ---
     function init() {
         console.log('[Spotifuck v6] Initializing main features');
+        moveLibraryButtonToNavBar();
         injectSidebarFixes();
     }
 
     // Wait for the page content to load and inject fixes periodically
     const readyInterval = setInterval(() => {
-        if (document.querySelector('#Desktop_LeftSidebar_Id')) {
-            console.log('[Spotifuck v6] Left sidebar detected, initializing');
+        if (document.querySelector('#Desktop_LeftSidebar_Id') && document.querySelector('#global-nav-bar')) {
+            console.log('[Spotifuck v6] Sidebar and nav bar detected, initializing');
             init();
             clearInterval(readyInterval);
         }
@@ -600,6 +599,7 @@
     
     // Periodic re-injection for dynamic content
     setInterval(() => {
+        moveLibraryButtonToNavBar();
         injectSidebarFixes();
     }, 5000);
 
