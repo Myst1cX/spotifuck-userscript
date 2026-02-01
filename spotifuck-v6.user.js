@@ -379,9 +379,9 @@
             }
         });
 
-        // Insert after home button
-        homeButton.parentNode.insertBefore(libraryButton, homeButton.nextSibling);
-        console.log('[Spotifuck v6] Library button added to header');
+        // Insert before home button (on the left side)
+        homeButton.parentNode.insertBefore(libraryButton, homeButton);
+        console.log('[Spotifuck v6] Library button added to header (before home button)');
     }
 
     // --- Inject custom styles and event listeners for sidebar buttons ---
