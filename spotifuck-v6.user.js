@@ -72,6 +72,39 @@
                 display: none !important;
             }
 
+            /* v6: Hide left sidebar by default (will be shown on toggle) */
+            #Desktop_LeftSidebar_Id {
+                display: none !important;
+            }
+
+            /* v6: Library button in top nav bar */
+            #spotifuck-library-btn {
+                background: transparent;
+                border: none;
+                color: var(--text-subdued, #b3b3b3);
+                cursor: pointer;
+                padding: 8px;
+                height: 40px;
+                width: 40px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                transition: background-color 0.2s, color 0.2s;
+                margin: 0 8px;
+            }
+
+            #spotifuck-library-btn:hover {
+                background-color: rgba(255, 255, 255, 0.1);
+                color: var(--text-base, #fff);
+            }
+
+            #spotifuck-library-btn svg {
+                width: 24px;
+                height: 24px;
+                fill: currentColor;
+            }
+
             /* Artist page layout optimization */
             section[data-testid="artist-page"] > div > div:first-child:not([data-encore-id]) {
                 height: 25vh;
@@ -277,22 +310,78 @@
         const isExpanded = navFirstChild.classList.length === 2;
         if (isExpanded) {
             console.log('[Spotifuck v6] Sidebar expanded - applying fullscreen styles');
+            leftSidebar.style.display = 'block';
             leftSidebar.style.position = 'fixed';
             leftSidebar.style.width = '100%';
             leftSidebar.style.height = '92%';
             leftSidebar.style.left = '0';
+            leftSidebar.style.top = '0';
             leftSidebar.style.zIndex = '20';
             const libraryHeader = leftSidebar.querySelector('header > div > div:first-child h1');
             if (libraryHeader) libraryHeader.innerText = '✖ Close Library';
         } else {
-            console.log('[Spotifuck v6] Sidebar collapsed - applying minimized styles');
-            leftSidebar.style.zIndex = '1';
-            leftSidebar.style.position = 'fixed';
-            leftSidebar.style.top = '2px';
-            leftSidebar.style.left = '120px';
-            leftSidebar.style.width = '50px';
-            leftSidebar.style.height = '40px';
+            console.log('[Spotifuck v6] Sidebar collapsed - hiding completely');
+            // Hide the sidebar completely when collapsed
+            leftSidebar.style.display = 'none';
         }
+    }
+
+    // --- v6: Create library button in top nav bar ---
+    function createLibraryButtonInHeader() {
+        console.log('[Spotifuck v6] createLibraryButtonInHeader() called');
+        
+        // Check if button already exists
+        if (document.querySelector('#spotifuck-library-btn')) {
+            console.log('[Spotifuck v6] Library button already exists in header');
+            return;
+        }
+
+        const homeButton = document.querySelector('#global-nav-bar button[data-testid="home-button"]');
+        if (!homeButton) {
+            console.log('[Spotifuck v6] Home button not found in header');
+            return;
+        }
+
+        console.log('[Spotifuck v6] Creating library button in header');
+        const libraryButton = document.createElement('button');
+        libraryButton.id = 'spotifuck-library-btn';
+        libraryButton.setAttribute('aria-label', 'Your Library');
+        libraryButton.innerHTML = `<svg role="img" height="24" width="24" aria-hidden="true" viewBox="0 0 24 24"><path d="M3 22a1 1 0 0 1-1-1V3a1 1 0 0 1 2 0v18a1 1 0 0 1-1 1zM15.5 2.134A1 1 0 0 0 14 3v18a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V6.464a1 1 0 0 0-.5-.866l-6-3.464zM9 2a1 1 0 0 0-1 1v18a1 1 0 1 0 2 0V3a1 1 0 0 0-1-1z"></path></svg>`;
+        
+        libraryButton.addEventListener('click', () => {
+            console.log('[Spotifuck v6] Library button clicked in header');
+            const leftSidebar = document.querySelector('#Desktop_LeftSidebar_Id');
+            if (!leftSidebar) {
+                console.log('[Spotifuck v6] Left sidebar not found');
+                return;
+            }
+
+            // Find the actual library toggle button inside the sidebar
+            const sidebarToggleButton = leftSidebar.querySelector('header > div > div:first-child button');
+            if (sidebarToggleButton) {
+                console.log('[Spotifuck v6] Clicking sidebar toggle button');
+                sidebarToggleButton.click();
+            } else {
+                console.log('[Spotifuck v6] Sidebar toggle button not found, manually toggling');
+                // Manually toggle if button not found
+                const isHidden = leftSidebar.style.display === 'none';
+                if (isHidden) {
+                    leftSidebar.style.display = 'block';
+                    leftSidebar.style.position = 'fixed';
+                    leftSidebar.style.width = '100%';
+                    leftSidebar.style.height = '92%';
+                    leftSidebar.style.left = '0';
+                    leftSidebar.style.top = '0';
+                    leftSidebar.style.zIndex = '20';
+                } else {
+                    leftSidebar.style.display = 'none';
+                }
+            }
+        });
+
+        // Insert after home button
+        homeButton.parentNode.insertBefore(libraryButton, homeButton.nextSibling);
+        console.log('[Spotifuck v6] Library button added to header');
     }
 
     // --- Inject custom styles and event listeners for sidebar buttons ---
@@ -548,13 +637,14 @@
     // --- Initialization ---
     function init() {
         console.log('[Spotifuck v6] Initializing main features');
+        createLibraryButtonInHeader();
         injectSidebarFixes();
     }
 
     // Wait for the page content to load and inject fixes periodically
     const readyInterval = setInterval(() => {
-        if (document.querySelector('#Desktop_LeftSidebar_Id')) {
-            console.log('[Spotifuck v6] Left sidebar detected, initializing');
+        if (document.querySelector('#global-nav-bar')) {
+            console.log('[Spotifuck v6] Global nav bar detected, initializing');
             init();
             clearInterval(readyInterval);
         }
@@ -562,6 +652,7 @@
     
     // Periodic re-injection for dynamic content
     setInterval(() => {
+        createLibraryButtonInHeader();
         injectSidebarFixes();
     }, 5000);
 
