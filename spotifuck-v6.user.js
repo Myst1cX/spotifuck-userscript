@@ -82,7 +82,7 @@
                 display: block !important;
                 position: fixed !important;
                 top: 8px !important;
-                left: 8px !important;
+                left: 16px !important;
                 z-index: 999 !important;
                 background: transparent !important;
                 border: none !important;
@@ -107,9 +107,9 @@
                 fill: currentColor !important;
             }
 
-            /* v6: Add left padding to nav bar to make room for library button */
+            /* v6: Shift nav bar to make room for library button, maintaining natural spacing */
             #global-nav-bar {
-                padding-left: 60px !important;
+                margin-left: 56px !important;
             }
 
             /* Artist page layout optimization */
