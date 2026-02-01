@@ -107,6 +107,11 @@
                 fill: currentColor !important;
             }
 
+            /* v6: Add left padding to nav bar to make room for library button */
+            #global-nav-bar {
+                padding-left: 60px !important;
+            }
+
             /* Artist page layout optimization */
             section[data-testid="artist-page"] > div > div:first-child:not([data-encore-id]) {
                 height: 25vh;
