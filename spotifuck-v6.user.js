@@ -5,7 +5,6 @@
 // @description  Full Spotifuck 1.6.4 UI hack (browser-focused) + enhanced ad blocking + playback control port on open.spotify.com
 // @author       Myst1cX (adapted from Spotifuck app v1.6.4)
 // @match        https://open.spotify.com/*
-// @match        https://accounts.spotify.com/*
 // @grant        GM_addStyle
 // @run-at       document-start
 // @homepageURL  https://github.com/Myst1cX/spotifuck-userscript
@@ -258,32 +257,7 @@
                 overflow: hidden !important;
             }
 
-            /* v6: Now Playing Panel Toggle Button */
-            button.npbtn {
-                background: transparent;
-                border: none;
-                color: var(--text-subdued, #a7a7a7);
-                cursor: pointer;
-                padding: 8px;
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                border-radius: 4px;
-                transition: color 0.2s;
-            }
 
-            button.npbtn:hover {
-                color: var(--text-base, #fff);
-            }
-
-            button.npbtn.active {
-                color: var(--text-bright-accent, #1ed760);
-            }
-
-            button.npbtn svg {
-                width: 16px;
-                height: 16px;
-            }
         `);
     console.log('[Spotifuck v6] CSS styles injected');
 
@@ -364,66 +338,7 @@
         }
     }
 
-    // --- v6: Now Playing Panel Toggle Button ---
-    function injectNowPlayingButton() {
-        console.log('[Spotifuck v6] injectNowPlayingButton() called');
-        
-        // Check if button already exists
-        if (document.querySelector('button.npbtn')) {
-            console.log('[Spotifuck v6] Now Playing button already exists, skipping');
-            return;
-        }
 
-        const lyricsButton = document.querySelector('button[data-testid="lyrics-button"]:not(.fuckd)');
-        if (!lyricsButton) {
-            console.log('[Spotifuck v6] Lyrics button not found');
-            return;
-        }
-
-        console.log('[Spotifuck v6] Creating Now Playing toggle button');
-        lyricsButton.classList.add('fuckd');
-        
-        const nowPlayingButton = document.createElement('button');
-        nowPlayingButton.className = 'npbtn';
-        nowPlayingButton.setAttribute('aria-label', 'Toggle Now Playing view');
-        nowPlayingButton.innerHTML = `<svg viewBox="0 0 16 17"><rect x="1" y="0.75" width="14" height="15.5" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M 6 5 L 6 5.9160156 L 9.6933594 8.5 L 6 11.080078 L 6 12 L 11 8.5 L 6 5 z" stroke="currentColor" stroke-width="1.2"/></svg>`;
-        
-        nowPlayingButton.onclick = function() {
-            console.log('[Spotifuck v6] Now Playing button clicked');
-            const panelContainer = document.querySelector('#Desktop_PanelContainer_Id');
-            if (!panelContainer) {
-                console.log('[Spotifuck v6] Panel container not found');
-                return;
-            }
-
-            const toggleButton = panelContainer.parentNode.parentNode.nextElementSibling?.querySelector('button');
-            if (toggleButton) {
-                const panelHidden = panelContainer.parentNode.parentNode.ariaHidden;
-                console.log('[Spotifuck v6] Panel hidden state:', panelHidden);
-                
-                if (panelHidden === 'true') {
-                    nowPlayingButton.classList.add('active');
-                } else {
-                    nowPlayingButton.classList.remove('active');
-                }
-                toggleButton.click();
-            }
-        };
-        
-        lyricsButton.parentNode.insertBefore(nowPlayingButton, lyricsButton);
-        console.log('[Spotifuck v6] Now Playing button injected successfully');
-    }
-
-    // --- v6: Close Now Playing Panel ---
-    function closeNowPlayingPanel() {
-        console.log('[Spotifuck v6] closeNowPlayingPanel() called');
-        const panelContainer = document.querySelector('#Desktop_PanelContainer_Id');
-        if (panelContainer && panelContainer.parentNode.parentNode.ariaHidden === 'false') {
-            console.log('[Spotifuck v6] Closing Now Playing panel');
-            const toggleButton = panelContainer.parentNode.parentNode.nextElementSibling?.querySelector('button');
-            if (toggleButton) toggleButton.click();
-        }
-    }
 
     // --- Playback control injection ---
     window.actPlayPause = function(play) {
@@ -628,37 +543,12 @@
         console.log('[Spotifuck v6] Enhanced ad blocker active');
     })();
 
-    // --- v6: Classic login helper (for login page) ---
-    (function classicLoginHelper() {
-        if (!window.location.pathname.endsWith('/login')) {
-            return;
-        }
-        
-        console.log('[Spotifuck v6] Classic login helper initializing');
-        
-        const checkInterval = setInterval(() => {
-            const firstLoginButton = document.querySelector('section > div > div > div > div > a:first-child:not(.fuckd)');
-            if (firstLoginButton) {
-                console.log('[Spotifuck v6] Found login buttons, adding classic login link');
-                
-                const classicLoginLink = document.createElement('a');
-                classicLoginLink.className = 'fuckd';
-                classicLoginLink.innerText = 'Email + Password Classic Login';
-                classicLoginLink.style.cssText = 'display:block;padding:10px;margin:10px 0;color:white;font-weight:bold;text-decoration:none;border:1px solid #ddd;background:#339;border-radius:30px;text-align:center;';
-                classicLoginLink.href = '?allow_password=1';
-                
-                firstLoginButton.parentNode.insertBefore(classicLoginLink, firstLoginButton);
-                console.log('[Spotifuck v6] Classic login link added');
-                clearInterval(checkInterval);
-            }
-        }, 500);
-    })();
+
 
     // --- Initialization ---
     function init() {
         console.log('[Spotifuck v6] Initializing main features');
         injectSidebarFixes();
-        injectNowPlayingButton();
     }
 
     // Wait for the page content to load and inject fixes periodically
@@ -673,7 +563,6 @@
     // Periodic re-injection for dynamic content
     setInterval(() => {
         injectSidebarFixes();
-        injectNowPlayingButton();
     }, 5000);
 
     console.log('[Spotifuck v6] Script initialization complete');
