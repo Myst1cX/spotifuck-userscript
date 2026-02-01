@@ -1,11 +1,11 @@
 ## SPOTIFUCK USERSCRIPT
 
 > Ports the full Spotifuck 1.6.4 UI hack experience directly to the Spotify Web Player for use in the Firefox mobile browser.  
-> Provides **UI enhancements**, **playback controls**, **desktop client spoof**, **enhanced ad blocking**, and **Now Playing panel toggle** for a cleaner and unrestricted Spotify experience.  
+> Provides **UI enhancements**, **playback controls**, **desktop client spoof**, and **enhanced ad blocking** for a cleaner and unrestricted Spotify experience.  
 > **Recommended userscript manager:** [Violentmonkey](https://violentmonkey.github.io/)
 
 ### Latest Version: v6
-> **NEW in v6:** Enhanced ad blocking (blocks tracking domains), Now Playing panel toggle button, classic login helper, improved seek precision, and comprehensive debug logging throughout.
+> **NEW in v6:** Enhanced ad blocking (blocks 7+ tracking domains), improved seek precision (+1 fix), comprehensive debug logging (50+ console statements), and better code maintainability with descriptive variable names.
 
 ## Features
 
@@ -22,7 +22,7 @@
 >
 > **SILENT AD BLOCKING (Enhanced in v6)**  
 > Blocks audio ads by intercepting requests and replacing them with silent audio.  
-> Also blocks tracking domains: sentry.io, fastly-insights.com, googlesyndication.com, doubleclick.net.  
+> Also blocks tracking domains: sentry.io, fastly-insights.com, googlesyndication.com, doubleclick.net, and more.  
 > No visual interruptions or delays.
 >
 > **SIDEBAR & SEARCH FIXES**  
@@ -30,11 +30,7 @@
 >
 > **STATUS REPORTING & DEBUG LOGGING (Enhanced in v6)**  
 > Logs current playback status (track, artist, progress) for debugging and automation.  
-> Comprehensive console logging on all critical functions for easy troubleshooting.
->
-> **NOW PLAYING PANEL TOGGLE (New in v6)**  
-> Custom button next to lyrics button to toggle the Now Playing view panel.  
-> Visual active state indicator when panel is open.
+> 50+ comprehensive console logs on all critical functions for easy troubleshooting.
 
 ## Screenshots
 

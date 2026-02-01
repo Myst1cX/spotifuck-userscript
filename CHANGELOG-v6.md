@@ -3,35 +3,23 @@
 ## Version 6.0.0 - Browser-Focused Port from v1.6.4
 
 ### Overview
-Port of Spotifuck Android app v1.6.4 features to browser userscript. Focus on browser-compatible features, excluding Android-specific functionality.
+Port of Spotifuck Android app v1.6.4 features to browser userscript. **Browser-only features**: enhanced ad blocking, improved playback controls, comprehensive logging. **Excluded**: Android-specific features (timers, wake locks, library API), Now Playing button (separate script), login helpers, video detection.
 
 ### New Features ✨
 
 #### Enhanced Ad Blocking
-- **Tracking Domain Blocking**: Now blocks sentry.io, fastly-insights.com, googlesyndication.com, doubleclick.net
-- **Expanded Audio Ad Detection**: More comprehensive list of audio ad URL patterns
+- **Tracking Domain Blocking**: Now blocks sentry.io, fastly-insights.com, googlesyndication.com, doubleclick.net, amillionads.com, 2mdn.net, adxcel.com
+- **Expanded Audio Ad Detection**: More comprehensive list of audio ad URL patterns including scdn.co/mp3-ad/, adstudio-assets.scdn.co
 - **Smart Filtering**: Excludes legitimate content (podz-content, gew4-spclient) from blocking
 - Console logging for all blocked requests
-
-#### Now Playing Panel Toggle Button
-- Custom SVG button added next to lyrics button
-- Toggles the Now Playing view panel on/off
-- Visual active state indicator (green when panel open)
-- Styled to match Spotify's UI design language
-- CSS class: `.npbtn` with hover and active states
-
-#### Classic Login Helper
-- Automatically adds "Email + Password Classic Login" link on login page
-- Simplifies login process by adding direct link to `?allow_password=1`
-- Styled button with blue background for visibility
 
 #### Code Quality Improvements
 - **Better Variable Naming**: All element references use descriptive names
   - `playPauseButton` instead of `pb`
   - `skipForwardButton` instead of `fb`
-  - `nowPlayingButton` for new button
   - `leftSidebar` instead of `ls`
-- **Comprehensive Logging**: Console.log statements on every critical function
+  - `playbackProgressBar` instead of `rg`
+- **Comprehensive Logging**: 50+ console.log statements on every critical function
   - All function entries logged with `[Spotifuck v6]` prefix
   - Element found/not found states logged
   - Action confirmations logged
@@ -44,63 +32,44 @@ Port of Spotifuck Android app v1.6.4 features to browser userscript. Focus on br
 
 ### Technical Changes 🔧
 
-#### DOM Selector Updates
-- Updated Now Playing panel detection to use `#Desktop_PanelContainer_Id`
-- Better video player detection: `.VideoPlayer__container video`
-- More robust element selection throughout
-
-#### CSS Additions
-```css
-/* Now Playing Panel Toggle Button */
-button.npbtn {
-    background: transparent;
-    border: none;
-    color: var(--text-subdued, #a7a7a7);
-    cursor: pointer;
-    padding: 8px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 4px;
-    transition: color 0.2s;
-}
-
-button.npbtn:hover {
-    color: var(--text-base, #fff);
-}
-
-button.npbtn.active {
-    color: var(--text-bright-accent, #1ed760);
-}
-```
+#### Maintained from v5
+- All CSS/UI styling and enhancements
+- Sidebar toggle functionality
+- Screen/navigator spoofing
+- Autoplay logic
+- Track status reporter
+- All layout optimizations
 
 ### Excluded Features ❌
 
-Based on user feedback, the following Android-specific features were intentionally excluded:
+Based on user requirements, the following features were intentionally excluded:
 
-- **Library Fetching System**: Browser already has native library access
+**Android-Specific (Not browser-compatible)**
+- Library fetching system (browser has native access)
   - `fetchAllLibrary()` - Not needed
   - `parseLibrary()` - Not needed
   - `checkMediaLib()` - Not needed
   - Token extraction for API calls - Not needed
-
-- **Android Power Management**: Browser-incompatible
+- Android power management (browser-incompatible)
   - `manageTShut()` - Auto-shutdown timer
   - `manageTSleep()` - Auto-sleep timer
   - `wakeUp()` / `wakeOff()` - Wake lock functions
+  
+**Handled by Separate Scripts**
+- Now Playing panel toggle button (user has separate script for this)
+- Classic login helper (not needed)
 
-- **AndBridge Functions**: WebView-specific
-  - Simplified to console-only implementations where needed
-  - No actual Android bridge communication
+**Not Needed for Browser**
+- `playFromUri()` - Direct URI playback via API (power user feature)
+- Video player detection - Android WebView specific
 
 ### Migration from v5
 
 #### What's Changed
-- Enhanced ad blocking with more domains
-- New Now Playing toggle button available
-- Better logging throughout for debugging
-- Fixed seek precision issue
-- Classic login helper on login page
+- Enhanced ad blocking with 7 tracking domains + expanded audio ad patterns
+- Better variable naming throughout for maintainability
+- 50+ console.log statements for comprehensive debugging
+- Fixed seek precision issue (pos + 1)
 
 #### What's the Same
 - All CSS/UI styling from v5 maintained
@@ -112,18 +81,23 @@ Based on user feedback, the following Android-specific features were intentional
 #### Breaking Changes
 - None - v6 is backward compatible with v5 usage
 
+### File Statistics
+- **Lines**: 569
+- **Console logs**: 50+
+- **Size**: ~27 KB
+
 ### Testing Checklist
 
-- [ ] Verify enhanced ad blocking on Spotify Web Player
-- [ ] Test Now Playing toggle button functionality
-- [ ] Check classic login helper on login page
+- [ ] Verify enhanced ad blocking blocks tracking domains (check console for blocked requests)
+- [ ] Test audio ad blocking (should see "Blocked audio ad" in console)
 - [ ] Validate all playback controls (play, pause, skip, seek, repeat, favorite)
 - [ ] Confirm sidebar toggle works correctly
-- [ ] Review console logs for proper debugging output
+- [ ] Review console logs for proper debugging output (use "[Spotifuck v6]" filter)
 - [ ] Test on Firefox mobile browser
-- [ ] Verify CSS styling matches expectations
+- [ ] Verify CSS styling matches v5
 - [ ] Check autoplay functionality
 - [ ] Validate track status reporting
+- [ ] Test seek precision with pos + 1 fix
 
 ### Development Notes
 
@@ -142,7 +116,7 @@ console.log('[Spotifuck v6] <Function/Action>: <details>');
 Examples:
 - `[Spotifuck v6] actPlayPause() called, play: true`
 - `[Spotifuck v6] Blocked audio ad: https://...`
-- `[Spotifuck v6] Now Playing button clicked`
+- `[Spotifuck v6] Seek position set to: 12345`
 
 ### Known Issues
 
