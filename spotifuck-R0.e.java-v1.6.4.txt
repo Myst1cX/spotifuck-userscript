@@ -1,0 +1,117 @@
+//
+// Decompiled by Jadx - 44
+
+// By developer-krushna (https://github.com/developer-krushna/)
+
+package R0;
+
+import Q0.E;
+import android.content.Context;
+import android.graphics.Bitmap;
+import android.util.Log;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
+import it.deviato.spotifuck.AppSingleton;
+import java.io.ByteArrayInputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+
+public final class e extends WebViewClient {
+    /* JADX WARNING: Removed duplicated region for block: B:58:0x0120  */
+    /* JADX WARNING: Removed duplicated region for block: B:61:0x0124  */
+    /* Code decompiled incorrectly, please refer to instructions dump. */
+    public final WebResourceResponse shouldInterceptRequest(WebView webView, WebResourceRequest webResourceRequest) {
+        Throwable e;
+        String str = "audio/mpeg";
+        String uri = webResourceRequest.getUrl().toString();
+        Map requestHeaders = webResourceRequest.getRequestHeaders();
+        HttpURLConnection httpURLConnection = null;
+        HttpURLConnection httpURLConnection2;
+        try {
+            httpURLConnection2 = (HttpURLConnection) new URL(uri).openConnection();
+            try {
+                httpURLConnection2.setRequestMethod(webResourceRequest.getMethod());
+                for (Entry entry : requestHeaders.entrySet()) {
+                    httpURLConnection2.setRequestProperty((String) entry.getKey(), (String) entry.getValue());
+                }
+                httpURLConnection2.connect();
+                String contentType = httpURLConnection2.getContentType();
+                if (!(uri.contains("doubleclick.net") || uri.contains("googlesyndication.com") || uri.contains("fastly-insights.com"))) {
+                    if (!uri.contains("sentry.io")) {
+                        if (!(contentType == null || !contentType.equals(str) || uri.contains("podz-content") || uri.contains("gew4-spclient") || (!uri.contains("akamaized.net/audio/") && !uri.contains("scdn.co/audio/") && !uri.contains("scdn.co/mp3-ad/") && !uri.contains("spotifycdn.com/audio/") && !uri.contains("amillionads.com") && !uri.contains("2mdn.net") && !uri.contains("adxcel.com") && !uri.contains("adstudio-assets.scdn.co")))) {
+                            f.deferMessage("adblock");
+                            WebResourceResponse webResourceResponse = new WebResourceResponse(str, null, webView.getContext().getAssets().open("silent.mp3"));
+                            httpURLConnection2.disconnect();
+                            return webResourceResponse;
+                        }
+                        httpURLConnection2.disconnect();
+                        return null;
+                    }
+                }
+                HashMap hashMap = new HashMap();
+                hashMap.put("Access-Control-Allow-Origin", "*");
+                WebResourceResponse webResourceResponse2 = new WebResourceResponse("text/plain", "utf-8", 200, "OK", hashMap, new ByteArrayInputStream(new byte[0]));
+                httpURLConnection2.disconnect();
+                return webResourceResponse2;
+            } catch (Exception e2) {
+                e = e2;
+                try {
+                    Log.e("Spotifuck", "Error intercepting request", e);
+                    if (httpURLConnection2 != null) {
+                        httpURLConnection2.disconnect();
+                    }
+                    return null;
+                } catch (Throwable th) {
+                    e = th;
+                    httpURLConnection = httpURLConnection2;
+                    if (httpURLConnection != null) {
+                        httpURLConnection.disconnect();
+                    }
+                    throw e;
+                }
+            }
+        } catch (Exception e3) {
+            e = e3;
+            httpURLConnection2 = null;
+            Log.e("Spotifuck", "Error intercepting request", e);
+            if (httpURLConnection2 != null) {
+            }
+            return null;
+        } catch (Throwable th2) {
+            e = th2;
+            if (httpURLConnection != null) {
+            }
+            throw e;
+        }
+    }
+
+    public final void onPageFinished(WebView webView, String str) {
+        super.onPageFinished(webView, str);
+        if (str.startsWith("https://www.facebook.com/privacy/consent/gdp/")) {
+            webView.evaluateJavascript("(function(){document.querySelector('#facebook div[role=button]').click();})();", null);
+        } else if (str.endsWith("/login")) {
+            webView.evaluateJavascript("(function(){let gl=document.querySelector('section>div>div>div>div>a:first-child:not(.fuckd)');if(gl) {  let cl=document.createElement('a');  cl.className='fuckd';  cl.innerText='Email + Password Classic Login';  cl.style.cssText='display:block;padding:10px;margin:10px 0;color:white;font-weight:bold;text-decoration:none;border:1px solid #ddd;background:#339;border-radius:30px';  cl.href='?allow_password=1';  gl.parentNode.insertBefore(cl,gl);}})();", null);
+        }
+        if (AppSingleton.n) {
+            str = E.f(E.f(E.f(AppSingleton.r ? "let reqPause=false,firstPlay=true,ulFlag=false,ffDone=false,npOpen=false;featVer=`web-player_${new Date().toISOString().split('T')[0]}_${Date.now()}_${Math.floor(Math.random()*0xFFFFFFF).toString(16).padStart(7,'0')}`;lastState=null;lastPos=null;playing=false;pfint=null;afint=null;cssint=null;aaint=null;window.updMedia=function(){  const currState=track+'|'+artist+'|'+playing+'|'+repmode+'|'+isfav;  if(currState!==lastState) {    lastState=currState;    const values={artist:artist,track:track,playing:playing,repeat:repmode,fav:isfav,duration:duration,position:position,cover:cover};    AndBridge.recMediaStatus(JSON.stringify(values));  }  else {    if(Math.abs(position-lastPos)>4000) AndBridge.recMediaPosition(position);    lastPos=position;  }};window.fetchAllLibrary=async function(){  const limit=50;  let offset=0;  let allItems=[];  let hasMore=true;  while(hasMore){    const resp=await oriFetch('https://api-partner.spotify.com/pathfinder/v2/query',{      method:'POST',      headers:{        'Authorization':window.spotAuthToken,'Client-Token':window.spotCliToken,'Content-Type':'application/json;charset=UTF-8'      },      body:JSON.stringify({        variables:{          filters:[],order:null,textFilter:'',features:['LIKED_SONGS','YOUR_EPISODES_V2','PRERELEASES','EVENTS'],          limit:limit,offset:offset,flatten:false,expandedFolders:[],folderUri:null,includeFoldersWhenFlattening:true        },        operationName:'libraryV3',        extensions:{          persistedQuery:{version:1,sha256Hash:'0082bf82412db50128add72dbdb73e2961d59100b9cbf41fb25c568bd8bc358b'}        }      })    });    if(!resp.ok){      const text=await resp.text();      throw new Error(`Error HTTP ${resp.status}: ${text}`);    }    const data=await resp.json();    const items=data?.data?.me?.libraryV3?.items||[];    allItems=allItems.concat(items);    if(items.length<limit) {      hasMore=false;    } else {      offset+=limit;    }  }  return allItems;};window.parseLibrary=function(items) {  const res={playlists:[],albums:[],artists:[],podcasts:[]};  items.forEach(({item})=>{    const data=item.data;    if(!data||!data.__typename) return;    switch(data.__typename) {      case 'PseudoPlaylist':        res.playlists.push({          id:data.uri,name:data.name,image:data.image?.sources?.[0]?.url||null        });        break;      case 'Playlist':        res.playlists.push({          id:data.uri,name:data.name,image:data.images?.items?.[0]?.sources?.[0]?.url||null        });        break;      case 'Album':        res.albums.push({          id:data.uri,name:data.name,image:data.coverArt?.sources?.[0]?.url||null,          artists:data.artists?.items?.map(a=>a.profile?.name).filter(Boolean)||[]        });        break;      case 'Artist':        res.artists.push({          id:data.uri,name:data.profile?.name,image:data.visuals?.avatarImage?.sources?.[0]?.url||null        });        break;      case 'Podcast':        res.podcasts.push({          id:data.uri,name:data.name,image:data.coverArt?.sources?.[0]?.url||null,          artists:data.publisher?.name?[data.publisher.name]:[]        });        break;      default:        break;    }  });  return res;};window.checkMediaLib=function(){  if(typeof window.mediaLib==='undefined'&&window.spotCliToken&&window.spotAuthToken&&window.spotDevId) {    fetchAllLibrary().then(allItems=>{      console.log('✅ FetchAllLibrary OK. Items:'+allItems.length);      window.mediaLib=parseLibrary(allItems);    }).catch(err=>{      console.error('❌ FetchAllLibrary Error:',err);    });  }};" : "let reqPause=false,firstPlay=true,ulFlag=false,ffDone=false,npOpen=false;featVer=`web-player_${new Date().toISOString().split('T')[0]}_${Date.now()}_${Math.floor(Math.random()*0xFFFFFFF).toString(16).padStart(7,'0')}`;lastState=null;lastPos=null;playing=false;pfint=null;afint=null;cssint=null;aaint=null;", "const oriFetch=window.fetch;window.fetch=async function(...args) {  const [url,opts]=args;  const ts=new Date().toISOString().slice(11,23);  const method=opts?.method?.toUpperCase?.()||'GET';  const headers=opts?.headers||{};  if(method==='POST'&&url.includes('/track-playback/v1/devices')&&opts?.body){    const body=JSON.parse(opts.body);    const deviceId=body?.device?.device_id;    if(deviceId&&deviceId!==window.spotDevId){      window.spotDevId=deviceId;      /*console.log(`🌐 [${ts}] [${method}] → ${url}`);      console.log('📻 Device ID body:',deviceId);*/      typeof checkMediaLib==='function'&&checkMediaLib();    }  }  else if(method==='POST'&&url.includes('/pathfinder/v2/query')&&opts?.body){    const body=JSON.parse(opts.body);    if(body?.operationName==='isCurated'){      const currUri=body?.variables?.uris?.[0];      if(currUri&&currUri!==window.currUri){        window.currUri=currUri;        /*console.log(`🌐 [${ts}] [${method}] → ${url}`);        console.log('🎵 Current URI:',currUri);*/      }    }  }  else {    let match=url.match(/\\/connect-state\\/v1\\/player\\/(?:command|transfer)\\/from\\/([^/]+)\\/to\\/([^/]+)/);    if(match?.[2]&&match[2]!==window.spotDevId) {      window.spotDevId=match[2];      /*console.log(`🌐 [${ts}] [${method}] → ${url}`);      console.log('📻 Device ID change:',window.spotDevId);*/      typeof checkMediaLib==='function'&&checkMediaLib();    }  }  const cliToken=headers['Client-Token']||headers['client-token'];  if(cliToken&&cliToken!==window.spotCliToken) {    window.spotCliToken=cliToken;    /*console.log(`🌐 [${ts}] [${method}] → ${url}`);    console.log('🎧 Client Token found:',cliToken);*/    typeof checkMediaLib==='function'&&checkMediaLib();  }  const authHead=headers.Authorization||headers.authorization;  if(authHead?.startsWith('Bearer ')&&authHead!==window.spotAuthToken) {    window.spotAuthToken=authHead;    /*console.log(`🌐 [${ts}] [${method}] → ${url}`);    console.log('🔑 Auth Token found:',authHead);*/    typeof checkMediaLib==='function'&&checkMediaLib();  }  if(ffDone&&url.includes('/track-playback/')&&method==='PUT') {    const paused=opts?.body?JSON.parse(opts?.body)?.state_ref?.paused:undefined;    if(paused===true&&playing) { console.log('#Track-Playback: Pause'); manageAll(false); }    else if(paused===false&&!playing) { console.log('#Track-Playback: Play'); manageAll(true); }  }  try {    const resp=await oriFetch(url,opts);    if(resp.status===404&&url.includes('connect-state')&&url.includes('/command/from/')) {      AndBridge.deferMessage('reload');      console.log('Player Locked: reload');      location.reload();    }"), "    return resp;  } catch(err) {    /*console.error('❌ Error in Fetch Request:', err);    console.error('🔍 Name:', err.name);    console.error('📄 Message:', err.message);    console.error('📌 Stack:', err.stack);*/    throw err;  }};window.playFromUri=function(uri) {  console.log('#PlayFromUri:'+uri);  let type=uri.match(/^spotify:([^:]+)/)?.[1];  if(type=='user') type='your_library';  oriFetch(`https://gew4-spclient.spotify.com/connect-state/v1/player/command/from/${window.spotDevId}/to/${window.spotDevId}`, {    method:'POST',    headers:{'Authorization':window.spotAuthToken,'Client-Token':window.spotCliToken,'Content-Type':'application/json'},    body:JSON.stringify({command:{        context:{uri:uri,url:'context://'+uri,metadata:{}},        play_origin:{          feature_identifier:type,          feature_version:featVer,          referrer_identifier:'your_library'},        options:{license:'tft',skip_to:{},player_options_override:{}},        /*logging_params:{          page_instance_ids:[crypto.randomUUID()],          interaction_ids:[crypto.randomUUID()],          command_id:crypto.randomUUID().replace(/-/g,'')        },*/endpoint:'play'}    })  });};window.firstFuck=function(){ if(pfint) clearInterval(pfint); pfint=setInterval(()=>{  /*console.log('pf_tick');*/  if(playing&&document.visibilityState=='hidden'&&!!document.querySelector('.VideoPlayer__container video')) AndBridge.wakeUp();  else if(!AndBridge.isWoke()&&document.visibilityState=='visible'&&!document.querySelector('.VideoPlayer__container video')) AndBridge.wakeOff();  if(typeof npBtn=='undefined') {    let lyBtn=document.querySelector('button[data-testid=lyrics-button]:not(.fuckd)');    if(lyBtn) {      lyBtn.classList.add('fuckd');      npBtn=document.createElement('button');      npBtn.className='npbtn';      npBtn.onclick=clickNP;      npBtn.innerHTML=`<svg viewBox=\"0 0 16 17\"><rect x=\"1\" y=\"0.75\" width=\"14\" height=\"15.5\" rx=\"2\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/><path d=\"M 6 5 L 6 5.9160156 L 9.6933594 8.5 L 6 11.080078 L 6 12 L 11 8.5 L 6 5 z\" stroke=\"currentColor\" stroke-width=\"1.2\"/></svg>`;      lyBtn.parentNode.insertBefore(npBtn,lyBtn);      closeNowPlay();    }  }  let pb=document.querySelector('aside button[data-testid=control-button-playpause]:not(.fuckd)');  if(pb) {    AndBridge.playLoaded();    console.log('#pBtn fuckd');    pb.classList.add('fuckd');    window.pBtn=pb;    pBtn.addEventListener('click',()=>{      console.log('PlayClicked');      if(pBtn.getAttribute('aria-label')!=='Play') {        console.log('Pause Req');        reqPause=true;        ulFlag=false;        manageWake(false);      }      else if(!ulFlag) {        reqPause=false;        manageWake(true);        console.log('Adding Unlocker');        ulFlag=true;        setTimeout(()=>{          console.log('Unlocker Timeout Reached');          if(ulFlag&&pBtn.getAttribute('aria-label')==='Play') {            AndBridge.deferMessage('unlock');            console.log('#Unlocking!');            actSkipForward();            trigUnlock();          }          else if(ulFlag) {            console.log('Playing, Removing Unlocker');            ulFlag=false;          }        },10000);      }    });    if(!ffDone){      ffDone=true;      AndBridge.manageTShut(true);      AndBridge.manageTSleep(false);      console.log('FirstFuck Adding All Features');      addAutoFeatures(); addCSSJSHack(); addAndAuto();      setTimeout(()=>{manageAll(playing)},10000);    }  } },5000);};firstFuck();window.manageWake=function(enable){  if(enable) {    if(document.visibilityState=='hidden') AndBridge.wakeUp();  }  else {    if(!AndBridge.isWoke()&&document.visibilityState=='visible') AndBridge.wakeOff();  }};window.manageAll=function(play){  playing=play;  typeof updMedia==='function'&&updMedia();  AndBridge.manageTShut(!play);  AndBridge.manageTSleep(play);  if(play) {    console.log('StartingIntervals');    firstFuck(); addAutoFeatures(); addCSSJSHack(); addAndAuto();  }  else {    console.log('KillingIntervals');    if(pfint) clearInterval(pfint);    if(afint) clearInterval(afint);    if(cssint) clearInterval(cssint);    if(aaint) clearInterval(aaint);  }};window.clickNP=function(){  let rBtn=document.querySelector('#Desktop_PanelContainer_Id').parentNode.parentNode.nextElementSibling.querySelector('button');  if(rBtn) {    let npHid=document.querySelector('#Desktop_PanelContainer_Id').parentNode.parentNode.ariaHidden;    if(npHid&&npHid=='true') npBtn.classList.add('active'); else npBtn.classList.remove('active');    rBtn.click();  }};window.closeNowPlay=function(){  let rc=document.querySelector('#Desktop_PanelContainer_Id');  if(rc&&rc.parentNode.parentNode.ariaHidden=='false') { console.log('#Close NowPlaying'); clickNP(); }};window.trigUnlock=function(){  let uint=setInterval(()=>{    if(pBtn.disabled) {      AndBridge.deferMessage('reload');      window.location.reload();    }    else if(pBtn.getAttribute('aria-label')!=='Play') {      clearInterval(uint);      ulFlag=false;      console.log('#Unlocked OK!');    }  },3000);};window.actPlayPause=function(play) {  console.log('PlayPause:'+play);  if('pBtn' in window) {    if(pBtn.getAttribute('aria-label')==='Play') { if(play) pBtn.click(); }    else { if(!play) pBtn.click(); }  }};window.actSkipBack=function() {  console.log('SkipBack');  let bb=document.querySelector('button[data-testid=control-button-skip-back]');  if(bb) { manageWake(true); bb.click(); }};window.actSkipForward=function() {  console.log('SkipForward');  let fb=document.querySelector('button[data-testid=control-button-skip-forward]');  if(fb) { manageWake(true); fb.click(); }};window.actRepeat=function() {  console.log('RepeatClick');  let rb=document.querySelector('button[data-testid=control-button-repeat]');  if(rb) {    if(repmode=='false') repmode='true'; else if(repmode=='true') repmode='mixed'; else repmode='false';    updMedia(); rb.click();  }};window.actAddToFav=function() {  console.log('AddToFav');  let fb=document.querySelector('div[data-testid=now-playing-widget]>div:last-child>button');  if(fb) {    if(fb.getAttribute('aria-checked')==='false') { fb.click(); isfav=true; updMedia(); }    else {      manageWake(true);      fb.click();      let rfint=setInterval(()=>{        manageWake(true);        let fr=document.querySelector('#context-menu button[role=menuitemcheckbox][aria-checked=true]');        if(fr) {          clearInterval(rfint);          fr.click();          setTimeout(()=>{            let sb=document.querySelector('#context-menu button[type=submit]');            if(sb) { sb.click(); isfav=false; updMedia(); }            manageWake(false);          },500);        }      },1000);    }  }};window.actSeek=function(pos) {  let rg=document.querySelector('div[data-testid=playback-progressbar] input[type=range]');  rg.value=pos+1;  rg.dispatchEvent(new Event('change',{bubbles:true}));};"), "window.addAutoFeatures=function(){  console.log('Adding AutoFeatures');");
+            if (AppSingleton.k.equals("onetime")) {
+                str = E.f(str, "  if('pBtn' in window&&firstPlay&&pBtn.getAttribute('aria-label')==='Play') {    console.log('#OneTime AutoPlay');    pBtn.click();    firstPlay=false;  }");
+            }
+            String str2 = "permanent";
+            if (AppSingleton.p || AppSingleton.o || AppSingleton.k.equals(str2)) {
+                str = E.f(str, "if(afint) clearInterval(afint);afint=setInterval(()=>{  /*console.log('af_tick');*/");
+                if (AppSingleton.p) {
+                    str = E.f(str, "  closeNowPlay();");
+                }
+                if (AppSingleton.o) {
+                    str = E.f(str, "  let ft=document.querySelector('aside div.encore-bright-accent-set button');  if(ft) {    console.log('#Take Control');    ft.click();    setTimeout(()=>{      let cb=document.querySelector('aside ul[role=list] li[role=listitem] div[role=button]');      if(cb) cb.click();    },500);  }");
+                }
+                if (AppSingleton.k.equals(str2)) {
+                    str = E.f(str, "  if('pBtn' in window&&!reqPause&&!ulFlag&&pBtn.getAttribute('aria-label')==='Play') {console.log('#Permanent AutoPlay'); pBtn.click();}");
+                }
+     

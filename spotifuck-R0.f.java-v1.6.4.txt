@@ -1,0 +1,154 @@
+//
+// Decompiled by Jadx - 6
+
+// By developer-krushna (https://github.com/developer-krushna/)
+
+package R0;
+
+import C.a;
+import Q0.A;
+import Q0.e;
+import Q0.w;
+import android.content.Context;
+import android.net.Uri;
+import android.os.Handler;
+import android.os.Looper;
+import android.support.v4.media.session.t;
+import android.webkit.JavascriptInterface;
+import it.deviato.spotifuck.AppSingleton;
+import it.deviato.spotifuck.MainActivity;
+import it.deviato.spotifuck.WebService;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+public final class f {
+    @JavascriptInterface
+    public void recMediaStatus(String str) {
+        try {
+            JSONObject jSONObject = new JSONObject(str);
+            Object opt = jSONObject.opt("track");
+            if (opt != null) {
+                if (!JSONObject.NULL.equals(opt)) {
+                    WebService.x = opt.toString();
+                    WebService.w = jSONObject.optString("artist");
+                    WebService.A = jSONObject.optLong("position");
+                    WebService.z = jSONObject.optLong("duration");
+                    WebService.D = jSONObject.optBoolean("playing");
+                    WebService.y = jSONObject.optString("repeat");
+                    WebService.E = jSONObject.optBoolean("fav");
+                    str = jSONObject.optString("cover").replace("00004851", "0000b273");
+                    WebService.v = null;
+                    if (!(str == null || str.isEmpty())) {
+                        try {
+                            w c = w.c();
+                            c.getClass();
+                            if (str.trim().length() != 0) {
+                                WebService.v = new A(c, Uri.parse(str)).a();
+                            } else {
+                                throw new JSONObject("Path must not be empty.");
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    t tVar = WebService.n;
+                    tVar = WebService.n;
+                    tVar = WebService.n;
+                    tVar = WebService.n;
+                    tVar = WebService.n;
+                    tVar = WebService.n;
+                    tVar = WebService.n;
+                    WebService.f();
+                }
+            }
+        } catch (JSONException e2) {
+            e2.printStackTrace();
+        }
+    }
+
+    @JavascriptInterface
+    public static void deferMessage(String str) {
+        MainActivity mainActivity = (MainActivity) AppSingleton.g.get();
+        if (mainActivity != null) {
+            if (str.equals("unlock")) {
+                str = mainActivity.getString(2131755242);
+            } else if (str.equals("reload")) {
+                str = mainActivity.getString(2131755239);
+            } else if (str.equals("adblock")) {
+                str = mainActivity.getString(2131755233);
+            }
+            mainActivity.runOnUiThread(new a(mainActivity, str));
+        }
+    }
+
+    @JavascriptInterface
+    public static void manageTShut(boolean z) {
+        if (WebService.t.booleanValue() && AppSingleton.z > 0 && z) {
+            if (AppSingleton.E != null) {
+                AppSingleton.C.removeCallbacks(AppSingleton.E);
+            }
+            AppSingleton.E = new e(1);
+            AppSingleton.C.postDelayed(AppSingleton.E, ((long) AppSingleton.z) * 60000);
+        } else if (AppSingleton.E != null) {
+            AppSingleton.C.removeCallbacks(AppSingleton.E);
+        }
+    }
+
+    @JavascriptInterface
+    public static void manageTSleep(boolean z) {
+        if (WebService.t.booleanValue() && AppSingleton.A > 0 && z) {
+            if (AppSingleton.F != null) {
+                AppSingleton.D.removeCallbacks(AppSingleton.F);
+            }
+            AppSingleton.F = new e(2);
+            AppSingleton.D.postDelayed(AppSingleton.F, ((long) AppSingleton.A) * 60000);
+        } else if (AppSingleton.F != null) {
+            AppSingleton.D.removeCallbacks(AppSingleton.F);
+        }
+    }
+
+    @JavascriptInterface
+    public static void wakeOff() {
+        new Handler(Looper.getMainLooper()).post(new e(2));
+    }
+
+    @JavascriptInterface
+    public static void wakeUp() {
+        new Handler(Looper.getMainLooper()).post(new e(1));
+    }
+
+    @JavascriptInterface
+    public void loginDetected() {
+        AppSingleton.n = true;
+        AppSingleton.i.putBoolean("LoggedIn", true);
+        AppSingleton.i.commit();
+    }
+
+    @JavascriptInterface
+    public boolean isWoke() {
+        return AppSingleton.j.getWindowVisibility() == 0;
+    }
+
+    @JavascriptInterface
+    public void playLoaded() {
+        AppSingleton.B = true;
+        AppSingleton.a();
+    }
+
+    @JavascriptInterface
+    public void recMediaPosition(long j) {
+        WebService.A = j;
+        WebService.e();
+    }
+
+    public f(Context context) {
+    }
+
+    @JavascriptInterface
+    public void cssInjected() {
+        AppSingleton.a();
+    }
+}
+
+// By developer-krushna (https://github.com/developer-krushna/)
+
