@@ -145,8 +145,32 @@
     window.addCSSJSHack = function() {
         // Setup library button once
         const setupLibraryButton = () => {
-            const libBtn = document.querySelector('#Desktop_LeftSidebar_Id header>div>div:first-child button:not(.fuckd)');
-            if (libBtn) {
+            // Find the actual library button, not the back button
+            // The library button should be the one that toggles the sidebar visibility
+            // Look for button that's a direct child, avoid nested buttons
+            const header = document.querySelector('#Desktop_LeftSidebar_Id header');
+            if (!header) return;
+            
+            // Get all buttons in the header
+            const buttons = header.querySelectorAll('button:not(.fuckd)');
+            
+            // Find the library toggle button (usually the first one, but check if it's already processed)
+            let libBtn = null;
+            for (const btn of buttons) {
+                // Skip if already processed
+                if (btn.classList.contains('fuckd')) continue;
+                
+                // The library button is in the first div group
+                const parentDiv = btn.closest('header>div>div');
+                if (parentDiv && parentDiv.matches('header>div>div:first-child')) {
+                    // Make sure it's a direct button, not a back button
+                    // Back buttons typically appear when navigating, library button is always there
+                    libBtn = btn;
+                    break;
+                }
+            }
+            
+            if (libBtn && !libBtn.classList.contains('fuckd')) {
                 console.log('LibBtnFuckd');
                 window.lBtn = libBtn;
                 libBtn.classList.add('fuckd', 'lbtn');
