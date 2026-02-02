@@ -277,6 +277,41 @@
             .YourLibraryX header {
                 padding: 14px;
             }
+
+            /* Library button in navbar (shown when sidebar is closed) */
+            .spotifuck-lib-nav-btn {
+                display: none;
+                align-items: center;
+                gap: 8px;
+                background: transparent;
+                border: none;
+                color: #b3b3b3;
+                cursor: pointer;
+                padding: 8px 12px;
+                border-radius: 20px;
+                font-size: 14px;
+                font-weight: 700;
+                transition: all 0.2s;
+            }
+
+            .spotifuck-lib-nav-btn.visible {
+                display: flex;
+            }
+
+            .spotifuck-lib-nav-btn:hover {
+                background: rgba(255, 255, 255, 0.1);
+                color: #fff;
+            }
+
+            .spotifuck-lib-nav-btn svg {
+                width: 20px;
+                height: 20px;
+            }
+
+            /* Hide sidebar when closed */
+            #Desktop_LeftSidebar_Id.spotifuck-hidden {
+                display: none !important;
+            }
         `);
 
     // --- Main JavaScript injection for web player ---
@@ -523,34 +558,55 @@
             // Library button in sidebar header toggles between expanded/collapsed states
             // When expanded: h1 shows "✖ Close Library", full-screen overlay
             // When collapsed: small button in corner
+            // Special: When h1 shows "✖ Close Library", clicking moves button to navbar
             window.addCSSHacks = function() {
                 if (cssHackInterval) clearInterval(cssHackInterval);
                 
                 cssHackInterval = setInterval(() => {
-                    // Library button setup - finds the button in sidebar header
-                    const libraryButton = document.querySelector('#Desktop_LeftSidebar_Id header > div > div:first-child button:not(.fuckd)');
-                    if (libraryButton) {
-                        console.log('[Spotifuck v6] Library button configured');
-                        window.libraryButton = libraryButton;
-                        libraryButton.classList.add('fuckd', 'lbtn');
-                        libraryButton.style.padding = '0';
-                        libraryButton.style.height = '20px';
-                        libraryButton.addEventListener('click', () => {
-                            setTimeout(() => switchLeftSidebar(), 0);
-                        });
-                        switchLeftSidebar();
+                    const sidebar = document.querySelector('#Desktop_LeftSidebar_Id');
+                    const sidebarHidden = sidebar?.classList.contains('spotifuck-hidden');
+                    
+                    // If sidebar is hidden, ensure navbar button is visible
+                    if (sidebarHidden) {
+                        ensureNavbarButton();
                     }
+                    
+                    // Library button setup - finds the button in sidebar header
+                    if (!sidebarHidden) {
+                        const libraryButton = document.querySelector('#Desktop_LeftSidebar_Id header > div > div:first-child button:not(.fuckd)');
+                        if (libraryButton) {
+                            console.log('[Spotifuck v6] Library button configured');
+                            window.libraryButton = libraryButton;
+                            libraryButton.classList.add('fuckd', 'lbtn');
+                            libraryButton.style.padding = '0';
+                            libraryButton.style.height = '20px';
+                            libraryButton.addEventListener('click', () => {
+                                setTimeout(() => {
+                                    // Check if clicking "✖ Close Library" - if so, offer to move to navbar
+                                    const h1 = sidebar.querySelector('header > div > div:first-child h1');
+                                    if (h1 && h1.innerHTML.includes('✖')) {
+                                        // User clicked close - move to navbar
+                                        moveSidebarToNavbar();
+                                    } else {
+                                        // Normal toggle
+                                        switchLeftSidebar();
+                                    }
+                                }, 0);
+                            });
+                            switchLeftSidebar();
+                        }
 
-                    // Library grid items auto-close on selection
-                    const libraryGridItems = document.querySelector('#Desktop_LeftSidebar_Id div[role="grid"]:not(.fuckd)');
-                    if (libraryGridItems) {
-                        libraryGridItems.classList.add('fuckd');
-                        libraryGridItems.addEventListener('click', () => {
-                            setTimeout(() => {
-                                console.log('[Spotifuck v6] Auto-closing library');
-                                if (window.libraryButton) window.libraryButton.click();
-                            }, 0);
-                        });
+                        // Library grid items auto-close on selection
+                        const libraryGridItems = document.querySelector('#Desktop_LeftSidebar_Id div[role="grid"]:not(.fuckd)');
+                        if (libraryGridItems) {
+                            libraryGridItems.classList.add('fuckd');
+                            libraryGridItems.addEventListener('click', () => {
+                                setTimeout(() => {
+                                    console.log('[Spotifuck v6] Auto-closing library');
+                                    if (window.libraryButton) window.libraryButton.click();
+                                }, 0);
+                            });
+                        }
                     }
 
                     // Search input handling
@@ -567,6 +623,90 @@
                         });
                     }
                 }, 5000);
+            };
+
+            // --- Move Sidebar to Navbar ---
+            window.moveSidebarToNavbar = function() {
+                console.log('[Spotifuck v6] Moving library to navbar');
+                const sidebar = document.querySelector('#Desktop_LeftSidebar_Id');
+                if (sidebar) {
+                    sidebar.classList.add('spotifuck-hidden');
+                    // Store preference
+                    try {
+                        localStorage.setItem('spotifuck-lib-in-navbar', 'true');
+                    } catch(e) {}
+                }
+                ensureNavbarButton();
+            };
+
+            // --- Ensure Navbar Button Exists ---
+            window.ensureNavbarButton = function() {
+                if (document.querySelector('.spotifuck-lib-nav-btn')) return;
+                
+                const navBar = document.querySelector('#global-nav-bar');
+                const homeButton = document.querySelector('#global-nav-bar button[data-testid="home-button"]');
+                
+                if (navBar && homeButton) {
+                    console.log('[Spotifuck v6] Creating library button in navbar');
+                    
+                    const libBtn = document.createElement('button');
+                    libBtn.className = 'spotifuck-lib-nav-btn visible';
+                    libBtn.innerHTML = \`
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M3 22a1 1 0 0 1-1-1V3a1 1 0 0 1 2 0v18a1 1 0 0 1-1 1zM15.5 2.134A1 1 0 0 0 14 3v18a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V6.464a1 1 0 0 0-.5-.866l-6-3.464zM9 2a1 1 0 0 0-1 1v18a1 1 0 1 0 2 0V3a1 1 0 0 0-1-1z"/>
+                        </svg>
+                        <span>Library</span>
+                    \`;
+                    
+                    libBtn.addEventListener('click', () => {
+                        openLibraryOverlay();
+                    });
+                    
+                    // Insert after home button
+                    homeButton.parentNode.insertBefore(libBtn, homeButton.nextSibling);
+                    window.navLibBtn = libBtn;
+                }
+            };
+
+            // --- Open Library Overlay ---
+            window.openLibraryOverlay = function() {
+                console.log('[Spotifuck v6] Opening library overlay');
+                const sidebar = document.querySelector('#Desktop_LeftSidebar_Id');
+                if (!sidebar) return;
+                
+                // Temporarily show sidebar, expand it, then hide after interaction
+                sidebar.classList.remove('spotifuck-hidden');
+                sidebar.style.position = 'fixed';
+                sidebar.style.width = '100%';
+                sidebar.style.height = '92%';
+                sidebar.style.left = '0';
+                sidebar.style.top = '0';
+                sidebar.style.zIndex = '999';
+                
+                const libraryHeader = sidebar.querySelector('header > div > div:first-child h1');
+                if (libraryHeader) {
+                    libraryHeader.innerHTML = '✖ &nbsp; Close Library';
+                }
+                
+                // Click anywhere in library closes it
+                const closeOverlay = (e) => {
+                    const gridItems = sidebar.querySelector('div[role="grid"]');
+                    if (gridItems && gridItems.contains(e.target)) {
+                        // User clicked a library item - let it navigate, then close
+                        setTimeout(() => {
+                            sidebar.classList.add('spotifuck-hidden');
+                            document.removeEventListener('click', closeOverlay);
+                        }, 100);
+                    } else if (libraryHeader && libraryHeader.contains(e.target)) {
+                        // User clicked close button
+                        sidebar.classList.add('spotifuck-hidden');
+                        document.removeEventListener('click', closeOverlay);
+                    }
+                };
+                
+                setTimeout(() => {
+                    document.addEventListener('click', closeOverlay);
+                }, 100);
             };
 
             // --- Sidebar Toggle Logic ---
@@ -605,6 +745,23 @@
                     leftSidebar.style.height = '48px';
                 }
             };
+
+            // --- Check if library was moved to navbar on previous session ---
+            (function checkLibraryState() {
+                try {
+                    const inNavbar = localStorage.getItem('spotifuck-lib-in-navbar');
+                    if (inNavbar === 'true') {
+                        setTimeout(() => {
+                            const sidebar = document.querySelector('#Desktop_LeftSidebar_Id');
+                            if (sidebar) {
+                                sidebar.classList.add('spotifuck-hidden');
+                                console.log('[Spotifuck v6] Library restored to navbar');
+                                ensureNavbarButton();
+                            }
+                        }, 1000);
+                    }
+                } catch(e) {}
+            })();
 
             console.log('[Spotifuck v6] Ready');
         })();
