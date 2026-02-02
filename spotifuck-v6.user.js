@@ -196,12 +196,10 @@
                     
                     // Only auto-close library if it's NOT a folder
                     if (!isFolder) {
-                        setTimeout(() => {
-                            console.log('AutoCloseLib (playlist/item clicked)');
-                            // Force collapse using switchLs to avoid code duplication
-                            switchLs(true);
-                            closeNowPlay();
-                        }, 0);
+                        console.log('AutoCloseLib (playlist/item clicked)');
+                        // Force collapse using switchLs to avoid code duplication
+                        switchLs(true);
+                        closeNowPlay();
                     }
                 });
             }
