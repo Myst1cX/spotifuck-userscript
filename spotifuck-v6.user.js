@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Userscript v6
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      6.2.0
+// @version      6.3.0
 // @description  Full Spotifuck 1.6.4 UI hack (browser-focused) + enhanced ad blocking + playback control port on open.spotify.com
 // @author       Myst1cX (adapted from Spotifuck app v1.6.4)
 // @match        https://open.spotify.com/*
@@ -72,9 +72,19 @@
                 display: none !important;
             }
 
-            /* Hide the entire left sidebar by default */
+            /* Hide the sidebar container but not the library button */
             #Desktop_LeftSidebar_Id {
                 display: none !important;
+            }
+
+            /* Position library button in navbar */
+            #Desktop_LeftSidebar_Id header > div > div:first-child button {
+                display: block !important;
+                position: fixed !important;
+                top: 10px !important;
+                left: 10px !important;
+                z-index: 100 !important;
+                margin: 0 !important;
             }
 
             /* Artist page layout optimization */
@@ -303,43 +313,25 @@
         console.log('[Spotifuck v6] injectSidebarFixes() called');
         
         // Prevent double-inject
-        if (document.querySelector('.fuckd-nav-library-button')) {
-            console.log('[Spotifuck v6] Library button already created, skipping');
+        if (document.querySelector('.fuckd-library-button')) {
+            console.log('[Spotifuck v6] Library button already processed, skipping');
             return;
         }
 
-        const navbar = document.querySelector('#global-nav-bar');
+        const libraryButton = document.querySelector('#Desktop_LeftSidebar_Id header > div > div:first-child button');
         
-        if (navbar) {
-            console.log('[Spotifuck v6] Creating library button in navbar from existing button');
+        if (libraryButton) {
+            console.log('[Spotifuck v6] Library button found, adding toggle handler');
             
-            // Get the existing button from sidebar to copy its structure
-            const originalButton = document.querySelector('#Desktop_LeftSidebar_Id header > div > div:first-child button');
+            // Mark button as processed
+            libraryButton.classList.add('fuckd-library-button');
             
-            if (originalButton) {
-                // Clone the existing button (deep copy with all children and attributes)
-                const clonedButton = originalButton.cloneNode(true);
-                clonedButton.classList.add('fuckd-nav-library-button');
-                
-                // Add minimal styling for navbar placement
-                clonedButton.style.marginLeft = '10px';
-                clonedButton.style.marginRight = '10px';
-                
-                // Add click handler for toggling sidebar (setTimeout ensures Spotify's DOM updates complete)
-                clonedButton.addEventListener('click', () => setTimeout(switchLeftSidebar, 0));
-                
-                // Insert cloned button as first element in navbar
-                navbar.prepend(clonedButton);
-                
-                // Delete the original button from sidebar
-                originalButton.remove();
-                
-                console.log('[Spotifuck v6] Library button cloned to navbar and original removed from sidebar');
-            } else {
-                console.log('[Spotifuck v6] Original button not found to clone');
-            }
+            // Add click handler for toggling sidebar (setTimeout ensures Spotify's DOM updates complete)
+            libraryButton.addEventListener('click', () => setTimeout(switchLeftSidebar, 0));
+            
+            console.log('[Spotifuck v6] Library button toggle handler attached');
         } else {
-            console.log('[Spotifuck v6] Navbar not found yet');
+            console.log('[Spotifuck v6] Library button not found yet');
         }
 
         const libraryGridItems = document.querySelector('#Desktop_LeftSidebar_Id div[role=grid]:not(.fuckd)');
@@ -347,7 +339,7 @@
             console.log('[Spotifuck v6] Library grid items found, adding click handler');
             libraryGridItems.classList.add('fuckd');
             libraryGridItems.addEventListener('click', () => setTimeout(() => {
-                const libraryButtonClicked = document.querySelector('.fuckd-nav-library-button');
+                const libraryButtonClicked = document.querySelector('.fuckd-library-button');
                 if (libraryButtonClicked) libraryButtonClicked.click();
             }, 0));
         }
