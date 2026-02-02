@@ -285,21 +285,6 @@
                 padding: 14px;
             }
 
-            /* Now playing button styling */
-            .npbtn {
-                cursor: pointer;
-                color: #b3b3b3;
-                background: transparent;
-                border: none;
-                width: 32px;
-                height: 32px;
-                padding: 8px;
-            }
-
-            .npbtn.active {
-                color: #1db954;
-            }
-
         `);
     console.log('[Spotifuck v6] CSS styles injected');
 
