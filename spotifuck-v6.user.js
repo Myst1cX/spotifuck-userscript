@@ -27,6 +27,15 @@
 
     console.log('🎵 Spotifuck v6 - APK v1.6.4 Port');
 
+    // Hide all library buttons in sidebar header (we move ours to navbar)
+    const style = document.createElement('style');
+    style.textContent = `
+        #Desktop_LeftSidebar_Id header button {
+            display: none !important;
+        }
+    `;
+    document.head.appendChild(style);
+
     // Global state variables
     let ulFlag = false;  // Unlock flag
     let ffDone = false;  // First fuck done (firstFuck initialization complete)
