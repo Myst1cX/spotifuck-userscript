@@ -263,6 +263,20 @@
                 overflow: hidden !important;
             }
 
+            /* Desktop Left Sidebar styling */
+            #Desktop_LeftSidebar_Id > nav > div {
+                min-height: 48px;
+                border-radius: 25px;
+            }
+
+            .YourLibraryX {
+                overflow: hidden;
+                background: var(--background-elevated-base) !important;
+            }
+
+            .YourLibraryX header {
+                padding: 14px;
+            }
 
         `);
     console.log('[Spotifuck v6] CSS styles injected');
