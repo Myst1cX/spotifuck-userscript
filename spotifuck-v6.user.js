@@ -874,6 +874,8 @@
                 const progressBar = document.querySelector('div[data-testid="playback-progressbar"] input[type="range"]');
                 if (progressBar) {
                     // Improved seek precision with +1ms offset (v1.6.4)
+                    // The +1ms offset prevents timing edge cases where seeking to exact position
+                    // may not trigger playback due to Spotify's internal rounding/comparison logic
                     progressBar.value = position + 1;
                     progressBar.dispatchEvent(new Event('change', { bubbles: true }));
                     console.log('[Spotifuck v6] ✅ Seek complete');
