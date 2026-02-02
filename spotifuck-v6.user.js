@@ -32,7 +32,6 @@
     let firstPlay = true;
     let ulFlag = false;  // Unlock flag
     let ffDone = false;  // First fuck done (firstFuck initialization complete)
-    let playing = false;
     let pfint = null;    // Primary features interval
     let cssint = null;   // CSS injection interval
     
@@ -108,9 +107,9 @@
                 window.pBtn = playBtn;
                 
                 // Add click handler
-                pBtn.addEventListener('click', () => {
+                window.pBtn.addEventListener('click', () => {
                     console.log('PlayClicked');
-                    if (pBtn.getAttribute('aria-label') !== 'Play') {
+                    if (window.pBtn && window.pBtn.getAttribute('aria-label') !== 'Play') {
                         console.log('Pause Req');
                         reqPause = true;
                         ulFlag = false;
@@ -120,7 +119,8 @@
                         ulFlag = true;
                         setTimeout(() => {
                             console.log('Unlocker Timeout Reached');
-                            if (ulFlag && pBtn.getAttribute('aria-label') === 'Play') {
+                            // Add null check for pBtn in timeout callback
+                            if (window.pBtn && ulFlag && window.pBtn.getAttribute('aria-label') === 'Play') {
                                 console.log('#Unlocking!');
                                 ulFlag = false;
                             } else if (ulFlag) {
@@ -170,7 +170,7 @@
                 libGrid.addEventListener('click', () => {
                     setTimeout(() => {
                         console.log('AutoCloseLib');
-                        if (window.lBtn) lBtn.click();
+                        if (window.lBtn) window.lBtn.click();
                         closeNowPlay();
                     }, 0);
                 });
@@ -282,6 +282,19 @@ aside[data-testid=now-playing-bar]{background:#000!important;box-shadow:none;bor
     // Initialize immediately
     injectCSS();
     firstFuck();
+
+    // Add cleanup on page unload to prevent memory leaks
+    window.addEventListener('beforeunload', () => {
+        if (pfint) {
+            clearInterval(pfint);
+            pfint = null;
+        }
+        if (cssint) {
+            clearInterval(cssint);
+            cssint = null;
+        }
+        console.log('#Cleanup: Intervals cleared');
+    });
 
     console.log('🚀 Spotifuck v6 Ready (APK v1.6.4 Port)');
 })();
