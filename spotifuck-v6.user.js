@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         Spotifuck v6
+// @name         Spotifuck v6 worky but library button glitch only
 // @namespace    http://tampermonkey.net/
 // @version      6.0
 // @description  Accurate port of Spotifuck Android app v1.6.4
@@ -31,7 +31,7 @@
     let ulFlag = false;  // Unlock flag
     let ffDone = false;  // First fuck done (firstFuck initialization complete)
     let pfint = null;    // Primary features interval
-    
+
     // Note: Class name ".fuckd" used throughout is from original APK source (r0/e.java)
     // It marks elements as "already processed" to prevent duplicate event handlers
 
@@ -49,7 +49,7 @@
 
         // Check if expanded (classList.length === 2 means expanded in APK logic)
         const isExpanded = navFirstChild.classList.length === 2;
-        
+
         if (!forceCollapse && isExpanded) {
             // Expand to full-screen overlay
             console.log('#Library: Expanded');
@@ -59,7 +59,7 @@
             leftSidebar.style.left = '0';
             leftSidebar.style.top = '0';
             leftSidebar.style.zIndex = '20';
-            
+
             const headerH1 = leftSidebar.querySelector('header>div>div:first-child h1');
             if (headerH1) {
                 // Using textContent for security, then manually adding close icon
@@ -96,7 +96,7 @@
      */
     window.firstFuck = function() {
         if (pfint) clearInterval(pfint);
-        
+
         pfint = setInterval(() => {
             // Find and setup play button
             const playBtn = document.querySelector('aside button[data-testid=control-button-playpause]:not(.fuckd)');
@@ -104,7 +104,7 @@
                 console.log('#pBtn fuckd');
                 playBtn.classList.add('fuckd');
                 window.pBtn = playBtn;
-                
+
                 // Add click handler
                 window.pBtn.addEventListener('click', () => {
                     console.log('PlayClicked');
@@ -127,7 +127,7 @@
                         }, 10000);
                     }
                 });
-                
+
                 // First initialization
                 if (!ffDone) {
                     ffDone = true;
@@ -146,20 +146,20 @@
         // Setup library button once
         const setupLibraryButton = () => {
             // Use aria-label to identify the correct library button (not back button)
-            // Only process "Open Your Library" button, not "Collapse Your Library" or "Go back"
-            const libBtn = document.querySelector('#Desktop_LeftSidebar_Id header button[aria-label="Open Your Library"]:not(.fuckd)');
-            
+            // Library button has aria-label containing "Your Library" (either "Open Your Library" or "Collapse Your Library")
+            // Back button has aria-label="Go back" which doesn't contain "Your Library"
+            const libBtn = document.querySelector('#Desktop_LeftSidebar_Id header button[aria-label*="Your Library"]:not(.fuckd)');
+
             if (libBtn && !libBtn.classList.contains('fuckd')) {
                 console.log('LibBtnFuckd');
                 window.lBtn = libBtn;
-                // Apply button styling (needed for correct appearance)
+                libBtn.classList.add('fuckd', 'lbtn');
                 libBtn.style.padding = '0';
                 libBtn.style.height = '20px';
-                libBtn.classList.add('fuckd', 'lbtn');
                 libBtn.addEventListener('click', function() {
                     setTimeout(() => switchLs(), 0);
                 });
-                
+
                 // Collapse library on startup if it's expanded
                 // Check if button says "Collapse" (meaning library is currently expanded)
                 if (libBtn.getAttribute('aria-label') === 'Collapse Your Library') {
@@ -170,18 +170,18 @@
                 }
             }
         };
-        
+
         // Setup library grid click handler once
         const setupLibraryGrid = () => {
             const libGrid = document.querySelector('#Desktop_LeftSidebar_Id div[role=grid]:not(.fuckd)');
             if (libGrid) {
                 libGrid.classList.add('fuckd');
-                
+
                 libGrid.addEventListener('click', (event) => {
                     // Check if clicked element or its parent is a folder
                     let target = event.target;
                     let isFolder = false;
-                    
+
                     // Traverse up to 5 levels to find the button element
                     for (let i = 0; i < 5 && target; i++) {
                         // Check aria-labelledby for :folder: pattern (verified from Spotify DOM)
@@ -191,7 +191,7 @@
                             console.log('Folder clicked (aria-labelledby contains ":folder:"), keeping library open');
                             break;
                         }
-                        
+
                         // Check aria-describedby for :folder: pattern
                         const ariaDescribedBy = target.getAttribute('aria-describedby');
                         if (ariaDescribedBy && ariaDescribedBy.includes(':folder:')) {
@@ -199,25 +199,25 @@
                             console.log('Folder clicked (aria-describedby contains ":folder:"), keeping library open');
                             break;
                         }
-                        
+
                         target = target.parentElement;
                     }
-                    
+
                     // Only auto-close library if it's NOT a folder
                     if (!isFolder) {
                         console.log('AutoCloseLib (playlist/item clicked)');
-                        // Add delay to allow Spotify's navigation to COMPLETE before collapsing
-                        // Collapsing the library grid too early can cause React to unmount components
-                        // and cancel the pending navigation
+                        // Add delay to allow Spotify's navigation to complete first
+                        // IMPORTANT: Use switchLs(true) for direct CSS collapse, NOT lBtn.click()
+                        // Clicking lBtn inside folders triggers "back" navigation which cancels playlist navigation
                         setTimeout(() => {
                             switchLs(true);  // Direct collapse without clicking button
                             closeNowPlay();
-                        }, 500);  // 500ms gives Spotify time to complete navigation
+                        }, 150);  // 150ms allows playlist navigation to initiate
                     }
                 });
             }
         };
-        
+
         // Setup home button once
         const setupHomeButton = () => {
             const homeBtn = document.querySelector('#global-nav-bar button[data-testid=home-button]:not(.fuckd)');
@@ -226,7 +226,7 @@
                 homeBtn.addEventListener('click', () => { closeNowPlay(); });
             }
         };
-        
+
         // Setup search input once
         const setupSearchInput = () => {
             const searchInput = document.querySelector('input[data-testid=search-input]:not(.fuckd)');
@@ -243,7 +243,7 @@
                 });
             }
         };
-        
+
         // Setup user button once
         const setupUserButton = () => {
             const userBtn = document.querySelector('button[data-testid=user-widget-link]:not(.fuckd)');
@@ -252,14 +252,14 @@
                 userBtn.addEventListener('click', () => { closeNowPlay(); });
             }
         };
-        
+
         // Try to setup all elements immediately
         setupLibraryButton();
         setupLibraryGrid();
         setupHomeButton();
         setupSearchInput();
         setupUserButton();
-        
+
         // Use a short retry mechanism for elements that might not be ready yet
         // Check once more after 2 seconds for any missed elements
         setTimeout(() => {
@@ -331,7 +331,7 @@ div[data-testid=hover-or-focus-tooltip],#Desktop_LeftSidebar_Id header>div>div:l
 .YourLibraryX header{padding:14px}
         `;
         document.head.appendChild(style);
-        
+
         // AMOLED pure black mode (from r0/e.java line 207)
         const amoled = document.createElement('style');
         amoled.textContent = `
@@ -339,7 +339,7 @@ div[data-testid=hover-or-focus-tooltip],#Desktop_LeftSidebar_Id header>div>div:l
 aside[data-testid=now-playing-bar]{background:#000!important;box-shadow:none;border-top:1px solid #666}
         `;
         document.head.appendChild(amoled);
-        
+
         console.log('#CSS Injected');
     }
 
