@@ -163,16 +163,38 @@
                 switchLs();
             }
             
-            // Auto-close library on item click
+            // Auto-close library on item click (but not for folders)
             const libGrid = document.querySelector('#Desktop_LeftSidebar_Id div[role=grid]:not(.fuckd)');
             if (libGrid) {
                 libGrid.classList.add('fuckd');
-                libGrid.addEventListener('click', () => {
-                    setTimeout(() => {
-                        console.log('AutoCloseLib');
-                        if (window.lBtn) window.lBtn.click();
-                        closeNowPlay();
-                    }, 0);
+                libGrid.addEventListener('click', (event) => {
+                    // Check if clicked element or its parent is a folder link
+                    let target = event.target;
+                    let isFolder = false;
+                    
+                    // Traverse up to 5 levels to find a link element
+                    for (let i = 0; i < 5 && target; i++) {
+                        if (target.tagName === 'A' && target.href) {
+                            // Check if it's a folder link (contains /folder/)
+                            if (target.href.includes('/folder/')) {
+                                isFolder = true;
+                                console.log('Folder clicked, keeping library open');
+                                break;
+                            }
+                            // If it's a playlist or other link, break to close library
+                            break;
+                        }
+                        target = target.parentElement;
+                    }
+                    
+                    // Only auto-close library if it's NOT a folder
+                    if (!isFolder) {
+                        setTimeout(() => {
+                            console.log('AutoCloseLib (playlist/item clicked)');
+                            if (window.lBtn) window.lBtn.click();
+                            closeNowPlay();
+                        }, 0);
+                    }
                 });
             }
             
