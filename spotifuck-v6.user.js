@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Userscript v6
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      6.4.0
+// @version      6.5.0
 // @description  Full Spotifuck 1.6.4 UI hack (browser-focused) + enhanced ad blocking + playback control port on open.spotify.com
 // @author       Myst1cX (adapted from Spotifuck app v1.6.4)
 // @match        https://open.spotify.com/*
@@ -16,7 +16,76 @@
 (function() {
     'use strict';
 
-    console.log('[Spotifuck v6] Script initializing...');
+    console.log('%c[Spotifuck v6.5.0] Script initializing...', 'color: #1db954; font-weight: bold; font-size: 14px');
+    console.log('[Spotifuck v6] URL:', window.location.href);
+    console.log('[Spotifuck v6] User Agent:', navigator.userAgent);
+
+    // Debug helper function
+    window.spotifuckDebug = function() {
+        console.log('%c=== SPOTIFUCK DEBUG INFO ===', 'color: #1db954; font-weight: bold; font-size: 16px');
+        console.log('Version: 6.5.0');
+        console.log('URL:', window.location.href);
+        
+        // Check for sidebar
+        const sidebar = document.querySelector('#Desktop_LeftSidebar_Id');
+        console.log('Sidebar element exists:', !!sidebar);
+        if (sidebar) {
+            const sidebarStyles = window.getComputedStyle(sidebar);
+            console.log('Sidebar display:', sidebarStyles.display);
+            console.log('Sidebar visibility:', sidebarStyles.visibility);
+            console.log('Sidebar opacity:', sidebarStyles.opacity);
+            console.log('Sidebar HTML (first 500 chars):', sidebar.outerHTML.substring(0, 500));
+        }
+        
+        // Check for navbar
+        const navbar = document.querySelector('#global-nav-bar');
+        console.log('Navbar element exists:', !!navbar);
+        if (navbar) {
+            console.log('Navbar HTML (first 500 chars):', navbar.outerHTML.substring(0, 500));
+        }
+        
+        // Try all button selectors
+        const selectors = [
+            '#Desktop_LeftSidebar_Id header > div > div:first-child button',
+            '#Desktop_LeftSidebar_Id header button[aria-label*="Library"]',
+            '#Desktop_LeftSidebar_Id header button[aria-label*="library"]',
+            '#Desktop_LeftSidebar_Id header button',
+            '#Desktop_LeftSidebar_Id button'
+        ];
+        
+        console.log('Testing button selectors:');
+        selectors.forEach(sel => {
+            const elem = document.querySelector(sel);
+            console.log(`  "${sel}":`, !!elem, elem ? '(FOUND)' : '(NOT FOUND)');
+            if (elem) {
+                const styles = window.getComputedStyle(elem);
+                console.log('    Display:', styles.display);
+                console.log('    Position:', styles.position);
+                console.log('    Top:', styles.top);
+                console.log('    Left:', styles.left);
+                console.log('    Width:', styles.width);
+                console.log('    Height:', styles.height);
+                console.log('    Z-index:', styles.zIndex);
+                console.log('    Visibility:', styles.visibility);
+                console.log('    Opacity:', styles.opacity);
+                console.log('    Classes:', elem.className);
+                console.log('    Text:', elem.textContent);
+                console.log('    HTML:', elem.outerHTML.substring(0, 300));
+            }
+        });
+        
+        // Check if button is marked as processed
+        const processedButton = document.querySelector('.fuckd-library-button');
+        console.log('Button marked as processed (.fuckd-library-button):', !!processedButton);
+        
+        console.log('%c=== END DEBUG INFO ===', 'color: #1db954; font-weight: bold; font-size: 16px');
+        console.log('%cTo share this info, copy everything between the debug markers', 'color: yellow');
+        
+        return 'Debug info logged above. Copy and share the console output.';
+    };
+
+    console.log('%c[Spotifuck v6] DEBUG MODE ENABLED', 'color: yellow; font-weight: bold');
+    console.log('%c[Spotifuck v6] Type "spotifuckDebug()" in console to see detailed debug info', 'color: yellow');
 
     // --- Spoof screen and navigator properties (run as early as possible) ---
     const spoofScript = `
@@ -39,6 +108,7 @@
     console.log('[Spotifuck v6] Screen spoofing injected');
 
     // --- Inject Spotifuck CSS hacks ---
+    console.log('[Spotifuck v6] Injecting CSS styles...');
     GM_addStyle(`
             body {
                 min-width: 100% !important;
@@ -335,7 +405,15 @@
 
     // --- Inject custom styles and event listeners for sidebar buttons ---
     function injectSidebarFixes() {
-        console.log('[Spotifuck v6] injectSidebarFixes() called');
+        console.log('%c[Spotifuck v6] injectSidebarFixes() called', 'color: cyan');
+        
+        // Check if sidebar exists
+        const sidebar = document.querySelector('#Desktop_LeftSidebar_Id');
+        console.log('[Spotifuck v6] Sidebar exists:', !!sidebar);
+        if (!sidebar) {
+            console.warn('[Spotifuck v6] WARNING: Sidebar element not found! Will retry...');
+            return;
+        }
         
         // Prevent double-inject
         if (document.querySelector('.fuckd-library-button')) {
@@ -347,20 +425,65 @@
         const libraryButtonSelector = '#Desktop_LeftSidebar_Id header > div > div:first-child button, ' +
                                       '#Desktop_LeftSidebar_Id header button[aria-label*="Library"], ' +
                                       '#Desktop_LeftSidebar_Id header button[aria-label*="library"]';
+        console.log('[Spotifuck v6] Looking for library button with selector:', libraryButtonSelector);
+        
         const libraryButton = document.querySelector(libraryButtonSelector);
         
         if (libraryButton) {
-            console.log('[Spotifuck v6] Library button found, adding toggle handler');
+            console.log('%c[Spotifuck v6] ✓ Library button FOUND!', 'color: lime; font-weight: bold');
+            console.log('[Spotifuck v6] Button element:', libraryButton);
+            console.log('[Spotifuck v6] Button text:', libraryButton.textContent);
+            console.log('[Spotifuck v6] Button classes:', libraryButton.className);
+            
+            // Check button computed styles
+            const buttonStyles = window.getComputedStyle(libraryButton);
+            console.log('[Spotifuck v6] Button computed styles:');
+            console.log('  Display:', buttonStyles.display);
+            console.log('  Position:', buttonStyles.position);
+            console.log('  Top:', buttonStyles.top);
+            console.log('  Left:', buttonStyles.left);
+            console.log('  Width:', buttonStyles.width);
+            console.log('  Height:', buttonStyles.height);
+            console.log('  Z-index:', buttonStyles.zIndex);
+            console.log('  Visibility:', buttonStyles.visibility);
+            console.log('  Opacity:', buttonStyles.opacity);
             
             // Mark button as processed
             libraryButton.classList.add('fuckd-library-button');
+            console.log('[Spotifuck v6] Button marked with .fuckd-library-button class');
             
             // Add click handler for toggling sidebar (setTimeout ensures Spotify's DOM updates complete)
             libraryButton.addEventListener('click', () => setTimeout(switchLeftSidebar, 0));
             
-            console.log('[Spotifuck v6] Library button toggle handler attached');
+            console.log('%c[Spotifuck v6] ✓ Library button toggle handler attached', 'color: lime; font-weight: bold');
         } else {
-            console.log('[Spotifuck v6] Library button not found yet');
+            console.error('%c[Spotifuck v6] ✗ Library button NOT FOUND!', 'color: red; font-weight: bold');
+            console.log('[Spotifuck v6] Trying alternative selectors...');
+            
+            // Try more generic selectors
+            const altSelectors = [
+                '#Desktop_LeftSidebar_Id header button',
+                '#Desktop_LeftSidebar_Id button',
+                '[data-testid="library-button"]'
+            ];
+            
+            altSelectors.forEach(sel => {
+                const elem = document.querySelector(sel);
+                console.log(`  Trying "${sel}":`, elem ? 'FOUND' : 'NOT FOUND');
+                if (elem) {
+                    console.log('    Element:', elem);
+                    console.log('    Text:', elem.textContent);
+                }
+            });
+            
+            // Log sidebar structure
+            if (sidebar) {
+                const header = sidebar.querySelector('header');
+                console.log('[Spotifuck v6] Sidebar header exists:', !!header);
+                if (header) {
+                    console.log('[Spotifuck v6] Header HTML (first 1000 chars):', header.outerHTML.substring(0, 1000));
+                }
+            }
         }
 
         const libraryGridItems = document.querySelector('#Desktop_LeftSidebar_Id div[role=grid]:not(.fuckd)');
@@ -371,12 +494,16 @@
                 const libraryButtonClicked = document.querySelector('.fuckd-library-button');
                 if (libraryButtonClicked) libraryButtonClicked.click();
             }, 0));
+        } else {
+            console.log('[Spotifuck v6] Library grid items not found');
         }
 
         const createButton = document.querySelector('#Desktop_LeftSidebar_Id header > div > div:last-child');
         if (createButton) {
             console.log('[Spotifuck v6] Create button found, hiding');
             createButton.style.display = 'none';
+        } else {
+            console.log('[Spotifuck v6] Create button not found');
         }
 
         const footerContainer = document.querySelector('div.main-view-container__mh-footer-container');
@@ -595,23 +722,37 @@
 
     // --- Initialization ---
     function init() {
-        console.log('[Spotifuck v6] Initializing main features');
-        injectSidebarFixes();
+        console.log('%c[Spotifuck v6] Initializing main features', 'color: cyan; font-weight: bold');
+        console.log('[Spotifuck v6] Checking for sidebar element...');
+        
+        const sidebar = document.querySelector('#Desktop_LeftSidebar_Id');
+        if (sidebar) {
+            console.log('[Spotifuck v6] Sidebar found, injecting fixes');
+            injectSidebarFixes();
+        } else {
+            console.warn('[Spotifuck v6] Sidebar not found during init');
+        }
     }
 
     // Wait for the page content to load and inject fixes periodically
+    console.log('[Spotifuck v6] Setting up sidebar detection interval...');
     const readyInterval = setInterval(() => {
         if (document.querySelector('#Desktop_LeftSidebar_Id')) {
-            console.log('[Spotifuck v6] Left sidebar detected, initializing');
+            console.log('%c[Spotifuck v6] ✓ Left sidebar detected!', 'color: lime; font-weight: bold');
             init();
             clearInterval(readyInterval);
+        } else {
+            console.log('[Spotifuck v6] Waiting for sidebar... (checking every 1s)');
         }
     }, 1000);
     
     // Periodic re-injection for dynamic content
+    console.log('[Spotifuck v6] Setting up periodic re-injection (every 5s)...');
     setInterval(() => {
+        console.log('[Spotifuck v6] Periodic check - re-injecting sidebar fixes');
         injectSidebarFixes();
     }, 5000);
 
-    console.log('[Spotifuck v6] Script initialization complete');
+    console.log('%c[Spotifuck v6] Script initialization complete', 'color: lime; font-weight: bold; font-size: 14px');
+    console.log('%c[Spotifuck v6] If you don\'t see the library button, run: spotifuckDebug()', 'color: yellow; font-weight: bold');
 })();
