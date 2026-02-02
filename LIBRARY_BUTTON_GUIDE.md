@@ -1,212 +1,182 @@
 # Spotifuck v6 - Library Button Guide
 
 ## Overview
-This document explains how the library button works in Spotifuck v6 and the custom navigation integration.
+This document explains how the library button works in Spotifuck v6, following the exact behavior from the reversed Spotifuck Android app code.
 
 ## Library Button Location
 
-**New in v6:** The library button is now located in the top navigation bar, positioned between the Home and Search buttons.
+The library button is located in the left sidebar header:
 
 ```
-Location: #global-nav-bar
-Created dynamically as: .spotifuck-library-btn
+Selector: #Desktop_LeftSidebar_Id header > div > div:first-child button
 ```
 
-The original Spotify left sidebar (`#Desktop_LeftSidebar_Id`) is completely hidden but still used internally to extract library data.
+This is the native Spotify "Your Library" button that gets enhanced with toggle functionality.
 
-## How It Works
+## How It Works (from Reversed Code)
 
-### 1. Button Creation
-The script creates a custom library button in the navigation bar:
-- Finds `#global-nav-bar` and the search button
-- Creates a new button with library icon and "Your Library" text
-- Inserts it before the search button (between Home and Search)
-- Styled with `.spotifuck-library-btn` class
+### 1. Button Setup
+The script finds the library button and:
+- Adds `.fuckd` and `.lbtn` classes to mark it as configured
+- Sets padding to 0 and height to 20px for styling
+- Attaches a click listener that calls `switchLeftSidebar()`
+- Immediately calls `switchLeftSidebar()` to set initial state
 
-### 2. Library Overlay
+### 2. Toggle Mechanism: `switchLeftSidebar()`
 
-When you click the library button:
+The function detects the current state by checking:
+```javascript
+const navFirstChild = leftSidebar.querySelector('nav > div > div:first-child');
+const isExpanded = navFirstChild.classList.length === 2;
+```
 
-#### Overlay Display
-- **Full-screen overlay** appears below the navigation bar (top: 64px)
-- **Background**: Pure black (#000) for AMOLED displays
-- **Z-index**: 1000 (above all other content)
-- **Header**: Shows "Your Library" title with close button (✖)
+Spotify's native button toggles CSS classes on this element. When it has 2 classes, the sidebar is expanded.
 
-#### Content Population
-1. Script extracts the library grid from the hidden `#Desktop_LeftSidebar_Id`
-2. Clones the grid content into the overlay
-3. Adds click handlers to each library item
-4. When an item is clicked:
-   - Triggers the corresponding item in the hidden sidebar
-   - Closes the overlay after 300ms
-   - Navigates to the selected content
+### 3. Two States
 
-### 3. Toggle States
+#### Expanded State (Full Library View)
+When `isExpanded === true`:
+- **Position**: `fixed`
+- **Size**: 100% width × 92% height
+- **Location**: `left: 0`, `top: 0`
+- **Z-index**: 20 (overlays main content)
+- **Header Text**: Changes to **"✖ Close Library"**
+- **Appearance**: Full-screen overlay showing entire library
 
-The overlay has two states:
+#### Collapsed State (Small Button)
+When `isExpanded === false`:
+- **Position**: `fixed`
+- **Size**: 48px × 48px (v1.6.4 improvement, was 50×40px in v5)
+- **Location**: `left: 60px`, `top: 0`
+- **Z-index**: 1 (below main content)
+- **Header Text**: Shows normal library title
+- **Appearance**: Small icon button in top-left corner
 
-#### Hidden (Default)
-- `display: none`
-- Library button shows normal color (#b3b3b3)
+### 4. Auto-Close on Selection
 
-#### Shown (Active)
-- `display: block` (via `.show` class)
-- Library button highlighted with `.active` class
-- Full-screen overlay visible with library grid
-- Scrollable content if needed
+When you click any item in the library grid:
+```javascript
+const libraryGridItems = document.querySelector('#Desktop_LeftSidebar_Id div[role="grid"]');
+```
 
-### 4. Close Actions
+The script automatically:
+1. Detects the click event
+2. Calls `libraryButton.click()` to toggle the sidebar closed
+3. Navigates to the selected content
 
-The overlay can be closed by:
-- Clicking the ✖ close button in the overlay header
-- Clicking the library button again
-- Automatically after selecting a library item
+This provides a smooth mobile experience where the library closes after you make a selection.
+
+### 5. The "Close" Button
+
+**Important**: There is NO separate close button!
+
+The library button itself acts as both:
+- **Open** button (when collapsed)
+- **Close** button (when expanded)
+
+When expanded, the h1 text changes to "✖ Close Library" to indicate that clicking will close it.
 
 ## Key Features
 
 ### Pure Black AMOLED Mode
-The overlay uses pure black background for OLED screens:
+Playback controls use pure black (#000) background:
 ```css
-.spotifuck-library-overlay {
-    background: #000;
+aside[data-testid="now-playing-bar"] {
+    background: #000 !important;
+    box-shadow: none;
+    border-top: 1px solid #666;
 }
 ```
 
-### Responsive Design
-- Adapts to any screen size
-- Full viewport coverage below nav bar
-- Scrollable content area
+### Search Input Integration
+When focusing on the search input:
+- Now-playing bar hides temporarily
+- Provides more screen space
+- Restores when search loses focus
 
-### Custom Styling
-```css
-.spotifuck-library-btn {
-    /* Styled like native Spotify nav buttons */
-    padding: 8px 16px;
-    border-radius: 24px;
-    /* Hover effects for better UX */
-}
-```
+### Improved Dimensions (v1.6.4)
+Collapsed state: 48×48px (improved from v1.5.2's 50×40px)
+- Better visual consistency
+- Improved touch target size for mobile
 
 ## Code Flow
 
-1. **Initialization**: Script loads on `document-start`
-2. **CSS Injection**: Sidebar hidden, overlay styles added
-3. **Button Creation**: Custom library button added to nav bar every 5 seconds
-4. **Overlay Creation**: Full-screen overlay container created
-5. **Click Handler**: User clicks library button
-6. **Content Load**: Library grid cloned from hidden sidebar
-7. **Item Selection**: Click handlers route to original items
-8. **Auto-close**: Overlay closes after navigation
+1. **Page Load**: Script initializes
+2. **Button Detection**: Every 5 seconds, looks for library button
+3. **Setup**: When found, adds event listener and initial state
+4. **User Click**: Library button clicked
+5. **Toggle**: `switchLeftSidebar()` checks current state
+6. **Apply Styling**: Applies expanded or collapsed styles
+7. **Update Text**: Changes h1 to "✖ Close Library" if expanded
+8. **Selection**: User clicks library item
+9. **Auto-Close**: Script triggers button click to collapse
+10. **Navigate**: Spotify navigates to selected content
 
 ## Debugging
 
 Console logging with `[Spotifuck v6]` prefix:
-- `"Creating library button in nav bar"` - Button creation
-- `"Library overlay created"` - Overlay container setup
-- `"Library overlay shown with X items"` - Content loaded
-- `"Library overlay hidden"` - Overlay closed
-- `"Library grid not ready yet"` - Waiting for Spotify to load
+- `"Library button configured"` - Button found and setup
+- `"Expanding sidebar"` - Sidebar going to full-screen mode
+- `"Collapsing sidebar"` - Sidebar going to small button mode
+- `"Auto-closing library"` - Library closing after selection
 
 ## Technical Details
 
-### Why Hide the Sidebar?
-The native Spotify sidebar (`#Desktop_LeftSidebar_Id`) is hidden with `display: none` but not removed. This allows:
-- Spotify's library system to function normally
-- Content to be extracted and displayed in our custom overlay
-- Native click handlers and navigation to work seamlessly
-
-### Why Clone the Grid?
+### Why Check classList.length?
 ```javascript
-const clonedGrid = libraryGrid.cloneNode(true);
+const isExpanded = navFirstChild.classList.length === 2;
 ```
-We clone the grid to:
-- Avoid interfering with Spotify's DOM structure
-- Maintain native functionality
-- Allow custom styling in the overlay
+Spotify's native button adds/removes CSS classes to indicate state. When expanded, the nav element has 2 classes. This is more reliable than checking computed styles or aria attributes.
 
-### Why Proxy Clicks?
+### Why setTimeout Wrapper?
 ```javascript
-originalItems[index].click();
+libraryButton.addEventListener('click', () => {
+    setTimeout(() => switchLeftSidebar(), 0);
+});
 ```
-When you click an item in the overlay, we find the corresponding original item and trigger its click event. This ensures:
-- Spotify's navigation works correctly
-- All native features are preserved
-- No need to reimplement Spotify's routing
+This defers execution to the next event loop tick, allowing Spotify's native click handler to run first and update the DOM before we apply our custom styling.
 
-### 5-Second Polling
-The button and overlay are checked/created every 5 seconds to handle:
-- Dynamic page loading
-- Route changes within Spotify
-- DOM element recreation
-
-## Navigation Bar Structure
-
-After initialization:
+### Why 5-Second Polling?
+```javascript
+cssHackInterval = setInterval(() => { ... }, 5000);
 ```
-#global-nav-bar
-├── Home button
-├── .spotifuck-library-btn ← Our custom button
-│   ├── SVG icon (library)
-│   └── "Your Library" text
-├── Search button
-└── (other buttons...)
-```
+Spotify's web player dynamically creates/destroys DOM elements during navigation. The 5-second polling ensures:
+- Library button is always configured after page transitions
+- Event listeners remain active
+- Initial state is properly set
 
-## Overlay Structure
+### Why Both nav Element AND h1?
+- **nav element classes**: Used to detect current state (expanded/collapsed)
+- **h1 text**: User-visible indicator that clicking will close
+- They work together: check state via nav, update UI via h1
 
-```
-.spotifuck-library-overlay
-├── .spotifuck-library-overlay-header
-│   ├── h1 "Your Library"
-│   └── .spotifuck-library-close-btn (✖)
-└── .spotifuck-library-content
-    └── (cloned library grid)
-```
+## Comparison with v5
 
-## Changes from Previous Version
+### Same Behavior
+- Library button toggles between expanded/collapsed
+- h1 shows "✖ Close Library" when expanded
+- Auto-closes on item selection
+- Sidebar positions and z-indexes
 
-### What Changed
-1. **Sidebar**: Hidden completely (was toggleable overlay)
-2. **Button Location**: Top navigation bar (was inside sidebar)
-3. **Button Style**: Spotify-native look (was custom styled in sidebar)
-4. **Library Display**: Full-screen overlay (was sidebar expansion)
-5. **Positioning**: Between Home and Search (was left side of screen)
-
-### What Stayed
-- Pure black AMOLED mode
-- Auto-close on selection
-- All library functionality
-- Click-through to original items
+### v1.6.4 Improvements in v6
+- **Collapsed size**: 48×48px (was 50×40px)
+- **Top position**: 0 (was 2px)
+- **Pure black AMOLED**: Playback controls use #000
+- **Better variable names**: `unlockFlag` instead of `alFlag`
+- **Enhanced video detection**: `.VideoPlayer__container video`
+- **Improved seek**: +1ms offset for precision
 
 ## Compatibility
 
 - **Browser**: Firefox for Android (primary), Chrome/Edge desktop
 - **Spotify**: Web Player (open.spotify.com)
 - **Userscript Manager**: Tampermonkey, Violentmonkey, Greasemonkey
-- **Layout**: Works with Spotify's current navigation structure
 
-## Troubleshooting
+## Summary
 
-### Library Button Not Appearing
-- Wait 5 seconds for polling cycle
-- Check that `#global-nav-bar` exists
-- Verify search button is present
-- Check console for creation message
-
-### Library Empty
-- Spotify may still be loading
-- Try clicking library button again after a few seconds
-- Check if hidden sidebar has content
-
-### Items Not Clickable
-- Ensure overlay is fully loaded
-- Check console for error messages
-- Verify original sidebar items exist
-
-## Support
-
-For issues or questions, see:
-- [V6_SUMMARY.md](V6_SUMMARY.md) - Feature overview
-- [GitHub Issues](https://github.com/Myst1cX/spotifuck-userscript/issues)
-
+The library button is a **single toggle button** in the sidebar header that:
+1. Starts in collapsed state (small button in corner)
+2. Click to expand → full-screen overlay with "✖ Close Library" text
+3. Click again (or select item) → collapses back to small button
+4. No separate buttons, overlays, or navigation bar integration needed
+5. Follows the exact pattern from reversed Spotifuck Android app code
