@@ -318,17 +318,21 @@
         if (navbar) {
             console.log('[Spotifuck v6] Creating new library button in navbar');
             
+            // Button styling constants
+            const BUTTON_BG = '#282828';
+            const BUTTON_BG_HOVER = '#3e3e3e';
+            
             // Create a brand new button element
             const newLibraryButton = document.createElement('button');
             newLibraryButton.classList.add('fuckd-nav-library-button');
-            newLibraryButton.innerHTML = '📚 Your Library';
+            newLibraryButton.textContent = '📚 Your Library';
             
             // Style the new button for navbar placement
             newLibraryButton.style.marginLeft = '10px';
             newLibraryButton.style.marginRight = '10px';
             newLibraryButton.style.padding = '8px 12px';
             newLibraryButton.style.height = 'auto';
-            newLibraryButton.style.background = '#282828';
+            newLibraryButton.style.background = BUTTON_BG;
             newLibraryButton.style.border = 'none';
             newLibraryButton.style.borderRadius = '20px';
             newLibraryButton.style.color = '#ffffff';
@@ -341,13 +345,13 @@
             
             // Add hover effect
             newLibraryButton.addEventListener('mouseenter', () => {
-                newLibraryButton.style.background = '#3e3e3e';
+                newLibraryButton.style.background = BUTTON_BG_HOVER;
             });
             newLibraryButton.addEventListener('mouseleave', () => {
-                newLibraryButton.style.background = '#282828';
+                newLibraryButton.style.background = BUTTON_BG;
             });
             
-            // Add click handler for toggling sidebar
+            // Add click handler for toggling sidebar (setTimeout ensures Spotify's DOM updates complete)
             newLibraryButton.addEventListener('click', () => setTimeout(switchLeftSidebar, 0));
             
             // Insert new button as first element in navbar
