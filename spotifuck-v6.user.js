@@ -284,7 +284,7 @@
             leftSidebar.style.display = 'block';
             leftSidebar.style.position = 'fixed';
             leftSidebar.style.width = '100%';
-            leftSidebar.style.height = '92%';
+            leftSidebar.style.height = '100%';
             leftSidebar.style.left = '0';
             leftSidebar.style.top = '0';
             leftSidebar.style.zIndex = '20';
@@ -293,6 +293,8 @@
         } else {
             console.log('[Spotifuck v6] Sidebar visible - hiding');
             leftSidebar.style.display = 'none';
+            const libraryHeader = leftSidebar.querySelector('header > div > div:first-child h1');
+            if (libraryHeader) libraryHeader.innerText = 'Your Library';
         }
     }
 
@@ -324,7 +326,7 @@
             // Move button to navbar (this MOVES it, doesn't clone)
             navbar.prepend(libraryButton);
             
-            // Add click handler for toggling sidebar
+            // Add click handler for toggling sidebar (setTimeout ensures DOM updates complete)
             libraryButton.addEventListener('click', () => setTimeout(switchLeftSidebar, 0));
             
             console.log('[Spotifuck v6] Library button successfully relocated to navbar');
