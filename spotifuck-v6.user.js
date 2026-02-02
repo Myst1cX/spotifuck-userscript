@@ -27,11 +27,12 @@
 
     console.log('🎵 Spotifuck v6 - APK v1.6.4 Port');
 
-    // Hide all library buttons in sidebar header (we move ours to navbar)
-    // Exclude .fuckd buttons (our processed button) from being hidden
+    // Hide specific unwanted library buttons that Spotify creates
+    // Target by aria-label so original "Open Your Library" button is never hidden
     const style = document.createElement('style');
     style.textContent = `
-        #Desktop_LeftSidebar_Id header button:not(.fuckd) {
+        #Desktop_LeftSidebar_Id header button[aria-label="Collapse Your Library"],
+        #Desktop_LeftSidebar_Id header button[aria-label="Go back"] {
             display: none !important;
         }
     `;
