@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Userscript v6
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      6.5.0
+// @version      6.5.1
 // @description  Full Spotifuck 1.6.4 UI hack (browser-focused) + enhanced ad blocking + playback control port on open.spotify.com
 // @author       Myst1cX (adapted from Spotifuck app v1.6.4)
 // @match        https://open.spotify.com/*
@@ -16,73 +16,81 @@
 (function() {
     'use strict';
 
-    console.log('%c[Spotifuck v6.5.0] Script initializing...', 'color: #1db954; font-weight: bold; font-size: 14px');
+    console.log('%c[Spotifuck v6.5.1] Script initializing...', 'color: #1db954; font-weight: bold; font-size: 14px');
     console.log('[Spotifuck v6] URL:', window.location.href);
     console.log('[Spotifuck v6] User Agent:', navigator.userAgent);
 
-    // Debug helper function
-    window.spotifuckDebug = function() {
-        console.log('%c=== SPOTIFUCK DEBUG INFO ===', 'color: #1db954; font-weight: bold; font-size: 16px');
-        console.log('Version: 6.5.0');
-        console.log('URL:', window.location.href);
-        
-        // Check for sidebar
-        const sidebar = document.querySelector('#Desktop_LeftSidebar_Id');
-        console.log('Sidebar element exists:', !!sidebar);
-        if (sidebar) {
-            const sidebarStyles = window.getComputedStyle(sidebar);
-            console.log('Sidebar display:', sidebarStyles.display);
-            console.log('Sidebar visibility:', sidebarStyles.visibility);
-            console.log('Sidebar opacity:', sidebarStyles.opacity);
-            console.log('Sidebar HTML (first 500 chars):', sidebar.outerHTML.substring(0, 500));
-        }
-        
-        // Check for navbar
-        const navbar = document.querySelector('#global-nav-bar');
-        console.log('Navbar element exists:', !!navbar);
-        if (navbar) {
-            console.log('Navbar HTML (first 500 chars):', navbar.outerHTML.substring(0, 500));
-        }
-        
-        // Try all button selectors
-        const selectors = [
-            '#Desktop_LeftSidebar_Id header > div > div:first-child button',
-            '#Desktop_LeftSidebar_Id header button[aria-label*="Library"]',
-            '#Desktop_LeftSidebar_Id header button[aria-label*="library"]',
-            '#Desktop_LeftSidebar_Id header button',
-            '#Desktop_LeftSidebar_Id button'
-        ];
-        
-        console.log('Testing button selectors:');
-        selectors.forEach(sel => {
-            const elem = document.querySelector(sel);
-            console.log(`  "${sel}":`, !!elem, elem ? '(FOUND)' : '(NOT FOUND)');
-            if (elem) {
-                const styles = window.getComputedStyle(elem);
-                console.log('    Display:', styles.display);
-                console.log('    Position:', styles.position);
-                console.log('    Top:', styles.top);
-                console.log('    Left:', styles.left);
-                console.log('    Width:', styles.width);
-                console.log('    Height:', styles.height);
-                console.log('    Z-index:', styles.zIndex);
-                console.log('    Visibility:', styles.visibility);
-                console.log('    Opacity:', styles.opacity);
-                console.log('    Classes:', elem.className);
-                console.log('    Text:', elem.textContent);
-                console.log('    HTML:', elem.outerHTML.substring(0, 300));
+    // Inject debug function into page context (not userscript context)
+    // This ensures it's accessible from the browser console
+    const debugScript = document.createElement('script');
+    debugScript.textContent = `
+        window.spotifuckDebug = function() {
+            console.log('%c=== SPOTIFUCK DEBUG INFO ===', 'color: #1db954; font-weight: bold; font-size: 16px');
+            console.log('Version: 6.5.1');
+            console.log('URL:', window.location.href);
+            
+            // Check for sidebar
+            const sidebar = document.querySelector('#Desktop_LeftSidebar_Id');
+            console.log('Sidebar element exists:', !!sidebar);
+            if (sidebar) {
+                const sidebarStyles = window.getComputedStyle(sidebar);
+                console.log('Sidebar display:', sidebarStyles.display);
+                console.log('Sidebar visibility:', sidebarStyles.visibility);
+                console.log('Sidebar opacity:', sidebarStyles.opacity);
+                console.log('Sidebar HTML (first 500 chars):', sidebar.outerHTML.substring(0, 500));
             }
-        });
+            
+            // Check for navbar
+            const navbar = document.querySelector('#global-nav-bar');
+            console.log('Navbar element exists:', !!navbar);
+            if (navbar) {
+                console.log('Navbar HTML (first 500 chars):', navbar.outerHTML.substring(0, 500));
+            }
+            
+            // Try all button selectors
+            const selectors = [
+                '#Desktop_LeftSidebar_Id header > div > div:first-child button',
+                '#Desktop_LeftSidebar_Id header button[aria-label*="Library"]',
+                '#Desktop_LeftSidebar_Id header button[aria-label*="library"]',
+                '#Desktop_LeftSidebar_Id header button',
+                '#Desktop_LeftSidebar_Id button'
+            ];
+            
+            console.log('Testing button selectors:');
+            selectors.forEach(sel => {
+                const elem = document.querySelector(sel);
+                console.log(\`  "\${sel}":\`, !!elem, elem ? '(FOUND)' : '(NOT FOUND)');
+                if (elem) {
+                    const styles = window.getComputedStyle(elem);
+                    console.log('    Display:', styles.display);
+                    console.log('    Position:', styles.position);
+                    console.log('    Top:', styles.top);
+                    console.log('    Left:', styles.left);
+                    console.log('    Width:', styles.width);
+                    console.log('    Height:', styles.height);
+                    console.log('    Z-index:', styles.zIndex);
+                    console.log('    Visibility:', styles.visibility);
+                    console.log('    Opacity:', styles.opacity);
+                    console.log('    Classes:', elem.className);
+                    console.log('    Text:', elem.textContent);
+                    console.log('    HTML:', elem.outerHTML.substring(0, 300));
+                }
+            });
+            
+            // Check if button is marked as processed
+            const processedButton = document.querySelector('.fuckd-library-button');
+            console.log('Button marked as processed (.fuckd-library-button):', !!processedButton);
+            
+            console.log('%c=== END DEBUG INFO ===', 'color: #1db954; font-weight: bold; font-size: 16px');
+            console.log('%cTo share this info, copy everything between the debug markers', 'color: yellow');
+            
+            return 'Debug info logged above. Copy and share the console output.';
+        };
         
-        // Check if button is marked as processed
-        const processedButton = document.querySelector('.fuckd-library-button');
-        console.log('Button marked as processed (.fuckd-library-button):', !!processedButton);
-        
-        console.log('%c=== END DEBUG INFO ===', 'color: #1db954; font-weight: bold; font-size: 16px');
-        console.log('%cTo share this info, copy everything between the debug markers', 'color: yellow');
-        
-        return 'Debug info logged above. Copy and share the console output.';
-    };
+        console.log('%c[Spotifuck v6] spotifuckDebug() function injected into page context', 'color: lime; font-weight: bold');
+    `;
+    (document.head || document.documentElement).appendChild(debugScript);
+    debugScript.remove();
 
     console.log('%c[Spotifuck v6] DEBUG MODE ENABLED', 'color: yellow; font-weight: bold');
     console.log('%c[Spotifuck v6] Type "spotifuckDebug()" in console to see detailed debug info', 'color: yellow');
