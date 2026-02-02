@@ -146,17 +146,16 @@
         // Setup library button once
         const setupLibraryButton = () => {
             // Use aria-label to identify the correct library button (not back button)
-            // Library button has aria-label containing "Your Library" (either "Open Your Library" or "Collapse Your Library")
-            // Back button has aria-label="Go back" which doesn't contain "Your Library"
-            const libBtn = document.querySelector('#Desktop_LeftSidebar_Id header button[aria-label*="Your Library"]:not(.fuckd)');
+            // Only process "Open Your Library" button, not "Collapse Your Library" or "Go back"
+            const libBtn = document.querySelector('#Desktop_LeftSidebar_Id header button[aria-label="Open Your Library"]:not(.fuckd)');
             
             if (libBtn && !libBtn.classList.contains('fuckd')) {
                 console.log('LibBtnFuckd');
                 window.lBtn = libBtn;
+                // Apply button styling (needed for correct appearance)
+                libBtn.style.padding = '0';
+                libBtn.style.height = '20px';
                 libBtn.classList.add('fuckd', 'lbtn');
-                // Don't apply custom styling - it causes glitched appearance
-                // libBtn.style.padding = '0';
-                // libBtn.style.height = '20px';
                 libBtn.addEventListener('click', function() {
                     setTimeout(() => switchLs(), 0);
                 });
