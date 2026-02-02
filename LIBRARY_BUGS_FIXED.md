@@ -6,7 +6,33 @@ User reported: "works but buggy at times" - analyzed and fixed all library-relat
 
 ## Issues Identified & Fixed
 
-### 1. ❌ Fragile State Detection → ✅ Explicit State Tracking
+### 1. ❌ Click-Through to Hidden Elements → ✅ Pointer Event Blocking
+
+**Problem:**
+- When library expanded as overlay, clicks passed through to main content
+- Clicking library items also triggered homescreen elements underneath
+- Caused unexpected navigation and double-actions
+
+**Fix:**
+```javascript
+// When expanded: Block pointer events on main content
+if (libExpanded) {
+    if (mainContent) mainContent.style.pointerEvents = 'none';
+    if (navbar) navbar.style.pointerEvents = 'none';
+}
+// When collapsed: Restore pointer events
+else {
+    if (mainContent) mainContent.style.pointerEvents = 'auto';
+    if (navbar) navbar.style.pointerEvents = 'auto';
+}
+```
+- Complete click isolation when overlay active
+- Library acts as true modal overlay
+- Main content completely blocked from receiving clicks
+
+---
+
+### 2. ❌ Fragile State Detection → ✅ Explicit State Tracking
 
 **Problem:**
 ```javascript
@@ -30,7 +56,7 @@ libExpanded = !libExpanded;
 
 ---
 
-### 2. ❌ Aggressive Auto-Close → ✅ Conditional Auto-Close
+### 3. ❌ Aggressive Auto-Close → ✅ Conditional Auto-Close
 
 **Problem:**
 ```javascript
@@ -64,7 +90,7 @@ libGrid.addEventListener('click', (e) => {
 
 ---
 
-### 3. ❌ Race Condition Timing → ✅ Proper Delays
+### 4. ❌ Race Condition Timing → ✅ Proper Delays
 
 **Problem:**
 ```javascript
@@ -87,7 +113,7 @@ setTimeout(() => lBtn.click(), 100);  // Auto-close: 100ms
 
 ---
 
-### 4. ❌ Missing Null Checks → ✅ Defensive Programming
+### 5. ❌ Missing Null Checks → ✅ Defensive Programming
 
 **Problem:**
 ```javascript
@@ -116,7 +142,7 @@ if (panelParent.ariaHidden === 'false') {
 
 ---
 
-### 5. ❌ Inconsistent Header Text → ✅ Proper Text Management
+### 6. ❌ Inconsistent Header Text → ✅ Proper Text Management
 
 **Problem:**
 - Header showed "✖ Close Library" even when collapsed
@@ -137,7 +163,7 @@ if (libExpanded) {
 
 ---
 
-### 6. ❌ Vague Logging → ✅ Descriptive Logs
+### 7. ❌ Vague Logging → ✅ Descriptive Logs
 
 **Problem:**
 ```javascript
@@ -206,6 +232,7 @@ console.log('#Library: Sidebar not found');
 
 ### Before (Buggy)
 
+- ❌ Click-through to main content
 - ❌ State confusion
 - ❌ Unexpected closures
 - ❌ Race conditions
@@ -214,6 +241,7 @@ console.log('#Library: Sidebar not found');
 
 ### After (Fixed)
 
+- ✅ Isolated overlay (no click-through)
 - ✅ Reliable state
 - ✅ Predictable behavior
 - ✅ No race conditions
@@ -225,9 +253,10 @@ console.log('#Library: Sidebar not found');
 ## User Observations Requested
 
 The bugs were likely:
-1. **Library toggling inconsistently** - Fixed with explicit state
-2. **Auto-close firing randomly** - Fixed with conditional logic
-3. **Clicks not registering** - Fixed with proper delays
-4. **Occasional errors** - Fixed with null checks
+1. **Clicks passing through to homescreen** - Fixed with pointer-events blocking
+2. **Library toggling inconsistently** - Fixed with explicit state
+3. **Auto-close firing randomly** - Fixed with conditional logic
+4. **Clicks not registering** - Fixed with proper delays
+5. **Occasional errors** - Fixed with null checks
 
 If you see any remaining issues, check console logs which now provide detailed info about what's happening!
