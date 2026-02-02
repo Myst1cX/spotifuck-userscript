@@ -57,8 +57,14 @@
                 --panel-gap: 0 !important;
             }
 
-            #main-view + div {
+            #main-view + div,
+            #main-view + div > div {
                 overflow: hidden !important;
+                width: auto;
+            }
+
+            #main-view + div > div > div > div:nth-child(2) > div {
+                width: 100vw !important;
             }
 
             /* Hide unnecessary UI elements */
@@ -184,7 +190,8 @@
             /* Enhanced now playing bar styling */
             aside[data-testid="now-playing-bar"] {
                 min-width: 100% !important;
-                background: #000 !important;
+                box-shadow: 0 0 6px #440000;
+                background: linear-gradient(to bottom, #770000, #330000) !important;
             }
             aside[data-testid="now-playing-bar"] > div {
                 margin-top: 2px !important;
@@ -276,6 +283,21 @@
 
             .YourLibraryX header {
                 padding: 14px;
+            }
+
+            /* Now playing button styling */
+            .npbtn {
+                cursor: pointer;
+                color: #b3b3b3;
+                background: transparent;
+                border: none;
+                width: 32px;
+                height: 32px;
+                padding: 8px;
+            }
+
+            .npbtn.active {
+                color: #1db954;
             }
 
         `);
