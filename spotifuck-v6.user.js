@@ -77,11 +77,6 @@
                 display: none !important;
             }
 
-            /* Hide the original sidebar library button */
-            #Desktop_LeftSidebar_Id header > div > div:first-child button {
-                display: none !important;
-            }
-
             /* Artist page layout optimization */
             section[data-testid="artist-page"] > div > div:first-child:not([data-encore-id]) {
                 height: 25vh;
@@ -336,7 +331,10 @@
                 // Insert cloned button as first element in navbar
                 navbar.prepend(clonedButton);
                 
-                console.log('[Spotifuck v6] Library button successfully cloned to navbar');
+                // Delete the original button from sidebar
+                originalButton.remove();
+                
+                console.log('[Spotifuck v6] Library button cloned to navbar and original removed from sidebar');
             } else {
                 console.log('[Spotifuck v6] Original button not found to clone');
             }
