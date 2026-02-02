@@ -1,0 +1,81 @@
+<div class="MWNfosd1RYrPgupE">
+   <div class="IPnR0MPdiJw3m3C8 rd25SoWs7Y4T40c7">
+      <button
+         type="button"
+         aria-label="Collapse Your Library"
+         class="mY4Zu2cmkisEMdc2 q8mQFn7r8UYsKdHE _H2ZzS_Atuwx6wh9 tMFkXbMSXNUegQIu aIU4qABgiIgjAEyD EYdwwRebZIgjbKy_ DSes_Z2f48QaZ1s0 j3SHhp1yEwUOoay8 fuckd lbtn"
+         style="padding: 0px; height: 20px"
+      >
+         <span class="PnzFLbZQ_W8a7qJo"
+            ><svg
+               data-encore-id="icon"
+               role="img"
+               aria-hidden="true"
+               class="e-91000-icon e-91000-baseline e-91000-icon--auto-mirror"
+               style="
+                  --encore-icon-height: var(
+                     --encore-graphic-size-decorative-smaller
+                  );
+                  --encore-icon-width: var(
+                     --encore-graphic-size-decorative-smaller
+                  );
+               "
+               viewBox="0 0 16 16"
+            >
+               <path
+                  d="M10.97 5.47a.75.75 0 1 1 1.06 1.06L10.56 8l1.47 1.47a.75.75 0 1 1-1.06 1.06l-2-2a.75.75 0 0 1 0-1.06z"
+               ></path>
+               <path
+                  d="M1 0a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V1a1 1 0 0 0-1-1zm.5 1.5H5v13H1.5zm13 13h-8v-13h8z"
+               ></path></svg></span
+         ><span class="e-91000-visually-hidden" data-encore-id="visuallyHidden"
+            ><h1
+               class="e-91000-text encore-text-body-medium"
+               data-encore-id="text"
+            >
+               Your Library
+            </h1></span
+         >
+      </button>
+   </div>
+   <button
+      class="Button-sc-1dqy6lx-0 fprjoI e-91000-overflow-wrap-anywhere e-91000-button-tertiary--icon-only we0UJfWAf8vWXQku XrD9b1tRNYbkSGsE q8mQFn7r8UYsKdHE _H2ZzS_Atuwx6wh9 tMFkXbMSXNUegQIu aIU4qABgiIgjAEyD LUVEWqx9qW4kwbPr C2vATbKl0MDEq09a DSes_Z2f48QaZ1s0 eOI7g5Zd6esLuCCb LJCjURMQBE6o9exj EYdwwRebZIgjbKy_ j3SHhp1yEwUOoay8 DxJfCbGxPVwir09_"
+      aria-label="Go back"
+      data-encore-id="buttonTertiary"
+   >
+      <span aria-hidden="true" class="e-91000-button__icon-wrapper"
+         ><svg
+            data-encore-id="icon"
+            role="img"
+            aria-hidden="true"
+            class="e-91000-icon e-91000-baseline e-91000-icon--auto-mirror"
+            style="
+               --encore-icon-height: var(
+                  --encore-graphic-size-decorative-smaller
+               );
+               --encore-icon-width: var(
+                  --encore-graphic-size-decorative-smaller
+               );
+            "
+            viewBox="0 0 16 16"
+         >
+            <path
+               d="M11.03.47a.75.75 0 0 1 0 1.06L4.56 8l6.47 6.47a.75.75 0 1 1-1.06 1.06L2.44 8 9.97.47a.75.75 0 0 1 1.06 0"
+            ></path></svg
+      ></span>
+   </button>
+   <div class="P6DaBNnKSboUGSKZ K8DkW8q4HEw77Wx2">
+      <button
+         class="Button-sc-1dqy6lx-0 gLxfIu encore-text-body-small-bold e-91000-overflow-wrap-anywhere e-91000-button-tertiary--condensed we0UJfWAf8vWXQku"
+         aria-label="ROMANIAN"
+         data-encore-id="buttonTertiary"
+      >
+         <h2
+            class="e-91000-text encore-text-body-medium-bold nPBLYCO2r20mjClx"
+            data-encore-id="text"
+         >
+            ROMANIAN
+         </h2>
+      </button>
+   </div>
+</div>
