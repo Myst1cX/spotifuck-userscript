@@ -44,6 +44,7 @@
      * switchLs - Toggle library sidebar between expanded and collapsed states
      * From r0/e.java line 202: window.switchLs=function(){...}
      * FIXED: Uses explicit state tracking instead of fragile classList.length check
+     * FIXED: Blocks click-through to main content when expanded
      */
     window.switchLs = function() {
         const leftSidebar = document.querySelector('#Desktop_LeftSidebar_Id');
@@ -58,6 +59,10 @@
             return;
         }
 
+        // Get main content area to block clicks when overlay is active
+        const mainContent = document.querySelector('#main');
+        const navbar = document.querySelector('#global-nav-bar');
+        
         // Toggle state based on explicit tracking (more reliable than classList.length)
         libExpanded = !libExpanded;
         
@@ -70,6 +75,16 @@
             leftSidebar.style.left = '0';
             leftSidebar.style.top = '0';
             leftSidebar.style.zIndex = '20';
+            
+            // CRITICAL FIX: Block pointer events on main content to prevent click-through
+            if (mainContent) {
+                mainContent.style.pointerEvents = 'none';
+                console.log('#Library: Blocked main content clicks');
+            }
+            if (navbar) {
+                navbar.style.pointerEvents = 'none';
+                console.log('#Library: Blocked navbar clicks');
+            }
             
             const headerH1 = leftSidebar.querySelector('header>div>div:first-child h1');
             if (headerH1) {
@@ -85,6 +100,16 @@
             leftSidebar.style.left = '60px';
             leftSidebar.style.width = '48px';
             leftSidebar.style.height = '48px';
+            
+            // CRITICAL FIX: Restore pointer events on main content
+            if (mainContent) {
+                mainContent.style.pointerEvents = 'auto';
+                console.log('#Library: Restored main content clicks');
+            }
+            if (navbar) {
+                navbar.style.pointerEvents = 'auto';
+                console.log('#Library: Restored navbar clicks');
+            }
             
             const headerH1 = leftSidebar.querySelector('header>div>div:first-child h1');
             if (headerH1) {
