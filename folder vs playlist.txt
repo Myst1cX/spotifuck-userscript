@@ -1,0 +1,22 @@
+// folder
+
+<div
+   role="button"
+   aria-disabled="false"
+   aria-labelledby="listrow-title-spotify:user:312xzcb7hbikmuh75cembojixuz4:folder:26ee5bf42b1e100b listrow-subtitle-spotify:user:312xzcb7hbikmuh75cembojixuz4:folder:26ee5bf42b1e100b"
+   aria-describedby="onClickHintspotify:user:312xzcb7hbikmuh75cembojixuz4:folder:26ee5bf42b1e100b"
+   tabindex="-1"
+   class="RowButton-sc-xxkq4e-0 cRPTAY"
+></div>
+
+
+// playlist
+
+<div
+   role="button"
+   aria-disabled="false"
+   aria-labelledby="listrow-title-spotify:playlist:37i9dQZF1DX4sJFeoGlF41 listrow-subtitle-spotify:playlist:37i9dQZF1DX4sJFeoGlF41"
+   aria-describedby="onClickHintspotify:playlist:37i9dQZF1DX4sJFeoGlF41"
+   tabindex="-1"
+   class="RowButton-sc-xxkq4e-0 cRPTAY"
+></div>
