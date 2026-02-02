@@ -92,7 +92,7 @@
             }
 
             /* When sidebar is open, make it full-screen overlay */
-            #Desktop_LeftSidebar_Id[style*="display: block"] {
+            #Desktop_LeftSidebar_Id.sidebar-open {
                 position: fixed !important;
                 top: 0 !important;
                 left: 0 !important;
@@ -104,8 +104,8 @@
             }
 
             /* Make library grid content use full width when sidebar is open */
-            #Desktop_LeftSidebar_Id[style*="display: block"] nav,
-            #Desktop_LeftSidebar_Id[style*="display: block"] > div {
+            #Desktop_LeftSidebar_Id.sidebar-open nav,
+            #Desktop_LeftSidebar_Id.sidebar-open > div {
                 width: 100% !important;
                 max-width: 100% !important;
             }
@@ -315,6 +315,7 @@
         if (isHidden) {
             console.log('[Spotifuck v6] Sidebar hidden - showing as fullscreen overlay');
             leftSidebar.style.display = 'block';
+            leftSidebar.classList.add('sidebar-open');
             leftSidebar.style.position = 'fixed';
             leftSidebar.style.width = '100%';
             leftSidebar.style.height = '100%';
@@ -326,6 +327,7 @@
         } else {
             console.log('[Spotifuck v6] Sidebar visible - hiding');
             leftSidebar.style.display = 'none';
+            leftSidebar.classList.remove('sidebar-open');
             const libraryHeader = leftSidebar.querySelector('header > div > div:first-child h1');
             if (libraryHeader) libraryHeader.innerText = 'Your Library';
         }
