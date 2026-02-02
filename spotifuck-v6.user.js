@@ -61,7 +61,6 @@
 
         // Get main content area to block clicks when overlay is active
         const mainContent = document.querySelector('#main');
-        const navbar = document.querySelector('#global-nav-bar');
         
         // Toggle state based on explicit tracking (more reliable than classList.length)
         libExpanded = !libExpanded;
@@ -77,13 +76,10 @@
             leftSidebar.style.zIndex = '20';
             
             // CRITICAL FIX: Block pointer events on main content to prevent click-through
+            // But keep navbar active so users can navigate (Home/Search buttons)
             if (mainContent) {
                 mainContent.style.pointerEvents = 'none';
-                console.log('#Library: Blocked main content clicks');
-            }
-            if (navbar) {
-                navbar.style.pointerEvents = 'none';
-                console.log('#Library: Blocked navbar clicks');
+                console.log('#Library: Blocked main content clicks (navbar stays active)');
             }
             
             const headerH1 = leftSidebar.querySelector('header>div>div:first-child h1');
@@ -105,10 +101,6 @@
             if (mainContent) {
                 mainContent.style.pointerEvents = 'auto';
                 console.log('#Library: Restored main content clicks');
-            }
-            if (navbar) {
-                navbar.style.pointerEvents = 'auto';
-                console.log('#Library: Restored navbar clicks');
             }
             
             const headerH1 = leftSidebar.querySelector('header>div>div:first-child h1');
