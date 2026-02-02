@@ -77,11 +77,6 @@
                 display: none !important;
             }
 
-            /* Sidebar is visible by default, will be hidden when user clicks "Close Library" */
-            #Desktop_LeftSidebar_Id.spotifuck-closed {
-                display: none !important;
-            }
-
             /* Artist page layout optimization */
             section[data-testid="artist-page"] > div > div:first-child:not([data-encore-id]) {
                 height: 25vh;
@@ -281,119 +276,6 @@
 
             .YourLibraryX header {
                 padding: 14px;
-            }
-
-            /* Custom Library Button in Navigation Bar (shown only when sidebar is closed) */
-            .spotifuck-library-btn {
-                display: none; /* Hidden by default, shown after sidebar closed */
-                align-items: center;
-                justify-content: center;
-                background: transparent;
-                border: none;
-                color: #b3b3b3;
-                cursor: pointer;
-                padding: 8px 16px;
-                border-radius: 24px;
-                font-size: 14px;
-                font-weight: 700;
-                transition: background 0.2s;
-            }
-
-            .spotifuck-library-btn.visible {
-                display: flex;
-            }
-
-            .spotifuck-library-btn:hover {
-                background: rgba(255, 255, 255, 0.1);
-                color: #fff;
-            }
-
-            .spotifuck-library-btn.active {
-                color: #fff;
-                background: rgba(255, 255, 255, 0.1);
-            }
-
-            .spotifuck-library-btn svg {
-                width: 24px;
-                height: 24px;
-                margin-right: 8px;
-            }
-
-            /* Close Library Button in Sidebar Header */
-            .spotifuck-close-sidebar-btn {
-                position: absolute;
-                top: 16px;
-                right: 16px;
-                background: rgba(255, 255, 255, 0.1);
-                border: none;
-                color: #fff;
-                cursor: pointer;
-                padding: 8px 16px;
-                border-radius: 20px;
-                font-size: 14px;
-                font-weight: 700;
-                z-index: 100;
-                transition: background 0.2s;
-            }
-
-            .spotifuck-close-sidebar-btn:hover {
-                background: rgba(255, 255, 255, 0.2);
-            }
-
-            /* Library Overlay - Full screen when shown */
-            .spotifuck-library-overlay {
-                position: fixed;
-                top: 64px;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: #000;
-                z-index: 1000;
-                overflow-y: auto;
-                display: none;
-                padding: 20px;
-            }
-
-            .spotifuck-library-overlay.show {
-                display: block;
-            }
-
-            .spotifuck-library-overlay-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 20px;
-                padding: 0 10px;
-            }
-
-            .spotifuck-library-overlay-header h1 {
-                font-size: 32px;
-                font-weight: 700;
-                color: #fff;
-            }
-
-            .spotifuck-library-close-btn {
-                background: transparent;
-                border: none;
-                color: #b3b3b3;
-                cursor: pointer;
-                font-size: 28px;
-                padding: 8px;
-                width: 40px;
-                height: 40px;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-
-            .spotifuck-library-close-btn:hover {
-                color: #fff;
-                background: rgba(255, 255, 255, 0.1);
-            }
-
-            .spotifuck-library-content {
-                width: 100%;
             }
         `);
 
@@ -637,90 +519,38 @@
                 }, 2000);
             };
 
-            // --- CSS/JS Hacks for Sidebar and Navigation ---
-            // Initially, sidebar is visible. User can click "Close Library" to hide it.
-            // After closing, library button appears in nav bar between Home and Search
+            // --- CSS/JS Hacks for Sidebar ---
+            // Library button in sidebar header toggles between expanded/collapsed states
+            // When expanded: h1 shows "✖ Close Library", full-screen overlay
+            // When collapsed: small button in corner
             window.addCSSHacks = function() {
                 if (cssHackInterval) clearInterval(cssHackInterval);
                 
                 cssHackInterval = setInterval(() => {
-                    const sidebar = document.querySelector('#Desktop_LeftSidebar_Id');
-                    const isSidebarClosed = sidebar?.classList.contains('spotifuck-closed');
-                    
-                    // Add "Close Library" button to sidebar header
-                    if (sidebar && !isSidebarClosed && !document.querySelector('.spotifuck-close-sidebar-btn')) {
-                        const libraryHeader = sidebar.querySelector('header > div > div:first-child');
-                        if (libraryHeader) {
-                            console.log('[Spotifuck v6] Adding Close Library button to sidebar');
-                            
-                            const closeBtn = document.createElement('button');
-                            closeBtn.className = 'spotifuck-close-sidebar-btn';
-                            closeBtn.textContent = '✖ Close Library';
-                            closeBtn.addEventListener('click', closeSidebarAndEnableNavButton);
-                            
-                            libraryHeader.style.position = 'relative';
-                            libraryHeader.appendChild(closeBtn);
-                        }
+                    // Library button setup - finds the button in sidebar header
+                    const libraryButton = document.querySelector('#Desktop_LeftSidebar_Id header > div > div:first-child button:not(.fuckd)');
+                    if (libraryButton) {
+                        console.log('[Spotifuck v6] Library button configured');
+                        window.libraryButton = libraryButton;
+                        libraryButton.classList.add('fuckd', 'lbtn');
+                        libraryButton.style.padding = '0';
+                        libraryButton.style.height = '20px';
+                        libraryButton.addEventListener('click', () => {
+                            setTimeout(() => switchLeftSidebar(), 0);
+                        });
+                        switchLeftSidebar();
                     }
 
-                    // Create library button in nav bar (hidden until sidebar is closed)
-                    if (!document.querySelector('.spotifuck-library-btn')) {
-                        const navBar = document.querySelector('#global-nav-bar');
-                        const searchButton = document.querySelector('#global-nav-bar button[data-testid="search-button"]');
-                        
-                        if (navBar && searchButton) {
-                            console.log('[Spotifuck v6] Creating library button in nav bar (hidden)');
-                            
-                            const libraryBtn = document.createElement('button');
-                            libraryBtn.className = 'spotifuck-library-btn';
-                            if (isSidebarClosed) {
-                                libraryBtn.classList.add('visible');
-                            }
-                            libraryBtn.innerHTML = \`
-                                <svg viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M3 22a1 1 0 0 1-1-1V3a1 1 0 0 1 2 0v18a1 1 0 0 1-1 1zM15.5 2.134A1 1 0 0 0 14 3v18a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V6.464a1 1 0 0 0-.5-.866l-6-3.464zM9 2a1 1 0 0 0-1 1v18a1 1 0 1 0 2 0V3a1 1 0 0 0-1-1z"/>
-                                </svg>
-                                <span>Your Library</span>
-                            \`;
-                            
-                            libraryBtn.addEventListener('click', toggleLibraryOverlay);
-                            
-                            // Insert before search button
-                            searchButton.parentNode.insertBefore(libraryBtn, searchButton);
-                            
-                            window.libraryButton = libraryBtn;
-                        }
-                    } else {
-                        // Update visibility based on sidebar state
-                        const libraryBtn = document.querySelector('.spotifuck-library-btn');
-                        if (libraryBtn) {
-                            if (isSidebarClosed) {
-                                libraryBtn.classList.add('visible');
-                            } else {
-                                libraryBtn.classList.remove('visible');
-                            }
-                        }
-                    }
-
-                    // Create library overlay container if it doesn't exist
-                    if (!document.querySelector('.spotifuck-library-overlay')) {
-                        const overlay = document.createElement('div');
-                        overlay.className = 'spotifuck-library-overlay';
-                        overlay.innerHTML = \`
-                            <div class="spotifuck-library-overlay-header">
-                                <h1>Your Library</h1>
-                                <button class="spotifuck-library-close-btn">✖</button>
-                            </div>
-                            <div class="spotifuck-library-content"></div>
-                        \`;
-                        
-                        document.body.appendChild(overlay);
-                        
-                        const closeBtn = overlay.querySelector('.spotifuck-library-close-btn');
-                        closeBtn.addEventListener('click', toggleLibraryOverlay);
-                        
-                        window.libraryOverlay = overlay;
-                        console.log('[Spotifuck v6] Library overlay created');
+                    // Library grid items auto-close on selection
+                    const libraryGridItems = document.querySelector('#Desktop_LeftSidebar_Id div[role="grid"]:not(.fuckd)');
+                    if (libraryGridItems) {
+                        libraryGridItems.classList.add('fuckd');
+                        libraryGridItems.addEventListener('click', () => {
+                            setTimeout(() => {
+                                console.log('[Spotifuck v6] Auto-closing library');
+                                if (window.libraryButton) window.libraryButton.click();
+                            }, 0);
+                        });
                     }
 
                     // Search input handling
@@ -739,94 +569,40 @@
                 }, 5000);
             };
 
-            // --- Close Sidebar and Enable Nav Button ---
-            window.closeSidebarAndEnableNavButton = function() {
-                console.log('[Spotifuck v6] Closing sidebar, enabling nav button');
-                const sidebar = document.querySelector('#Desktop_LeftSidebar_Id');
-                const libraryBtn = document.querySelector('.spotifuck-library-btn');
-                
-                if (sidebar) {
-                    sidebar.classList.add('spotifuck-closed');
-                }
-                
-                if (libraryBtn) {
-                    libraryBtn.classList.add('visible');
-                }
-                
-                // Store preference in localStorage
-                try {
-                    localStorage.setItem('spotifuck-sidebar-closed', 'true');
-                } catch(e) {}
-            };
+            // --- Sidebar Toggle Logic ---
+            // Toggles sidebar between expanded (full overlay) and collapsed (small button) states
+            // When expanded, h1 text changes to "✖ Close Library"
+            window.switchLeftSidebar = function() {
+                const leftSidebar = document.querySelector('#Desktop_LeftSidebar_Id');
+                if (!leftSidebar) return;
 
-            // --- Check if sidebar was previously closed ---
-            (function checkSidebarState() {
-                try {
-                    const wasClosed = localStorage.getItem('spotifuck-sidebar-closed');
-                    if (wasClosed === 'true') {
-                        const sidebar = document.querySelector('#Desktop_LeftSidebar_Id');
-                        if (sidebar) {
-                            sidebar.classList.add('spotifuck-closed');
-                            console.log('[Spotifuck v6] Sidebar state restored: closed');
-                        }
+                const navFirstChild = leftSidebar.querySelector('nav > div > div:first-child');
+                if (!navFirstChild) return;
+
+                const isExpanded = navFirstChild.classList.length === 2;
+
+                if (isExpanded) {
+                    // Expanded state - Show full library as overlay
+                    console.log('[Spotifuck v6] Expanding sidebar');
+                    leftSidebar.style.position = 'fixed';
+                    leftSidebar.style.width = '100%';
+                    leftSidebar.style.height = '92%';
+                    leftSidebar.style.left = '0';
+                    leftSidebar.style.zIndex = '20';
+                    
+                    const libraryHeader = leftSidebar.querySelector('header > div > div:first-child h1');
+                    if (libraryHeader) {
+                        libraryHeader.innerHTML = '✖ &nbsp; Close Library';
                     }
-                } catch(e) {}
-            })();
-
-            // --- Library Overlay Toggle ---
-            window.toggleLibraryOverlay = function() {
-                const overlay = document.querySelector('.spotifuck-library-overlay');
-                const libraryBtn = document.querySelector('.spotifuck-library-btn');
-                
-                if (!overlay) return;
-                
-                const isShown = overlay.classList.contains('show');
-                
-                if (isShown) {
-                    // Hide overlay
-                    overlay.classList.remove('show');
-                    libraryBtn?.classList.remove('active');
-                    console.log('[Spotifuck v6] Library overlay hidden');
                 } else {
-                    // Show overlay and populate with library content
-                    overlay.classList.add('show');
-                    libraryBtn?.classList.add('active');
-                    
-                    // Try to get library content from the hidden sidebar
-                    const libraryGrid = document.querySelector('#Desktop_LeftSidebar_Id div[role="grid"]');
-                    const overlayContent = overlay.querySelector('.spotifuck-library-content');
-                    
-                    if (libraryGrid && overlayContent) {
-                        // Clone the library grid into the overlay
-                        const clonedGrid = libraryGrid.cloneNode(true);
-                        overlayContent.innerHTML = '';
-                        overlayContent.appendChild(clonedGrid);
-                        
-                        // Add click handlers to library items
-                        const items = clonedGrid.querySelectorAll('div[role="gridcell"]');
-                        items.forEach(item => {
-                            item.addEventListener('click', (e) => {
-                                // Find the original item in the hidden sidebar and click it
-                                const index = Array.from(items).indexOf(item);
-                                const originalItems = libraryGrid.querySelectorAll('div[role="gridcell"]');
-                                if (originalItems[index]) {
-                                    originalItems[index].click();
-                                    // Close overlay after selection
-                                    setTimeout(() => toggleLibraryOverlay(), 300);
-                                }
-                            });
-                        });
-                        
-                        console.log('[Spotifuck v6] Library overlay shown with', items.length, 'items');
-                    } else {
-                        const loadingMsg = document.createElement('p');
-                        loadingMsg.textContent = 'Loading library...';
-                        loadingMsg.style.color = '#b3b3b3';
-                        loadingMsg.style.padding = '20px';
-                        overlayContent.innerHTML = '';
-                        overlayContent.appendChild(loadingMsg);
-                        console.log('[Spotifuck v6] Library grid not ready yet');
-                    }
+                    // Collapsed state - Show as small button (v1.6.4 improved dimensions)
+                    console.log('[Spotifuck v6] Collapsing sidebar');
+                    leftSidebar.style.zIndex = '1';
+                    leftSidebar.style.position = 'fixed';
+                    leftSidebar.style.top = '0';
+                    leftSidebar.style.left = '60px';
+                    leftSidebar.style.width = '48px';
+                    leftSidebar.style.height = '48px';
                 }
             };
 
