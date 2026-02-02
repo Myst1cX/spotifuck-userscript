@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Userscript v6
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      6.0.0
+// @version      6.1.0
 // @description  Full Spotifuck 1.6.4 UI hack (browser-focused) + enhanced ad blocking + playback control port on open.spotify.com
 // @author       Myst1cX (adapted from Spotifuck app v1.6.4)
 // @match        https://open.spotify.com/*
@@ -69,6 +69,11 @@
             div.main-view-container__mh-footer-container,
             div[data-testid="hover-or-focus-tooltip"],
             #Desktop_LeftSidebar_Id header > div > div:last-child {
+                display: none !important;
+            }
+
+            /* Hide the entire left sidebar by default */
+            #Desktop_LeftSidebar_Id {
                 display: none !important;
             }
 
@@ -269,29 +274,25 @@
             console.log('[Spotifuck v6] Left sidebar not found');
             return;
         }
-        const navFirstChild = leftSidebar.querySelector('nav > div > div:first-child');
-        if (!navFirstChild) {
-            console.log('[Spotifuck v6] Nav first child not found');
-            return;
-        }
-        const isExpanded = navFirstChild.classList.length === 2;
-        if (isExpanded) {
-            console.log('[Spotifuck v6] Sidebar expanded - applying fullscreen styles');
+        
+        // Check if sidebar is currently hidden
+        const isHidden = leftSidebar.style.display === 'none' || 
+                        window.getComputedStyle(leftSidebar).display === 'none';
+        
+        if (isHidden) {
+            console.log('[Spotifuck v6] Sidebar hidden - showing as fullscreen overlay');
+            leftSidebar.style.display = 'block';
             leftSidebar.style.position = 'fixed';
             leftSidebar.style.width = '100%';
             leftSidebar.style.height = '92%';
             leftSidebar.style.left = '0';
+            leftSidebar.style.top = '0';
             leftSidebar.style.zIndex = '20';
             const libraryHeader = leftSidebar.querySelector('header > div > div:first-child h1');
             if (libraryHeader) libraryHeader.innerText = '✖ Close Library';
         } else {
-            console.log('[Spotifuck v6] Sidebar collapsed - applying minimized styles');
-            leftSidebar.style.zIndex = '1';
-            leftSidebar.style.position = 'fixed';
-            leftSidebar.style.top = '2px';
-            leftSidebar.style.left = '120px';
-            leftSidebar.style.width = '50px';
-            leftSidebar.style.height = '40px';
+            console.log('[Spotifuck v6] Sidebar visible - hiding');
+            leftSidebar.style.display = 'none';
         }
     }
 
@@ -300,19 +301,35 @@
         console.log('[Spotifuck v6] injectSidebarFixes() called');
         
         // Prevent double-inject
-        if (document.querySelector('#Desktop_LeftSidebar_Id .fuckd')) {
-            console.log('[Spotifuck v6] Sidebar already fixed, skipping');
+        if (document.querySelector('.fuckd-nav-library-button')) {
+            console.log('[Spotifuck v6] Library button already relocated, skipping');
             return;
         }
 
-        const libraryButton = document.querySelector('#Desktop_LeftSidebar_Id header > div > div:first-child button:not(.fuckd)');
-        if (libraryButton) {
-            console.log('[Spotifuck v6] Library button found, adding event listener');
-            libraryButton.classList.add('fuckd');
-            libraryButton.style.padding = '0';
-            libraryButton.style.height = '20px';
+        const libraryButton = document.querySelector('#Desktop_LeftSidebar_Id header > div > div:first-child button');
+        const navbar = document.querySelector('#global-nav-bar');
+        
+        if (libraryButton && navbar) {
+            console.log('[Spotifuck v6] Relocating library button to navbar');
+            
+            // Mark button to prevent re-processing
+            libraryButton.classList.add('fuckd-nav-library-button');
+            
+            // Style the button for navbar placement
+            libraryButton.style.marginLeft = '10px';
+            libraryButton.style.marginRight = '10px';
+            libraryButton.style.padding = '8px';
+            libraryButton.style.height = 'auto';
+            
+            // Move button to navbar (this MOVES it, doesn't clone)
+            navbar.prepend(libraryButton);
+            
+            // Add click handler for toggling sidebar
             libraryButton.addEventListener('click', () => setTimeout(switchLeftSidebar, 0));
-            switchLeftSidebar();
+            
+            console.log('[Spotifuck v6] Library button successfully relocated to navbar');
+        } else {
+            console.log('[Spotifuck v6] Library button or navbar not found yet');
         }
 
         const libraryGridItems = document.querySelector('#Desktop_LeftSidebar_Id div[role=grid]:not(.fuckd)');
@@ -320,7 +337,7 @@
             console.log('[Spotifuck v6] Library grid items found, adding click handler');
             libraryGridItems.classList.add('fuckd');
             libraryGridItems.addEventListener('click', () => setTimeout(() => {
-                const libraryButtonClicked = document.querySelector('button.fuckd');
+                const libraryButtonClicked = document.querySelector('.fuckd-nav-library-button');
                 if (libraryButtonClicked) libraryButtonClicked.click();
             }, 0));
         }
