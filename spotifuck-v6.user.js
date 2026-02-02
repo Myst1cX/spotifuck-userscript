@@ -159,9 +159,15 @@
                 libBtn.addEventListener('click', function() {
                     setTimeout(() => switchLs(), 0);
                 });
-                // Collapse library on startup
-                switchLs(true);
-                console.log('Library collapsed on startup');
+                
+                // Collapse library on startup if it's expanded
+                // Check if button says "Collapse" (meaning library is currently expanded)
+                if (libBtn.getAttribute('aria-label') === 'Collapse Your Library') {
+                    console.log('Library is expanded on startup, collapsing it...');
+                    // Click the button to let Spotify update its state properly
+                    // This ensures the button will show "Open your library" after collapse
+                    libBtn.click();
+                }
             }
         };
         
@@ -200,8 +206,11 @@
                     // Only auto-close library if it's NOT a folder
                     if (!isFolder) {
                         console.log('AutoCloseLib (playlist/item clicked)');
-                        // Force collapse using switchLs to avoid code duplication
-                        switchLs(true);
+                        // Click the library button to let Spotify update its state properly
+                        // This ensures the button shows "Open your library" after collapse
+                        if (window.lBtn) {
+                            window.lBtn.click();
+                        }
                         closeNowPlay();
                     }
                 });
