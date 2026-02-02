@@ -227,7 +227,8 @@
 
             form[role="search"] {
                 z-index: 10;
-                margin-left: 50px;
+                margin-left: 48px;
+                max-width: 88%;
             }
 
             div[data-testid="now-playing-widget"] > div:last-child > button {
@@ -293,10 +294,10 @@
             console.log('[Spotifuck v6] Sidebar collapsed - applying minimized styles');
             leftSidebar.style.zIndex = '1';
             leftSidebar.style.position = 'fixed';
-            leftSidebar.style.top = '2px';
+            leftSidebar.style.top = '0';
             leftSidebar.style.left = '60px';
-            leftSidebar.style.width = '50px';
-            leftSidebar.style.height = '40px';
+            leftSidebar.style.width = '48px';
+            leftSidebar.style.height = '48px';
         }
     }
 
