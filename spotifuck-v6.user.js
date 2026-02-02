@@ -80,6 +80,24 @@
     };
 
     /**
+     * forceCollapseLibrary - Force library to collapsed state without triggering navigation
+     * Used when clicking playlists to avoid "back" navigation in folders
+     */
+    window.forceCollapseLibrary = function() {
+        const leftSidebar = document.querySelector('#Desktop_LeftSidebar_Id');
+        if (!leftSidebar) return;
+        
+        console.log('#ForceCollapseLibrary');
+        // Apply collapse styling directly
+        leftSidebar.style.zIndex = '1';
+        leftSidebar.style.position = 'fixed';
+        leftSidebar.style.top = '0';
+        leftSidebar.style.left = '60px';
+        leftSidebar.style.width = '48px';
+        leftSidebar.style.height = '48px';
+    };
+
+    /**
      * closeNowPlay - Close the now-playing right panel if open
      * From r0/e.java line 200: window.closeNowPlay=function(){...}
      */
@@ -210,9 +228,9 @@
                     if (!isFolder) {
                         setTimeout(() => {
                             console.log('AutoCloseLib (playlist/item clicked)');
-                            if (window.lBtn) window.lBtn.click();
+                            forceCollapseLibrary(); // Force collapse instead of clicking button
                             closeNowPlay();
-                        }, 300); // Increased delay to allow navigation to complete
+                        }, 300); // Delay to allow navigation to complete
                     }
                 });
             }
