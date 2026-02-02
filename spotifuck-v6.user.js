@@ -212,7 +212,7 @@
                             console.log('AutoCloseLib (playlist/item clicked)');
                             if (window.lBtn) window.lBtn.click();
                             closeNowPlay();
-                        }, 0);
+                        }, 300); // Increased delay to allow navigation to complete
                     }
                 });
             }
