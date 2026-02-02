@@ -57,8 +57,9 @@
             console.log('#Library: Expanded');
             leftSidebar.style.position = 'fixed';
             leftSidebar.style.width = '100%';
-            leftSidebar.style.height = '92%';
+            leftSidebar.style.height = '100%';
             leftSidebar.style.left = '0';
+            leftSidebar.style.top = '0';
             leftSidebar.style.zIndex = '20';
             
             const headerH1 = leftSidebar.querySelector('header>div>div:first-child h1');
