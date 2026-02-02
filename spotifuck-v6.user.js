@@ -78,32 +78,6 @@
     };
 
     /**
-     * closeLibrary - Force library to collapse without triggering back navigation
-     * Checks if library is expanded and only then triggers collapse via CSS
-     */
-    window.closeLibrary = function() {
-        const leftSidebar = document.querySelector('#Desktop_LeftSidebar_Id');
-        if (!leftSidebar) return;
-
-        const navFirstChild = leftSidebar.querySelector('nav>div>div:first-child');
-        if (!navFirstChild) return;
-
-        // Check if expanded (classList.length === 2 means expanded in APK logic)
-        const isExpanded = navFirstChild.classList.length === 2;
-        
-        if (isExpanded) {
-            console.log('#CloseLibrary (forcing collapse)');
-            // Apply collapse styling directly - avoids triggering back button in folders
-            leftSidebar.style.zIndex = '1';
-            leftSidebar.style.position = 'fixed';
-            leftSidebar.style.top = '0';
-            leftSidebar.style.left = '60px';
-            leftSidebar.style.width = '48px';
-            leftSidebar.style.height = '48px';
-        }
-    };
-
-    /**
      * closeNowPlay - Close the now-playing right panel if open
      * From r0/e.java line 200: window.closeNowPlay=function(){...}
      */
@@ -223,9 +197,9 @@
                     if (!isFolder) {
                         setTimeout(() => {
                             console.log('AutoCloseLib (playlist/item clicked)');
-                            closeLibrary(); // Close library without triggering back navigation
+                            if (window.lBtn) window.lBtn.click();
                             closeNowPlay();
-                        }, 300); // Delay to allow navigation to complete
+                        }, 0);
                     }
                 });
             }
