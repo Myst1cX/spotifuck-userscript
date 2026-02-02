@@ -154,8 +154,9 @@
                 console.log('LibBtnFuckd');
                 window.lBtn = libBtn;
                 libBtn.classList.add('fuckd', 'lbtn');
-                libBtn.style.padding = '0';
-                libBtn.style.height = '20px';
+                // Don't apply custom styling - it causes glitched appearance
+                // libBtn.style.padding = '0';
+                // libBtn.style.height = '20px';
                 libBtn.addEventListener('click', function() {
                     setTimeout(() => switchLs(), 0);
                 });
