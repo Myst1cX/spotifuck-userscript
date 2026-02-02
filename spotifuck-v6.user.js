@@ -145,10 +145,10 @@
     window.addCSSJSHack = function() {
         // Setup library button once
         const setupLibraryButton = () => {
-            // Use aria-label to identify the correct library button (not back button)
-            // Library button has aria-label containing "Your Library" (either "Open Your Library" or "Collapse Your Library")
-            // Back button has aria-label="Go back" which doesn't contain "Your Library"
-            const libBtn = document.querySelector('#Desktop_LeftSidebar_Id header button[aria-label*="Your Library"]:not(.fuckd)');
+            // ONLY select the "Open Your Library" button using exact match
+            // This prevents processing "Collapse Your Library" or "Go back" buttons
+            // which cause the glitch when they appear together
+            const libBtn = document.querySelector('#Desktop_LeftSidebar_Id header button[aria-label="Open Your Library"]:not(.fuckd)');
 
             if (libBtn && !libBtn.classList.contains('fuckd')) {
                 console.log('LibBtnFuckd');
@@ -160,13 +160,14 @@
                     setTimeout(() => switchLs(), 0);
                 });
 
-                // Collapse library on startup if it's expanded
-                // Check if button says "Collapse" (meaning library is currently expanded)
-                if (libBtn.getAttribute('aria-label') === 'Collapse Your Library') {
+                // Collapse library on startup if it's currently expanded
+                // Need to check if library is visually expanded (not button label)
+                const leftSidebar = document.querySelector('#Desktop_LeftSidebar_Id');
+                const navFirstChild = leftSidebar?.querySelector('nav>div>div:first-child');
+                if (navFirstChild && navFirstChild.classList.length === 2) {
                     console.log('Library is expanded on startup, collapsing it...');
-                    // Click the button to let Spotify update its state properly
-                    // This ensures the button will show "Open your library" after collapse
-                    libBtn.click();
+                    // Use switchLs(true) to force collapse without triggering navigation
+                    switchLs(true);
                 }
             }
         };
@@ -212,7 +213,7 @@
                         setTimeout(() => {
                             switchLs(true);  // Direct collapse without clicking button
                             closeNowPlay();
-                        }, 150);  // 150ms allows playlist navigation to initiate
+                        }, 500);  // 500ms allows playlist navigation to fully complete
                     }
                 });
             }
