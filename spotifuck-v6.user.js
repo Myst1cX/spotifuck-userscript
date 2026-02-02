@@ -316,48 +316,30 @@
         const navbar = document.querySelector('#global-nav-bar');
         
         if (navbar) {
-            console.log('[Spotifuck v6] Creating new library button in navbar');
+            console.log('[Spotifuck v6] Creating library button in navbar from existing button');
             
-            // Button styling constants
-            const BUTTON_BG = '#282828';
-            const BUTTON_BG_HOVER = '#3e3e3e';
+            // Get the existing button from sidebar to copy its structure
+            const originalButton = document.querySelector('#Desktop_LeftSidebar_Id header > div > div:first-child button');
             
-            // Create a brand new button element
-            const newLibraryButton = document.createElement('button');
-            newLibraryButton.classList.add('fuckd-nav-library-button');
-            newLibraryButton.textContent = '📚 Your Library';
-            
-            // Style the new button for navbar placement
-            newLibraryButton.style.marginLeft = '10px';
-            newLibraryButton.style.marginRight = '10px';
-            newLibraryButton.style.padding = '8px 12px';
-            newLibraryButton.style.height = 'auto';
-            newLibraryButton.style.background = BUTTON_BG;
-            newLibraryButton.style.border = 'none';
-            newLibraryButton.style.borderRadius = '20px';
-            newLibraryButton.style.color = '#ffffff';
-            newLibraryButton.style.fontSize = '14px';
-            newLibraryButton.style.fontWeight = '700';
-            newLibraryButton.style.cursor = 'pointer';
-            newLibraryButton.style.display = 'inline-flex';
-            newLibraryButton.style.alignItems = 'center';
-            newLibraryButton.style.justifyContent = 'center';
-            
-            // Add hover effect
-            newLibraryButton.addEventListener('mouseenter', () => {
-                newLibraryButton.style.background = BUTTON_BG_HOVER;
-            });
-            newLibraryButton.addEventListener('mouseleave', () => {
-                newLibraryButton.style.background = BUTTON_BG;
-            });
-            
-            // Add click handler for toggling sidebar (setTimeout ensures Spotify's DOM updates complete)
-            newLibraryButton.addEventListener('click', () => setTimeout(switchLeftSidebar, 0));
-            
-            // Insert new button as first element in navbar
-            navbar.prepend(newLibraryButton);
-            
-            console.log('[Spotifuck v6] New library button successfully created in navbar');
+            if (originalButton) {
+                // Clone the existing button (deep copy with all children and attributes)
+                const clonedButton = originalButton.cloneNode(true);
+                clonedButton.classList.add('fuckd-nav-library-button');
+                
+                // Add minimal styling for navbar placement
+                clonedButton.style.marginLeft = '10px';
+                clonedButton.style.marginRight = '10px';
+                
+                // Add click handler for toggling sidebar (setTimeout ensures Spotify's DOM updates complete)
+                clonedButton.addEventListener('click', () => setTimeout(switchLeftSidebar, 0));
+                
+                // Insert cloned button as first element in navbar
+                navbar.prepend(clonedButton);
+                
+                console.log('[Spotifuck v6] Library button successfully cloned to navbar');
+            } else {
+                console.log('[Spotifuck v6] Original button not found to clone');
+            }
         } else {
             console.log('[Spotifuck v6] Navbar not found yet');
         }
