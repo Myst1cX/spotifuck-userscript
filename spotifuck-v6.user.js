@@ -39,8 +39,9 @@
     /**
      * switchLs - Toggle library sidebar between expanded and collapsed states
      * From r0/e.java line 202: window.switchLs=function(){...}
+     * @param {boolean} forceCollapse - If true, force collapse regardless of current state
      */
-    window.switchLs = function() {
+    window.switchLs = function(forceCollapse = false) {
         const leftSidebar = document.querySelector('#Desktop_LeftSidebar_Id');
         if (!leftSidebar) return;
 
@@ -50,7 +51,7 @@
         // Check if expanded (classList.length === 2 means expanded in APK logic)
         const isExpanded = navFirstChild.classList.length === 2;
         
-        if (isExpanded) {
+        if (!forceCollapse && isExpanded) {
             // Expand to full-screen overlay
             console.log('#Library: Expanded');
             leftSidebar.style.position = 'fixed';
@@ -197,16 +198,8 @@
                     if (!isFolder) {
                         setTimeout(() => {
                             console.log('AutoCloseLib (playlist/item clicked)');
-                            // Apply collapse styling directly to avoid triggering back navigation in folders
-                            const leftSidebar = document.querySelector('#Desktop_LeftSidebar_Id');
-                            if (leftSidebar) {
-                                leftSidebar.style.zIndex = '1';
-                                leftSidebar.style.position = 'fixed';
-                                leftSidebar.style.top = '0';
-                                leftSidebar.style.left = '60px';
-                                leftSidebar.style.width = '48px';
-                                leftSidebar.style.height = '48px';
-                            }
+                            // Force collapse using switchLs to avoid code duplication
+                            switchLs(true);
                             closeNowPlay();
                         }, 0);
                     }
