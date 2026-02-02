@@ -14,7 +14,7 @@
  * Based on r0/e.java from classes1.dex
  *
  * Features from APK:
- * - Library button toggle (expand 100%×92% / collapse 48×48px)
+ * - Library button toggle (expand 100%×100% / collapse 48×48px)
  * - Pure black AMOLED mode for playback controls
  * - Auto-close library on item selection
  * - UI improvements (sidebar, search bar, playback controls)
@@ -28,8 +28,6 @@
     console.log('🎵 Spotifuck v6 - APK v1.6.4 Port');
 
     // Global state variables
-    let reqPause = false;
-    let firstPlay = true;
     let ulFlag = false;  // Unlock flag
     let ffDone = false;  // First fuck done (firstFuck initialization complete)
     let pfint = null;    // Primary features interval
@@ -80,21 +78,29 @@
     };
 
     /**
-     * forceCollapseLibrary - Force library to collapsed state without triggering navigation
-     * Used when clicking playlists to avoid "back" navigation in folders
+     * closeLibrary - Force library to collapse without triggering back navigation
+     * Checks if library is expanded and only then triggers collapse via CSS
      */
-    window.forceCollapseLibrary = function() {
+    window.closeLibrary = function() {
         const leftSidebar = document.querySelector('#Desktop_LeftSidebar_Id');
         if (!leftSidebar) return;
+
+        const navFirstChild = leftSidebar.querySelector('nav>div>div:first-child');
+        if (!navFirstChild) return;
+
+        // Check if expanded (classList.length === 2 means expanded in APK logic)
+        const isExpanded = navFirstChild.classList.length === 2;
         
-        console.log('#ForceCollapseLibrary');
-        // Apply collapse styling directly
-        leftSidebar.style.zIndex = '1';
-        leftSidebar.style.position = 'fixed';
-        leftSidebar.style.top = '0';
-        leftSidebar.style.left = '60px';
-        leftSidebar.style.width = '48px';
-        leftSidebar.style.height = '48px';
+        if (isExpanded) {
+            console.log('#CloseLibrary (forcing collapse)');
+            // Apply collapse styling directly - avoids triggering back button in folders
+            leftSidebar.style.zIndex = '1';
+            leftSidebar.style.position = 'fixed';
+            leftSidebar.style.top = '0';
+            leftSidebar.style.left = '60px';
+            leftSidebar.style.width = '48px';
+            leftSidebar.style.height = '48px';
+        }
     };
 
     /**
@@ -130,10 +136,8 @@
                     console.log('PlayClicked');
                     if (window.pBtn && window.pBtn.getAttribute('aria-label') !== 'Play') {
                         console.log('Pause Req');
-                        reqPause = true;
                         ulFlag = false;
                     } else if (!ulFlag) {
-                        reqPause = false;
                         console.log('Play Req');
                         ulFlag = true;
                         setTimeout(() => {
@@ -183,20 +187,11 @@
             }
             
             // Auto-close library on item click (but not for folders)
+            // Folder detection: Checks aria-labelledby and aria-describedby for ':folder:' pattern
+            // to distinguish folders from playlists. Folders keep library open for navigation.
             const libGrid = document.querySelector('#Desktop_LeftSidebar_Id div[role=grid]:not(.fuckd)');
             if (libGrid) {
                 libGrid.classList.add('fuckd');
-                
-                // Debug: Log instructions for future maintenance
-                console.log('📚 Library Grid Setup: Folder detection enabled');
-                console.log('ℹ️  If Spotify DOM changes and folder detection breaks:');
-                console.log('   1. Click library button to open library grid');
-                console.log('   2. Right-click a FOLDER → Inspect Element');
-                console.log('   3. Copy the HTML of the folder button element');
-                console.log('   4. Right-click a PLAYLIST → Inspect Element');
-                console.log('   5. Copy the HTML of the playlist button element');
-                console.log('   6. Compare aria-labelledby and aria-describedby attributes');
-                console.log('   7. Update the detection code with new patterns');
                 
                 libGrid.addEventListener('click', (event) => {
                     // Check if clicked element or its parent is a folder
@@ -228,7 +223,7 @@
                     if (!isFolder) {
                         setTimeout(() => {
                             console.log('AutoCloseLib (playlist/item clicked)');
-                            forceCollapseLibrary(); // Force collapse instead of clicking button
+                            closeLibrary(); // Close library without triggering back navigation
                             closeNowPlay();
                         }, 300); // Delay to allow navigation to complete
                     }
