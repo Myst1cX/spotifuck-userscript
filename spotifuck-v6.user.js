@@ -74,12 +74,12 @@
             leftSidebar.style.left = '0';
             leftSidebar.style.top = '0';
             leftSidebar.style.zIndex = '20';
+            leftSidebar.style.background = '#000'; // Solid background blocks visibility underneath
             
-            // CRITICAL FIX: Block pointer events on main content to prevent click-through
-            // But keep navbar active so users can navigate (Home/Search buttons)
+            // Simple fix: Hide main content when library is full-screen
             if (mainContent) {
-                mainContent.style.pointerEvents = 'none';
-                console.log('#Library: Blocked main content clicks (navbar stays active)');
+                mainContent.style.visibility = 'hidden';
+                console.log('#Library: Hidden main content (prevents click-through)');
             }
             
             const headerH1 = leftSidebar.querySelector('header>div>div:first-child h1');
@@ -96,11 +96,12 @@
             leftSidebar.style.left = '60px';
             leftSidebar.style.width = '48px';
             leftSidebar.style.height = '48px';
+            leftSidebar.style.background = ''; // Restore original background
             
-            // CRITICAL FIX: Restore pointer events on main content
+            // Restore main content visibility
             if (mainContent) {
-                mainContent.style.pointerEvents = 'auto';
-                console.log('#Library: Restored main content clicks');
+                mainContent.style.visibility = 'visible';
+                console.log('#Library: Restored main content visibility');
             }
             
             const headerH1 = leftSidebar.querySelector('header>div>div:first-child h1');
