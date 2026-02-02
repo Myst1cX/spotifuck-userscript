@@ -727,7 +727,12 @@
                         
                         console.log('[Spotifuck v6] Library overlay shown with', items.length, 'items');
                     } else {
-                        overlayContent.innerHTML = '<p style="color: #b3b3b3; padding: 20px;">Loading library...</p>';
+                        const loadingMsg = document.createElement('p');
+                        loadingMsg.textContent = 'Loading library...';
+                        loadingMsg.style.color = '#b3b3b3';
+                        loadingMsg.style.padding = '20px';
+                        overlayContent.innerHTML = '';
+                        overlayContent.appendChild(loadingMsg);
                         console.log('[Spotifuck v6] Library grid not ready yet');
                     }
                 }
