@@ -1,81 +1,2045 @@
-<div class="MWNfosd1RYrPgupE">
-   <div class="IPnR0MPdiJw3m3C8 rd25SoWs7Y4T40c7">
-      <button
-         type="button"
-         aria-label="Collapse Your Library"
-         class="mY4Zu2cmkisEMdc2 q8mQFn7r8UYsKdHE _H2ZzS_Atuwx6wh9 tMFkXbMSXNUegQIu aIU4qABgiIgjAEyD EYdwwRebZIgjbKy_ DSes_Z2f48QaZ1s0 j3SHhp1yEwUOoay8 fuckd lbtn"
-         style="padding: 0px; height: 20px"
-      >
-         <span class="PnzFLbZQ_W8a7qJo"
-            ><svg
-               data-encore-id="icon"
-               role="img"
-               aria-hidden="true"
-               class="e-91000-icon e-91000-baseline e-91000-icon--auto-mirror"
-               style="
-                  --encore-icon-height: var(
-                     --encore-graphic-size-decorative-smaller
-                  );
-                  --encore-icon-width: var(
-                     --encore-graphic-size-decorative-smaller
-                  );
-               "
-               viewBox="0 0 16 16"
-            >
-               <path
-                  d="M10.97 5.47a.75.75 0 1 1 1.06 1.06L10.56 8l1.47 1.47a.75.75 0 1 1-1.06 1.06l-2-2a.75.75 0 0 1 0-1.06z"
-               ></path>
-               <path
-                  d="M1 0a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V1a1 1 0 0 0-1-1zm.5 1.5H5v13H1.5zm13 13h-8v-13h8z"
-               ></path></svg></span
-         ><span class="e-91000-visually-hidden" data-encore-id="visuallyHidden"
-            ><h1
-               class="e-91000-text encore-text-body-medium"
-               data-encore-id="text"
-            >
-               Your Library
-            </h1></span
-         >
-      </button>
-   </div>
-   <button
-      class="Button-sc-1dqy6lx-0 fprjoI e-91000-overflow-wrap-anywhere e-91000-button-tertiary--icon-only we0UJfWAf8vWXQku XrD9b1tRNYbkSGsE q8mQFn7r8UYsKdHE _H2ZzS_Atuwx6wh9 tMFkXbMSXNUegQIu aIU4qABgiIgjAEyD LUVEWqx9qW4kwbPr C2vATbKl0MDEq09a DSes_Z2f48QaZ1s0 eOI7g5Zd6esLuCCb LJCjURMQBE6o9exj EYdwwRebZIgjbKy_ j3SHhp1yEwUOoay8 DxJfCbGxPVwir09_"
-      aria-label="Go back"
-      data-encore-id="buttonTertiary"
-   >
-      <span aria-hidden="true" class="e-91000-button__icon-wrapper"
-         ><svg
-            data-encore-id="icon"
-            role="img"
-            aria-hidden="true"
-            class="e-91000-icon e-91000-baseline e-91000-icon--auto-mirror"
+<div
+   class="F0DeHdUi7cNLlJ6D YourLibraryX"
+   style="
+      --placeholder-image: url(https://open-exp.spotifycdn.com/cdn/images/ylx-row-placeholder.ea7b0f5d.webp);
+      --placeholder-artist-image: url(https://open-exp.spotifycdn.com/cdn/images/ylx-artist-row-placeholder.4521609f.webp);
+      --placeholder-compact-image: url(https://open-exp.spotifycdn.com/cdn/images/ylx-compact-row-placeholder.9a165ac8.webp);
+   "
+   tabindex="-1"
+>
+   <div class="">
+      <header class="ctNLVWve8CosEgh2">
+         <div class="xXVaCgUTXZgGPOKl">
+            <div class="MWNfosd1RYrPgupE">
+               <div class="IPnR0MPdiJw3m3C8 rd25SoWs7Y4T40c7">
+                  <button
+                     type="button"
+                     aria-label="Collapse Your Library"
+                     class="mY4Zu2cmkisEMdc2 q8mQFn7r8UYsKdHE _H2ZzS_Atuwx6wh9 tMFkXbMSXNUegQIu aIU4qABgiIgjAEyD EYdwwRebZIgjbKy_ DSes_Z2f48QaZ1s0 j3SHhp1yEwUOoay8"
+                     style="padding: 0px; height: 20px"
+                  >
+                     <span class="PnzFLbZQ_W8a7qJo"
+                        ><svg
+                           data-encore-id="icon"
+                           role="img"
+                           aria-hidden="true"
+                           class="e-91000-icon e-91000-baseline e-91000-icon--auto-mirror"
+                           style="
+                              --encore-icon-height: var(
+                                 --encore-graphic-size-decorative-smaller
+                              );
+                              --encore-icon-width: var(
+                                 --encore-graphic-size-decorative-smaller
+                              );
+                           "
+                           viewBox="0 0 16 16"
+                        >
+                           <path
+                              d="M10.97 5.47a.75.75 0 1 1 1.06 1.06L10.56 8l1.47 1.47a.75.75 0 1 1-1.06 1.06l-2-2a.75.75 0 0 1 0-1.06z"
+                           ></path>
+                           <path
+                              d="M1 0a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V1a1 1 0 0 0-1-1zm.5 1.5H5v13H1.5zm13 13h-8v-13h8z"
+                           ></path></svg></span
+                     ><span
+                        class="e-91000-visually-hidden"
+                        data-encore-id="visuallyHidden"
+                        ><h1
+                           class="e-91000-text encore-text-body-medium"
+                           data-encore-id="text"
+                        >
+                           Your Library
+                        </h1></span
+                     >
+                  </button>
+               </div>
+               <button
+                  class="Button-sc-1dqy6lx-0 fprjoI e-91000-overflow-wrap-anywhere e-91000-button-tertiary--icon-only we0UJfWAf8vWXQku XrD9b1tRNYbkSGsE q8mQFn7r8UYsKdHE _H2ZzS_Atuwx6wh9 tMFkXbMSXNUegQIu aIU4qABgiIgjAEyD LUVEWqx9qW4kwbPr C2vATbKl0MDEq09a DSes_Z2f48QaZ1s0 eOI7g5Zd6esLuCCb LJCjURMQBE6o9exj EYdwwRebZIgjbKy_ j3SHhp1yEwUOoay8 DxJfCbGxPVwir09_"
+                  aria-label="Go back"
+                  data-encore-id="buttonTertiary"
+               >
+                  <span aria-hidden="true" class="e-91000-button__icon-wrapper"
+                     ><svg
+                        data-encore-id="icon"
+                        role="img"
+                        aria-hidden="true"
+                        class="e-91000-icon e-91000-baseline e-91000-icon--auto-mirror"
+                        style="
+                           --encore-icon-height: var(
+                              --encore-graphic-size-decorative-smaller
+                           );
+                           --encore-icon-width: var(
+                              --encore-graphic-size-decorative-smaller
+                           );
+                        "
+                        viewBox="0 0 16 16"
+                     >
+                        <path
+                           d="M11.03.47a.75.75 0 0 1 0 1.06L4.56 8l6.47 6.47a.75.75 0 1 1-1.06 1.06L2.44 8 9.97.47a.75.75 0 0 1 1.06 0"
+                        ></path></svg
+                  ></span>
+               </button>
+               <div class="P6DaBNnKSboUGSKZ K8DkW8q4HEw77Wx2">
+                  <button
+                     class="Button-sc-1dqy6lx-0 gLxfIu encore-text-body-small-bold e-91000-overflow-wrap-anywhere e-91000-button-tertiary--condensed we0UJfWAf8vWXQku"
+                     aria-label="SONGS TO SHOW"
+                     data-encore-id="buttonTertiary"
+                  >
+                     <h2
+                        class="e-91000-text encore-text-body-medium-bold nPBLYCO2r20mjClx"
+                        data-encore-id="text"
+                     >
+                        SONGS TO SHOW
+                     </h2>
+                  </button>
+               </div>
+            </div>
+            <div class="mkxU7yK3S6E71zxQ QZayATnxXUWYcMJo">
+               <button
+                  type="button"
+                  class="sdEd4DOwfUAWrygb q8mQFn7r8UYsKdHE _H2ZzS_Atuwx6wh9 EYdwwRebZIgjbKy_ aIU4qABgiIgjAEyD DSes_Z2f48QaZ1s0 LJCjURMQBE6o9exj GDaR7Hd1GoQnpxZu"
+                  aria-label="Create"
+               >
+                  <svg
+                     data-encore-id="icon"
+                     role="img"
+                     aria-hidden="true"
+                     class="e-91000-icon e-91000-baseline GorxihKONk8nwCGm"
+                     style="
+                        --encore-icon-height: var(
+                           --encore-graphic-size-decorative-smaller
+                        );
+                        --encore-icon-width: var(
+                           --encore-graphic-size-decorative-smaller
+                        );
+                     "
+                     viewBox="0 0 16 16"
+                  >
+                     <path
+                        d="M15.25 8a.75.75 0 0 1-.75.75H8.75v5.75a.75.75 0 0 1-1.5 0V8.75H1.5a.75.75 0 0 1 0-1.5h5.75V1.5a.75.75 0 0 1 1.5 0v5.75h5.75a.75.75 0 0 1 .75.75"
+                     ></path>
+                  </svg></button
+               ><span class="rXty1Jd5dHM9yJMm"
+                  ><button
+                     aria-haspopup="menu"
+                     class="Button-sc-1dqy6lx-0 fprjoI e-91000-overflow-wrap-anywhere e-91000-button-tertiary--icon-only we0UJfWAf8vWXQku tl_Te13p7oUOAd63 q8mQFn7r8UYsKdHE _H2ZzS_Atuwx6wh9 tMFkXbMSXNUegQIu aIU4qABgiIgjAEyD EYdwwRebZIgjbKy_ DSes_Z2f48QaZ1s0 j3SHhp1yEwUOoay8"
+                     aria-label="More options for SONGS TO SHOW"
+                     data-encore-id="buttonTertiary"
+                  >
+                     <span
+                        aria-hidden="true"
+                        class="e-91000-button__icon-wrapper"
+                        ><svg
+                           data-encore-id="icon"
+                           role="img"
+                           aria-hidden="true"
+                           class="e-91000-icon e-91000-baseline"
+                           style="
+                              --encore-icon-height: var(
+                                 --encore-graphic-size-decorative-smaller
+                              );
+                              --encore-icon-width: var(
+                                 --encore-graphic-size-decorative-smaller
+                              );
+                           "
+                           viewBox="0 0 16 16"
+                        >
+                           <path
+                              d="M3 8a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0m6.5 0a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0M16 8a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0"
+                           ></path></svg
+                     ></span></button></span
+               ><button
+                  class="Button-sc-1dqy6lx-0 fprjoI e-91000-overflow-wrap-anywhere e-91000-button-tertiary--icon-only we0UJfWAf8vWXQku tl_Te13p7oUOAd63 q8mQFn7r8UYsKdHE _H2ZzS_Atuwx6wh9 tMFkXbMSXNUegQIu aIU4qABgiIgjAEyD EYdwwRebZIgjbKy_ DSes_Z2f48QaZ1s0 j3SHhp1yEwUOoay8"
+                  aria-label="Expand Your Library"
+                  data-encore-id="buttonTertiary"
+               >
+                  <span aria-hidden="true" class="e-91000-button__icon-wrapper"
+                     ><svg
+                        data-encore-id="icon"
+                        role="img"
+                        aria-hidden="true"
+                        class="e-91000-icon e-91000-baseline"
+                        style="
+                           --encore-icon-height: var(
+                              --encore-graphic-size-decorative-smaller
+                           );
+                           --encore-icon-width: var(
+                              --encore-graphic-size-decorative-smaller
+                           );
+                        "
+                        viewBox="0 0 16 16"
+                     >
+                        <path
+                           d="M6.53 9.47a.75.75 0 0 1 0 1.06l-2.72 2.72h1.018a.75.75 0 0 1 0 1.5H1.25v-3.579a.75.75 0 0 1 1.5 0v1.018l2.72-2.72a.75.75 0 0 1 1.06 0zm2.94-2.94a.75.75 0 0 1 0-1.06l2.72-2.72h-1.018a.75.75 0 1 1 0-1.5h3.578v3.579a.75.75 0 0 1-1.5 0V3.81l-2.72 2.72a.75.75 0 0 1-1.06 0"
+                        ></path></svg
+                  ></span>
+               </button>
+            </div>
+         </div>
+      </header>
+      <div class="bNIdoiXcaYCrJ5Do rDL2aL5z9HEdCiwm">
+         <div
+            class="MyaStf5D5Im3gt9M"
             style="
-               --encore-icon-height: var(
-                  --encore-graphic-size-decorative-smaller
-               );
-               --encore-icon-width: var(
-                  --encore-graphic-size-decorative-smaller
-               );
+               --scrollAnimationRangeStart: 10px;
+               --scrollAnimationRangeEnd: 11px;
             "
-            viewBox="0 0 16 16"
          >
-            <path
-               d="M11.03.47a.75.75 0 0 1 0 1.06L4.56 8l6.47 6.47a.75.75 0 1 1-1.06 1.06L2.44 8 9.97.47a.75.75 0 0 1 1.06 0"
-            ></path></svg
-      ></span>
-   </button>
-   <div class="P6DaBNnKSboUGSKZ K8DkW8q4HEw77Wx2">
-      <button
-         class="Button-sc-1dqy6lx-0 gLxfIu encore-text-body-small-bold e-91000-overflow-wrap-anywhere e-91000-button-tertiary--condensed we0UJfWAf8vWXQku"
-         aria-label="ROMANIAN"
-         data-encore-id="buttonTertiary"
+            <div
+               class="dxlv5wfAu8zgm7HY J0_HsNkGL5cInyeo _uoO3bLS4boiP_WL tQXyN0o3r_Yf0mRy"
+               role="presentation"
+               data-testid="carousel-scroller"
+            >
+               <div role="presentation" class="">
+                  <template data-react-aria-hidden="true"></template
+                  ><span data-focus-scope-start="true" hidden=""></span>
+                  <div
+                     class="Y1WfJnM5ZWY3_Wqi"
+                     data-rac=""
+                     aria-label="Filter options"
+                     role="listbox"
+                     id="react-aria6683978481-:r14:"
+                     tabindex="0"
+                     data-collection="react-aria6683978481-:r13:"
+                     data-layout="stack"
+                     data-orientation="horizontal"
+                  >
+                     <div
+                        class="react-aria-ListBoxItem"
+                        data-rac=""
+                        role="option"
+                        tabindex="-1"
+                        data-collection="react-aria6683978481-:r13:"
+                        data-key="react-aria-1"
+                        data-react-aria-pressable="true"
+                        id="react-aria6683978481-:r14:-option-react-aria-1"
+                     >
+                        <div data-carousel-item="true" role="presentation">
+                           <div
+                              aria-label="Clear filters"
+                              class="ChipClear__ChipClearComponent-sc-zv5btm-0 bAkdhN q8mQFn7r8UYsKdHE _H2ZzS_Atuwx6wh9 tMFkXbMSXNUegQIu aIU4qABgiIgjAEyD LUVEWqx9qW4kwbPr C2vATbKl0MDEq09a DSes_Z2f48QaZ1s0 eOI7g5Zd6esLuCCb LJCjURMQBE6o9exj EYdwwRebZIgjbKy_ j3SHhp1yEwUOoay8"
+                              style="
+                                 margin-block-end: 0px;
+                                 will-change: transform, opacity;
+                              "
+                              tabindex="-1"
+                              role="presentation"
+                              data-encore-id="chipClear"
+                           >
+                              <svg
+                                 data-encore-id="icon"
+                                 role="img"
+                                 aria-hidden="true"
+                                 class="e-91000-icon e-91000-baseline"
+                                 style="
+                                    --encore-icon-height: var(
+                                       --encore-graphic-size-decorative-smaller
+                                    );
+                                    --encore-icon-width: var(
+                                       --encore-graphic-size-decorative-smaller
+                                    );
+                                 "
+                                 viewBox="0 0 16 16"
+                              >
+                                 <path
+                                    d="M2.47 2.47a.75.75 0 0 1 1.06 0L8 6.94l4.47-4.47a.75.75 0 1 1 1.06 1.06L9.06 8l4.47 4.47a.75.75 0 1 1-1.06 1.06L8 9.06l-4.47 4.47a.75.75 0 0 1-1.06-1.06L6.94 8 2.47 3.53a.75.75 0 0 1 0-1.06"
+                                 ></path>
+                              </svg>
+                           </div>
+                        </div>
+                     </div>
+                     <div
+                        class=""
+                        data-rac=""
+                        role="option"
+                        tabindex="-1"
+                        data-collection="react-aria6683978481-:r13:"
+                        data-key="react-aria-2"
+                        data-react-aria-pressable="true"
+                        id="react-aria6683978481-:r14:-option-react-aria-2"
+                     >
+                        <div data-carousel-item="true" role="presentation">
+                           <div
+                              class="LegacyChip__LegacyChipComponent-sc-tzfq94-0 fZfoaE encore-text-body-small"
+                              role="presentation"
+                              aria-checked="true"
+                              data-encore-id="chip"
+                              aria-label="Playlists"
+                              style="
+                                 margin-block-end: 0px;
+                                 will-change: transform, opacity;
+                              "
+                              tabindex="-1"
+                           >
+                              <span
+                                 class="LegacyChipInner__ChipInnerComponent-sc-1qguixk-0 bVqsHn encore-inverted-light-set q8mQFn7r8UYsKdHE _H2ZzS_Atuwx6wh9 tMFkXbMSXNUegQIu aIU4qABgiIgjAEyD LUVEWqx9qW4kwbPr C2vATbKl0MDEq09a DSes_Z2f48QaZ1s0 j3SHhp1yEwUOoay8 EYdwwRebZIgjbKy_ kCuoeTp_4F8B1vXL eOI7g5Zd6esLuCCb LJCjURMQBE6o9exj i73ML1kh8P68qYl3 NEK7GtRu3w0JbyBT zoKSw5SN9xUA4OkM"
+                                 >Playlists</span
+                              >
+                           </div>
+                        </div>
+                     </div>
+                     <div
+                        class=""
+                        data-rac=""
+                        role="option"
+                        tabindex="-1"
+                        data-collection="react-aria6683978481-:r13:"
+                        data-key="react-aria-3"
+                        data-react-aria-pressable="true"
+                        id="react-aria6683978481-:r14:-option-react-aria-3"
+                     >
+                        <div data-carousel-item="true" role="presentation">
+                           <div
+                              class="LegacyChip__LegacyChipComponent-sc-tzfq94-0 fJQBhR encore-text-body-small"
+                              role="presentation"
+                              aria-checked="false"
+                              data-encore-id="chip"
+                              aria-label="By you"
+                              style="
+                                 margin-block-end: 0px;
+                                 will-change: transform, opacity;
+                              "
+                              tabindex="-1"
+                           >
+                              <span
+                                 class="LegacyChipInner__ChipInnerComponent-sc-1qguixk-0 jVBuxI q8mQFn7r8UYsKdHE _H2ZzS_Atuwx6wh9 tMFkXbMSXNUegQIu aIU4qABgiIgjAEyD LUVEWqx9qW4kwbPr C2vATbKl0MDEq09a DSes_Z2f48QaZ1s0 j3SHhp1yEwUOoay8 EYdwwRebZIgjbKy_ kCuoeTp_4F8B1vXL eOI7g5Zd6esLuCCb LJCjURMQBE6o9exj i73ML1kh8P68qYl3 NEK7GtRu3w0JbyBT zoKSw5SN9xUA4OkM"
+                                 >By you</span
+                              >
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+                  <span data-focus-scope-end="true" hidden=""></span>
+               </div>
+            </div>
+            <div class="Yo80NuQEJANhrEVG">
+               <div
+                  class="TnVIvshRoEChk0cA TEKrGwTVPyY7sPto"
+                  data-testid="carousel-previous-button"
+                  aria-hidden="true"
+               >
+                  <svg
+                     data-encore-id="icon"
+                     role="img"
+                     aria-hidden="true"
+                     class="e-91000-icon e-91000-baseline"
+                     style="
+                        --encore-icon-fill: var(--text-base, #000000);
+                        --encore-icon-height: var(
+                           --encore-graphic-size-decorative-smaller
+                        );
+                        --encore-icon-width: var(
+                           --encore-graphic-size-decorative-smaller
+                        );
+                     "
+                     viewBox="0 0 16 16"
+                  >
+                     <path
+                        d="M11.03.47a.75.75 0 0 1 0 1.06L4.56 8l6.47 6.47a.75.75 0 1 1-1.06 1.06L2.44 8 9.97.47a.75.75 0 0 1 1.06 0"
+                     ></path>
+                  </svg>
+               </div>
+               <div
+                  class="TnVIvshRoEChk0cA WJNdglCwk0YWctDk _MQib3FY1eY5oaVV"
+                  data-testid="carousel-next-button"
+                  aria-hidden="true"
+               >
+                  <svg
+                     data-encore-id="icon"
+                     role="img"
+                     aria-hidden="true"
+                     class="e-91000-icon e-91000-baseline"
+                     style="
+                        --encore-icon-fill: var(--text-base, #000000);
+                        --encore-icon-height: var(
+                           --encore-graphic-size-decorative-smaller
+                        );
+                        --encore-icon-width: var(
+                           --encore-graphic-size-decorative-smaller
+                        );
+                     "
+                     viewBox="0 0 16 16"
+                  >
+                     <path
+                        d="M4.97.47a.75.75 0 0 0 0 1.06L11.44 8l-6.47 6.47a.75.75 0 1 0 1.06 1.06L13.56 8 6.03.47a.75.75 0 0 0-1.06 0"
+                     ></path>
+                  </svg>
+               </div>
+            </div>
+         </div>
+      </div>
+   </div>
+   <div
+      data-overlayscrollbars-initialize="true"
+      class="f_Q0q2fN0YmaU6zR qLlzLghnvcCySJ8T"
+      data-overlayscrollbars="host"
+   >
+      <div
+         class=""
+         data-overlayscrollbars-viewport="scrollbarHidden overflowXScroll overflowYScroll"
+         tabindex="-1"
+         style="
+            margin-right: 0px;
+            margin-bottom: 0px;
+            margin-left: 0px;
+            top: 0px;
+            right: auto;
+            left: 0px;
+            width: calc(100% + 0px);
+            padding: 0px;
+         "
       >
-         <h2
-            class="e-91000-text encore-text-body-medium-bold nPBLYCO2r20mjClx"
-            data-encore-id="text"
-         >
-            ROMANIAN
-         </h2>
-      </button>
+         <div class="MUdeHuV2SOcJv45f">
+            <div class="Wc8L9zgV8m0e1deB">
+               <div
+                  class="nGNsefRulpsAkpRc q8mQFn7r8UYsKdHE _H2ZzS_Atuwx6wh9 tMFkXbMSXNUegQIu aIU4qABgiIgjAEyD EYdwwRebZIgjbKy_ DSes_Z2f48QaZ1s0 j3SHhp1yEwUOoay8"
+               >
+                  <div class="XOUY4jxqDofxBKks" role="search">
+                     <input
+                        class="J9kzhmWpm_gP93Cg"
+                        role="searchbox"
+                        maxlength="80"
+                        autocorrect="off"
+                        autocapitalize="none"
+                        spellcheck="false"
+                        placeholder="Search in Playlists"
+                        aria-hidden="true"
+                        tabindex="-1"
+                        aria-label="Type to filter Your Library. The list of content below will update as you type."
+                        value=""
+                     />
+                     <div class="YdLvFaJkUKIYlDtK">
+                        <span class="pGGu_ewk1I8prnTr"
+                           ><svg
+                              data-encore-id="icon"
+                              role="img"
+                              aria-hidden="true"
+                              class="e-91000-icon e-91000-baseline MUrzzntMKmAcnHxK"
+                              style="
+                                 --encore-icon-height: var(
+                                    --encore-graphic-size-decorative-smaller
+                                 );
+                                 --encore-icon-width: var(
+                                    --encore-graphic-size-decorative-smaller
+                                 );
+                              "
+                              viewBox="0 0 16 16"
+                           >
+                              <path
+                                 d="M7 1.75a5.25 5.25 0 1 0 0 10.5 5.25 5.25 0 0 0 0-10.5M.25 7a6.75 6.75 0 1 1 12.096 4.12l3.184 3.185a.75.75 0 1 1-1.06 1.06L11.304 12.2A6.75 6.75 0 0 1 .25 7"
+                              ></path></svg
+                        ></span>
+                     </div>
+                     <button
+                        class="oEf5FKtHrY0MvTJn QR8Fe3z3FZMfYmdr"
+                        data-testid="expand-button"
+                        aria-hidden="false"
+                        aria-label="Search in Playlists"
+                     >
+                        <svg
+                           data-encore-id="icon"
+                           role="img"
+                           aria-hidden="true"
+                           class="e-91000-icon e-91000-baseline MUrzzntMKmAcnHxK"
+                           style="
+                              --encore-icon-height: var(
+                                 --encore-graphic-size-decorative-smaller
+                              );
+                              --encore-icon-width: var(
+                                 --encore-graphic-size-decorative-smaller
+                              );
+                           "
+                           viewBox="0 0 16 16"
+                        >
+                           <path
+                              d="M7 1.75a5.25 5.25 0 1 0 0 10.5 5.25 5.25 0 0 0 0-10.5M.25 7a6.75 6.75 0 1 1 12.096 4.12l3.184 3.185a.75.75 0 1 1-1.06 1.06L11.304 12.2A6.75 6.75 0 0 1 .25 7"
+                           ></path>
+                        </svg>
+                     </button>
+                  </div>
+                  <button
+                     role="combobox"
+                     aria-haspopup="true"
+                     aria-controls="sort-and-view-picker"
+                     aria-expanded="false"
+                     class="Button-sc-1dqy6lx-0 gLxfIu encore-text-body-small-bold e-91000-overflow-wrap-anywhere e-91000-button--trailing e-91000-button-tertiary--condensed"
+                     aria-label="Recents, Default list view"
+                     data-encore-id="buttonTertiary"
+                  >
+                     <span
+                        class="e-91000-text encore-text-body-small iFHVUzUGU6w0MkxM"
+                        data-encore-id="text"
+                        data-sortbox-label="true"
+                        >Recents</span
+                     ><span
+                        aria-hidden="true"
+                        class="e-91000-button__icon-wrapper"
+                        ><svg
+                           data-encore-id="icon"
+                           role="img"
+                           aria-hidden="true"
+                           class="e-91000-icon e-91000-baseline e-91000-icon--auto-mirror"
+                           style="
+                              --encore-icon-height: var(
+                                 --encore-graphic-size-decorative-smaller
+                              );
+                              --encore-icon-width: var(
+                                 --encore-graphic-size-decorative-smaller
+                              );
+                           "
+                           viewBox="0 0 16 16"
+                        >
+                           <path
+                              d="M15 14.5H5V13h10zm0-5.75H5v-1.5h10zM15 3H5V1.5h10zM3 3H1V1.5h2zm0 11.5H1V13h2zm0-5.75H1v-1.5h2z"
+                           ></path></svg
+                     ></span>
+                  </button>
+               </div>
+            </div>
+            <div>
+               <div
+                  role="grid"
+                  aria-rowcount="19"
+                  aria-colcount="1"
+                  aria-label="Your Library"
+                  tabindex="0"
+                  class="fuckd"
+               >
+                  <div class="" role="presentation">
+                     <div
+                        class="m9t_KhZ6MI0XQj9b"
+                        style="height: 1216px"
+                        role="presentation"
+                     >
+                        <div
+                           data-testid="top-sentinel"
+                           class="QX95pTnCYcsJl9oD"
+                           style="height: 512px"
+                           role="presentation"
+                        >
+                           <div
+                              class="DTD2wBL5oiABNB41"
+                              role="row"
+                              aria-rowindex="1"
+                              style="height: calc(100% - 512px)"
+                           ></div>
+                           <div style="height: 512px" role="presentation"></div>
+                        </div>
+                        <div
+                           style="transform: translateY(0px)"
+                           role="presentation"
+                        >
+                           <div
+                              class="q8mQFn7r8UYsKdHE _H2ZzS_Atuwx6wh9 tMFkXbMSXNUegQIu aIU4qABgiIgjAEyD EYdwwRebZIgjbKy_ NEK7GtRu3w0JbyBT zoKSw5SN9xUA4OkM gRYsquyVjoW12gob"
+                              role="row"
+                              aria-rowindex="1"
+                              aria-selected="true"
+                              aria-setsize="19"
+                              style="--ylx-folder-depth: 0"
+                              draggable="true"
+                           >
+                              <div role="gridcell" aria-colindex="1">
+                                 <div
+                                    class="e-91000-box e-91000-baseline e-91000-box--tinted e-91000-box--interactive e-91000-box--browser-default-focus e-91000-box--padding-custom e-91000-box--min-size e-91000-Box-sc-8t9c76-0 dUGCIT aE_ayHuwU0UG20h2 Box-sc-8t9c76-0 dUGCIT aE_ayHuwU0UG20h2"
+                                    style="
+                                       --box-padding: 8px;
+                                       --box-min-block-size: 56px;
+                                       --box-hover-animation-duration: 0ms;
+                                    "
+                                    data-encore-id="listRow"
+                                    role="group"
+                                    aria-labelledby="listrow-title-spotify:playlist:6RkwMPyjjTkEll4SVkrld2"
+                                 >
+                                    <div
+                                       role="button"
+                                       aria-disabled="false"
+                                       aria-labelledby="listrow-title-spotify:playlist:6RkwMPyjjTkEll4SVkrld2 listrow-subtitle-spotify:playlist:6RkwMPyjjTkEll4SVkrld2"
+                                       aria-describedby="onClickHintspotify:playlist:6RkwMPyjjTkEll4SVkrld2"
+                                       tabindex="-1"
+                                       class="RowButton-sc-xxkq4e-0 cRPTAY"
+                                    ></div>
+                                    <div
+                                       style="display: none"
+                                       id="onClickHintspotify:playlist:6RkwMPyjjTkEll4SVkrld2"
+                                    ></div>
+                                    <div
+                                       class="Areas__HeaderSideArea-sc-8gfrea-1 ljvfQS"
+                                    >
+                                       <div
+                                          class="Areas__HeaderSideAreaFlexContainer-sc-8gfrea-2 hvZiQp"
+                                       >
+                                          <div class="eeJ13KhTNKc4RoVA">
+                                             <div
+                                                class="UWYK6PfFQB893_lp yoA4mzX2Kn0FveXV hWU_wiIM1kQv5e8w"
+                                                style="
+                                                   width: 48px;
+                                                   height: 48px;
+                                                   --extracted-entity-color: #d44422;
+                                                "
+                                             >
+                                                <img
+                                                   aria-hidden="true"
+                                                   draggable="false"
+                                                   loading="eager"
+                                                   src="https://mosaic.scdn.co/60/ab67616d00001e02365917f940b9d4040862af36ab67616d00001e025d3b4100a66a7ab18fcc3a03ab67616d00001e02b4e1bca21b1dfe2aac65ff20ab67616d00001e02f10901d2b763d80d7bf8eb96"
+                                                   data-testid="entity-image"
+                                                   alt="PLAYBACK"
+                                                   class="obD7rdENNc2n3fC0 eaeL4RTunr0p3ojT WfGUvErXcmIzJo1c qIwhHcbG780QDz68"
+                                                   srcset="
+                                                      https://mosaic.scdn.co/60/ab67616d00001e02365917f940b9d4040862af36ab67616d00001e025d3b4100a66a7ab18fcc3a03ab67616d00001e02b4e1bca21b1dfe2aac65ff20ab67616d00001e02f10901d2b763d80d7bf8eb96 30w,
+                                                      https://mosaic.scdn.co/60/ab67616d00001e02365917f940b9d4040862af36ab67616d00001e025d3b4100a66a7ab18fcc3a03ab67616d00001e02b4e1bca21b1dfe2aac65ff20ab67616d00001e02f10901d2b763d80d7bf8eb96 60w
+                                                   "
+                                                />
+                                             </div>
+                                             <div
+                                                class="cS2oX60hERkVbAKR Oi9oYhoIybYd9R1n"
+                                             >
+                                                <div
+                                                   class="pk3lz3TYlskuAfwV"
+                                                   role="div"
+                                                >
+                                                   <button
+                                                      data-testid="play-button"
+                                                      class="Button-sc-1dqy6lx-0 itaSgt e-91000-overflow-wrap-anywhere e-91000-button-tertiary--icon-only"
+                                                      aria-label="Play PLAYBACK"
+                                                      data-encore-id="buttonTertiary"
+                                                      tabindex="-1"
+                                                   >
+                                                      <span
+                                                         aria-hidden="true"
+                                                         class="e-91000-button__icon-wrapper"
+                                                         ><svg
+                                                            data-encore-id="icon"
+                                                            role="img"
+                                                            aria-hidden="true"
+                                                            class="e-91000-icon e-91000-baseline"
+                                                            viewBox="0 0 24 24"
+                                                         >
+                                                            <path
+                                                               d="m7.05 3.606 13.49 7.788a.7.7 0 0 1 0 1.212L7.05 20.394A.7.7 0 0 1 6 19.788V4.212a.7.7 0 0 1 1.05-.606"
+                                                            ></path></svg
+                                                      ></span>
+                                                   </button>
+                                                </div>
+                                             </div>
+                                          </div>
+                                       </div>
+                                    </div>
+                                    <div
+                                       class="Areas__HeaderArea-sc-8gfrea-3 TJKQw"
+                                    >
+                                       <div
+                                          class="Areas__InteractiveArea-sc-8gfrea-0 Areas__Column-sc-8gfrea-5 bJSfgC jwUvtM"
+                                       >
+                                          <p
+                                             class="e-91000-text encore-text-body-medium encore-internal-color-text-base ListRowTitle__ListRowText-sc-1xe2if1-1 eFGzcP a169WIdVyYkqHYl3 XWXMVnDoisCMvXDc"
+                                             data-encore-id="listRowTitle"
+                                             id="listrow-title-spotify:playlist:6RkwMPyjjTkEll4SVkrld2"
+                                             dir="auto"
+                                          >
+                                             <span
+                                                class="ListRowTitle__LineClamp-sc-1xe2if1-0 jjpOuK"
+                                                >PLAYBACK</span
+                                             >
+                                          </p>
+                                          <div class="oDhANEAwPkg6safa">
+                                             <p
+                                                class="e-91000-text encore-text-body-small encore-internal-color-text-subdued ListRowDetails__ListRowDetailText-sc-sozu4l-0 hxCObm a169WIdVyYkqHYl3"
+                                                data-encore-id="listRowSubtitle"
+                                                id="listrow-subtitle-spotify:playlist:6RkwMPyjjTkEll4SVkrld2"
+                                                dir="auto"
+                                             >
+                                                <span
+                                                   class="PW_x6HneU4GcUzgn"
+                                                ></span
+                                                ><span class="t2qx66PtSUA0l8Eh"
+                                                   >TopiVEVO</span
+                                                >
+                                             </p>
+                                          </div>
+                                       </div>
+                                    </div>
+                                 </div>
+                              </div>
+                           </div>
+                           <div
+                              class="q8mQFn7r8UYsKdHE _H2ZzS_Atuwx6wh9 tMFkXbMSXNUegQIu aIU4qABgiIgjAEyD EYdwwRebZIgjbKy_ DSes_Z2f48QaZ1s0 j3SHhp1yEwUOoay8 gRYsquyVjoW12gob"
+                              role="row"
+                              aria-rowindex="2"
+                              aria-selected="false"
+                              aria-setsize="19"
+                              style="--ylx-folder-depth: 0"
+                              draggable="true"
+                           >
+                              <div role="gridcell" aria-colindex="1">
+                                 <div
+                                    class="e-91000-box e-91000-baseline e-91000-box--naked e-91000-box--interactive e-91000-box--browser-default-focus e-91000-box--padding-custom e-91000-box--min-size e-91000-Box-sc-8t9c76-0 dUGCIT aE_ayHuwU0UG20h2 Box-sc-8t9c76-0 dUGCIT aE_ayHuwU0UG20h2"
+                                    style="
+                                       --box-padding: 8px;
+                                       --box-min-block-size: 56px;
+                                       --box-hover-animation-duration: 0ms;
+                                    "
+                                    data-encore-id="listRow"
+                                    role="group"
+                                    aria-labelledby="listrow-title-spotify:user:312xzcb7hbikmuh75cembojixuz4:folder:860fe94de72f252a"
+                                 >
+                                    <div
+                                       role="button"
+                                       aria-disabled="false"
+                                       aria-labelledby="listrow-title-spotify:user:312xzcb7hbikmuh75cembojixuz4:folder:860fe94de72f252a listrow-subtitle-spotify:user:312xzcb7hbikmuh75cembojixuz4:folder:860fe94de72f252a"
+                                       aria-describedby="onClickHintspotify:user:312xzcb7hbikmuh75cembojixuz4:folder:860fe94de72f252a"
+                                       tabindex="-1"
+                                       class="RowButton-sc-xxkq4e-0 cRPTAY"
+                                    ></div>
+                                    <div
+                                       style="display: none"
+                                       id="onClickHintspotify:user:312xzcb7hbikmuh75cembojixuz4:folder:860fe94de72f252a"
+                                    ></div>
+                                    <div
+                                       class="Areas__HeaderSideArea-sc-8gfrea-1 ljvfQS"
+                                    >
+                                       <div
+                                          class="Areas__HeaderSideAreaFlexContainer-sc-8gfrea-2 hvZiQp"
+                                       >
+                                          <div class="">
+                                             <div
+                                                class="UWYK6PfFQB893_lp yoA4mzX2Kn0FveXV hWU_wiIM1kQv5e8w"
+                                                style="
+                                                   width: 48px;
+                                                   height: 48px;
+                                                "
+                                             >
+                                                <div
+                                                   aria-label="HIDDEN GEMS"
+                                                   class="PQMaFYfZyRAAMjIZ"
+                                                >
+                                                   <svg
+                                                      data-encore-id="icon"
+                                                      role="img"
+                                                      aria-hidden="true"
+                                                      class="e-91000-icon e-91000-baseline"
+                                                      data-testid="folder"
+                                                      viewBox="0 0 24 24"
+                                                   >
+                                                      <path
+                                                         d="M1 4a2 2 0 0 1 2-2h5.155a3 3 0 0 1 2.598 1.5l.866 1.5H21a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2zm7.155 0H3v16h18V7H10.464L9.021 4.5a1 1 0 0 0-.866-.5"
+                                                      ></path>
+                                                   </svg>
+                                                </div>
+                                             </div>
+                                          </div>
+                                       </div>
+                                    </div>
+                                    <div
+                                       class="Areas__HeaderArea-sc-8gfrea-3 TJKQw"
+                                    >
+                                       <div
+                                          class="Areas__InteractiveArea-sc-8gfrea-0 Areas__Column-sc-8gfrea-5 bJSfgC jwUvtM"
+                                       >
+                                          <p
+                                             class="e-91000-text encore-text-body-medium encore-internal-color-text-base ListRowTitle__ListRowText-sc-1xe2if1-1 eFGzcP a169WIdVyYkqHYl3 XWXMVnDoisCMvXDc"
+                                             data-encore-id="listRowTitle"
+                                             id="listrow-title-spotify:user:312xzcb7hbikmuh75cembojixuz4:folder:860fe94de72f252a"
+                                             dir="auto"
+                                          >
+                                             <span
+                                                class="ListRowTitle__LineClamp-sc-1xe2if1-0 jjpOuK"
+                                                >HIDDEN GEMS</span
+                                             >
+                                          </p>
+                                          <div class="oDhANEAwPkg6safa">
+                                             <p
+                                                class="e-91000-text encore-text-body-small encore-internal-color-text-subdued ListRowDetails__ListRowDetailText-sc-sozu4l-0 hxCObm a169WIdVyYkqHYl3"
+                                                data-encore-id="listRowSubtitle"
+                                                id="listrow-subtitle-spotify:user:312xzcb7hbikmuh75cembojixuz4:folder:860fe94de72f252a"
+                                                dir="auto"
+                                             >
+                                                <span
+                                                   class="PW_x6HneU4GcUzgn"
+                                                ></span
+                                                ><span class="t2qx66PtSUA0l8Eh"
+                                                   >2 folders</span
+                                                >
+                                             </p>
+                                          </div>
+                                       </div>
+                                       <div
+                                          class="Areas__InteractiveArea-sc-8gfrea-0 Areas__TrailingSlot-sc-8gfrea-7 bJSfgC jpzxju"
+                                       >
+                                          <button
+                                             tabindex="-1"
+                                             class="Button-sc-1dqy6lx-0 deFNvm e-91000-overflow-wrap-anywhere e-91000-button-tertiary--icon-only e-91000-button-tertiary--condensed cYz5M4M3mbQ2OPbt Smx1DTMwsC02IRtm"
+                                             aria-label="Expand folder"
+                                             data-encore-id="buttonTertiary"
+                                          >
+                                             <span
+                                                aria-hidden="true"
+                                                class="e-91000-button__icon-wrapper"
+                                                ><svg
+                                                   data-encore-id="icon"
+                                                   role="img"
+                                                   aria-hidden="true"
+                                                   class="e-91000-icon e-91000-baseline"
+                                                   style="
+                                                      --encore-icon-height: var(
+                                                         --encore-graphic-size-decorative-smaller
+                                                      );
+                                                      --encore-icon-width: var(
+                                                         --encore-graphic-size-decorative-smaller
+                                                      );
+                                                   "
+                                                   viewBox="0 0 16 16"
+                                                >
+                                                   <path
+                                                      d="m14 6-6 6-6-6z"
+                                                   ></path></svg
+                                             ></span>
+                                          </button>
+                                       </div>
+                                    </div>
+                                 </div>
+                              </div>
+                           </div>
+                           <div
+                              class="q8mQFn7r8UYsKdHE _H2ZzS_Atuwx6wh9 tMFkXbMSXNUegQIu aIU4qABgiIgjAEyD EYdwwRebZIgjbKy_ NEK7GtRu3w0JbyBT zoKSw5SN9xUA4OkM gRYsquyVjoW12gob"
+                              role="row"
+                              aria-rowindex="3"
+                              aria-selected="false"
+                              aria-setsize="19"
+                              style="--ylx-folder-depth: 0"
+                              draggable="true"
+                           >
+                              <div role="gridcell" aria-colindex="1">
+                                 <div
+                                    class="e-91000-box e-91000-baseline e-91000-box--naked e-91000-box--interactive e-91000-box--browser-default-focus e-91000-box--padding-custom e-91000-box--min-size e-91000-Box-sc-8t9c76-0 dUGCIT aE_ayHuwU0UG20h2 Box-sc-8t9c76-0 dUGCIT aE_ayHuwU0UG20h2"
+                                    style="
+                                       --box-padding: 8px;
+                                       --box-min-block-size: 56px;
+                                       --box-hover-animation-duration: 0ms;
+                                    "
+                                    data-encore-id="listRow"
+                                    role="group"
+                                    aria-labelledby="listrow-title-spotify:playlist:6rbZFrLdPu6Yo5Fy7Go4wS"
+                                 >
+                                    <div
+                                       role="button"
+                                       aria-disabled="false"
+                                       aria-labelledby="listrow-title-spotify:playlist:6rbZFrLdPu6Yo5Fy7Go4wS listrow-subtitle-spotify:playlist:6rbZFrLdPu6Yo5Fy7Go4wS"
+                                       aria-describedby="onClickHintspotify:playlist:6rbZFrLdPu6Yo5Fy7Go4wS"
+                                       tabindex="-1"
+                                       class="RowButton-sc-xxkq4e-0 cRPTAY"
+                                    ></div>
+                                    <div
+                                       style="display: none"
+                                       id="onClickHintspotify:playlist:6rbZFrLdPu6Yo5Fy7Go4wS"
+                                    ></div>
+                                    <div
+                                       class="Areas__HeaderSideArea-sc-8gfrea-1 ljvfQS"
+                                    >
+                                       <div
+                                          class="Areas__HeaderSideAreaFlexContainer-sc-8gfrea-2 hvZiQp"
+                                       >
+                                          <div class="eeJ13KhTNKc4RoVA">
+                                             <div
+                                                class="UWYK6PfFQB893_lp yoA4mzX2Kn0FveXV hWU_wiIM1kQv5e8w"
+                                                style="
+                                                   width: 48px;
+                                                   height: 48px;
+                                                   --extracted-entity-color: #0020c8;
+                                                "
+                                             >
+                                                <img
+                                                   aria-hidden="true"
+                                                   draggable="false"
+                                                   loading="eager"
+                                                   src="https://mosaic.scdn.co/60/ab67616d00001e0224a5274c4239d8f7bb64768dab67616d00001e0246302111bdd981caa5834c5fab67616d00001e025dcd8335485de68dd198da0dab67616d00001e02aff89931b2f51a9dc2c3df16"
+                                                   data-testid="entity-image"
+                                                   alt="Favorite Tracks"
+                                                   class="obD7rdENNc2n3fC0 eaeL4RTunr0p3ojT WfGUvErXcmIzJo1c qIwhHcbG780QDz68"
+                                                   srcset="
+                                                      https://mosaic.scdn.co/60/ab67616d00001e0224a5274c4239d8f7bb64768dab67616d00001e0246302111bdd981caa5834c5fab67616d00001e025dcd8335485de68dd198da0dab67616d00001e02aff89931b2f51a9dc2c3df16 30w,
+                                                      https://mosaic.scdn.co/60/ab67616d00001e0224a5274c4239d8f7bb64768dab67616d00001e0246302111bdd981caa5834c5fab67616d00001e025dcd8335485de68dd198da0dab67616d00001e02aff89931b2f51a9dc2c3df16 60w
+                                                   "
+                                                />
+                                             </div>
+                                             <div
+                                                class="cS2oX60hERkVbAKR Oi9oYhoIybYd9R1n"
+                                             >
+                                                <div
+                                                   class="pk3lz3TYlskuAfwV"
+                                                   role="div"
+                                                >
+                                                   <button
+                                                      data-testid="play-button"
+                                                      class="Button-sc-1dqy6lx-0 itaSgt e-91000-overflow-wrap-anywhere e-91000-button-tertiary--icon-only"
+                                                      aria-label="Play Favorite Tracks"
+                                                      data-encore-id="buttonTertiary"
+                                                      tabindex="-1"
+                                                   >
+                                                      <span
+                                                         aria-hidden="true"
+                                                         class="e-91000-button__icon-wrapper"
+                                                         ><svg
+                                                            data-encore-id="icon"
+                                                            role="img"
+                                                            aria-hidden="true"
+                                                            class="e-91000-icon e-91000-baseline"
+                                                            viewBox="0 0 24 24"
+                                                         >
+                                                            <path
+                                                               d="m7.05 3.606 13.49 7.788a.7.7 0 0 1 0 1.212L7.05 20.394A.7.7 0 0 1 6 19.788V4.212a.7.7 0 0 1 1.05-.606"
+                                                            ></path></svg
+                                                      ></span>
+                                                   </button>
+                                                </div>
+                                             </div>
+                                          </div>
+                                       </div>
+                                    </div>
+                                    <div
+                                       class="Areas__HeaderArea-sc-8gfrea-3 TJKQw"
+                                    >
+                                       <div
+                                          class="Areas__InteractiveArea-sc-8gfrea-0 Areas__Column-sc-8gfrea-5 bJSfgC jwUvtM"
+                                       >
+                                          <p
+                                             class="e-91000-text encore-text-body-medium encore-internal-color-text-base ListRowTitle__ListRowText-sc-1xe2if1-1 eFGzcP a169WIdVyYkqHYl3 XWXMVnDoisCMvXDc"
+                                             data-encore-id="listRowTitle"
+                                             id="listrow-title-spotify:playlist:6rbZFrLdPu6Yo5Fy7Go4wS"
+                                             dir="auto"
+                                          >
+                                             <span
+                                                class="ListRowTitle__LineClamp-sc-1xe2if1-0 jjpOuK"
+                                                >Favorite Tracks</span
+                                             >
+                                          </p>
+                                          <div class="oDhANEAwPkg6safa">
+                                             <p
+                                                class="e-91000-text encore-text-body-small encore-internal-color-text-subdued ListRowDetails__ListRowDetailText-sc-sozu4l-0 hxCObm a169WIdVyYkqHYl3"
+                                                data-encore-id="listRowSubtitle"
+                                                id="listrow-subtitle-spotify:playlist:6rbZFrLdPu6Yo5Fy7Go4wS"
+                                                dir="auto"
+                                             >
+                                                <span
+                                                   class="PW_x6HneU4GcUzgn"
+                                                ></span
+                                                ><span class="t2qx66PtSUA0l8Eh"
+                                                   >TopiVEVO</span
+                                                >
+                                             </p>
+                                          </div>
+                                       </div>
+                                    </div>
+                                 </div>
+                              </div>
+                           </div>
+                           <div
+                              class="q8mQFn7r8UYsKdHE _H2ZzS_Atuwx6wh9 tMFkXbMSXNUegQIu aIU4qABgiIgjAEyD EYdwwRebZIgjbKy_ NEK7GtRu3w0JbyBT zoKSw5SN9xUA4OkM gRYsquyVjoW12gob"
+                              role="row"
+                              aria-rowindex="4"
+                              aria-selected="false"
+                              aria-setsize="19"
+                              style="--ylx-folder-depth: 0"
+                              draggable="true"
+                           >
+                              <div role="gridcell" aria-colindex="1">
+                                 <div
+                                    class="e-91000-box e-91000-baseline e-91000-box--naked e-91000-box--interactive e-91000-box--browser-default-focus e-91000-box--padding-custom e-91000-box--min-size e-91000-Box-sc-8t9c76-0 dUGCIT aE_ayHuwU0UG20h2 Box-sc-8t9c76-0 dUGCIT aE_ayHuwU0UG20h2"
+                                    style="
+                                       --box-padding: 8px;
+                                       --box-min-block-size: 56px;
+                                       --box-hover-animation-duration: 0ms;
+                                    "
+                                    data-encore-id="listRow"
+                                    role="group"
+                                    aria-labelledby="listrow-title-spotify:playlist:2IlGgwMnESnLQk4ZOWYfk2"
+                                 >
+                                    <div
+                                       role="button"
+                                       aria-disabled="false"
+                                       aria-labelledby="listrow-title-spotify:playlist:2IlGgwMnESnLQk4ZOWYfk2 listrow-subtitle-spotify:playlist:2IlGgwMnESnLQk4ZOWYfk2"
+                                       aria-describedby="onClickHintspotify:playlist:2IlGgwMnESnLQk4ZOWYfk2"
+                                       tabindex="-1"
+                                       class="RowButton-sc-xxkq4e-0 cRPTAY"
+                                    ></div>
+                                    <div
+                                       style="display: none"
+                                       id="onClickHintspotify:playlist:2IlGgwMnESnLQk4ZOWYfk2"
+                                    ></div>
+                                    <div
+                                       class="Areas__HeaderSideArea-sc-8gfrea-1 ljvfQS"
+                                    >
+                                       <div
+                                          class="Areas__HeaderSideAreaFlexContainer-sc-8gfrea-2 hvZiQp"
+                                       >
+                                          <div class="eeJ13KhTNKc4RoVA">
+                                             <div
+                                                class="UWYK6PfFQB893_lp yoA4mzX2Kn0FveXV hWU_wiIM1kQv5e8w"
+                                                style="
+                                                   width: 48px;
+                                                   height: 48px;
+                                                   --extracted-entity-color: #d02860;
+                                                "
+                                             >
+                                                <img
+                                                   aria-hidden="true"
+                                                   draggable="false"
+                                                   loading="eager"
+                                                   src="https://mosaic.scdn.co/60/ab67616d00001e021295a2c49e79c1b88a4ebd00ab67616d00001e023a9ce244218226d63be3b096ab67616d00001e024e6247e8faf0dec86c424726ab67616d00001e026023e293d226c7b656a77ef4"
+                                                   data-testid="entity-image"
+                                                   alt="Songs To Show"
+                                                   class="obD7rdENNc2n3fC0 eaeL4RTunr0p3ojT WfGUvErXcmIzJo1c qIwhHcbG780QDz68"
+                                                   srcset="
+                                                      https://mosaic.scdn.co/60/ab67616d00001e021295a2c49e79c1b88a4ebd00ab67616d00001e023a9ce244218226d63be3b096ab67616d00001e024e6247e8faf0dec86c424726ab67616d00001e026023e293d226c7b656a77ef4 30w,
+                                                      https://mosaic.scdn.co/60/ab67616d00001e021295a2c49e79c1b88a4ebd00ab67616d00001e023a9ce244218226d63be3b096ab67616d00001e024e6247e8faf0dec86c424726ab67616d00001e026023e293d226c7b656a77ef4 60w
+                                                   "
+                                                />
+                                             </div>
+                                             <div
+                                                class="cS2oX60hERkVbAKR Oi9oYhoIybYd9R1n"
+                                             >
+                                                <div
+                                                   class="pk3lz3TYlskuAfwV"
+                                                   role="div"
+                                                >
+                                                   <button
+                                                      data-testid="play-button"
+                                                      class="Button-sc-1dqy6lx-0 itaSgt e-91000-overflow-wrap-anywhere e-91000-button-tertiary--icon-only"
+                                                      aria-label="Play Songs To Show"
+                                                      data-encore-id="buttonTertiary"
+                                                      tabindex="-1"
+                                                   >
+                                                      <span
+                                                         aria-hidden="true"
+                                                         class="e-91000-button__icon-wrapper"
+                                                         ><svg
+                                                            data-encore-id="icon"
+                                                            role="img"
+                                                            aria-hidden="true"
+                                                            class="e-91000-icon e-91000-baseline"
+                                                            viewBox="0 0 24 24"
+                                                         >
+                                                            <path
+                                                               d="m7.05 3.606 13.49 7.788a.7.7 0 0 1 0 1.212L7.05 20.394A.7.7 0 0 1 6 19.788V4.212a.7.7 0 0 1 1.05-.606"
+                                                            ></path></svg
+                                                      ></span>
+                                                   </button>
+                                                </div>
+                                             </div>
+                                          </div>
+                                       </div>
+                                    </div>
+                                    <div
+                                       class="Areas__HeaderArea-sc-8gfrea-3 TJKQw"
+                                    >
+                                       <div
+                                          class="Areas__InteractiveArea-sc-8gfrea-0 Areas__Column-sc-8gfrea-5 bJSfgC jwUvtM"
+                                       >
+                                          <p
+                                             class="e-91000-text encore-text-body-medium encore-internal-color-text-base ListRowTitle__ListRowText-sc-1xe2if1-1 eFGzcP a169WIdVyYkqHYl3 XWXMVnDoisCMvXDc"
+                                             data-encore-id="listRowTitle"
+                                             id="listrow-title-spotify:playlist:2IlGgwMnESnLQk4ZOWYfk2"
+                                             dir="auto"
+                                          >
+                                             <span
+                                                class="ListRowTitle__LineClamp-sc-1xe2if1-0 jjpOuK"
+                                                >Songs To Show</span
+                                             >
+                                          </p>
+                                          <div class="oDhANEAwPkg6safa">
+                                             <p
+                                                class="e-91000-text encore-text-body-small encore-internal-color-text-subdued ListRowDetails__ListRowDetailText-sc-sozu4l-0 hxCObm a169WIdVyYkqHYl3"
+                                                data-encore-id="listRowSubtitle"
+                                                id="listrow-subtitle-spotify:playlist:2IlGgwMnESnLQk4ZOWYfk2"
+                                                dir="auto"
+                                             >
+                                                <span
+                                                   class="PW_x6HneU4GcUzgn"
+                                                ></span
+                                                ><span class="t2qx66PtSUA0l8Eh"
+                                                   >TopiVEVO</span
+                                                >
+                                             </p>
+                                          </div>
+                                       </div>
+                                    </div>
+                                 </div>
+                              </div>
+                           </div>
+                           <div
+                              class="q8mQFn7r8UYsKdHE _H2ZzS_Atuwx6wh9 tMFkXbMSXNUegQIu aIU4qABgiIgjAEyD EYdwwRebZIgjbKy_ NEK7GtRu3w0JbyBT zoKSw5SN9xUA4OkM gRYsquyVjoW12gob"
+                              role="row"
+                              aria-rowindex="5"
+                              aria-selected="false"
+                              aria-setsize="19"
+                              style="--ylx-folder-depth: 0"
+                              draggable="true"
+                           >
+                              <div role="gridcell" aria-colindex="1">
+                                 <div
+                                    class="e-91000-box e-91000-baseline e-91000-box--naked e-91000-box--interactive e-91000-box--browser-default-focus e-91000-box--padding-custom e-91000-box--min-size e-91000-Box-sc-8t9c76-0 dUGCIT aE_ayHuwU0UG20h2 Box-sc-8t9c76-0 dUGCIT aE_ayHuwU0UG20h2"
+                                    style="
+                                       --box-padding: 8px;
+                                       --box-min-block-size: 56px;
+                                       --box-hover-animation-duration: 0ms;
+                                    "
+                                    data-encore-id="listRow"
+                                    role="group"
+                                    aria-labelledby="listrow-title-spotify:playlist:1tiFBrbFD0PORBS6mp5tV2"
+                                 >
+                                    <div
+                                       role="button"
+                                       aria-disabled="false"
+                                       aria-labelledby="listrow-title-spotify:playlist:1tiFBrbFD0PORBS6mp5tV2 listrow-subtitle-spotify:playlist:1tiFBrbFD0PORBS6mp5tV2"
+                                       aria-describedby="onClickHintspotify:playlist:1tiFBrbFD0PORBS6mp5tV2"
+                                       tabindex="-1"
+                                       class="RowButton-sc-xxkq4e-0 cRPTAY"
+                                    ></div>
+                                    <div
+                                       style="display: none"
+                                       id="onClickHintspotify:playlist:1tiFBrbFD0PORBS6mp5tV2"
+                                    ></div>
+                                    <div
+                                       class="Areas__HeaderSideArea-sc-8gfrea-1 ljvfQS"
+                                    >
+                                       <div
+                                          class="Areas__HeaderSideAreaFlexContainer-sc-8gfrea-2 hvZiQp"
+                                       >
+                                          <div class="eeJ13KhTNKc4RoVA">
+                                             <div
+                                                class="UWYK6PfFQB893_lp yoA4mzX2Kn0FveXV hWU_wiIM1kQv5e8w"
+                                                style="
+                                                   width: 48px;
+                                                   height: 48px;
+                                                   --extracted-entity-color: #a36949;
+                                                "
+                                             >
+                                                <img
+                                                   aria-hidden="true"
+                                                   draggable="false"
+                                                   loading="eager"
+                                                   src="https://mosaic.scdn.co/60/ab67616d00001e0208aa3b09d2ed9bb2aa61489eab67616d00001e0212e6d484386a69ee7854c97aab67616d00001e025d3b4100a66a7ab18fcc3a03ab67616d00001e028af713a6472447fb99cf893c"
+                                                   data-testid="entity-image"
+                                                   alt="MIX BAG"
+                                                   class="obD7rdENNc2n3fC0 eaeL4RTunr0p3ojT WfGUvErXcmIzJo1c qIwhHcbG780QDz68"
+                                                   srcset="
+                                                      https://mosaic.scdn.co/60/ab67616d00001e0208aa3b09d2ed9bb2aa61489eab67616d00001e0212e6d484386a69ee7854c97aab67616d00001e025d3b4100a66a7ab18fcc3a03ab67616d00001e028af713a6472447fb99cf893c 30w,
+                                                      https://mosaic.scdn.co/60/ab67616d00001e0208aa3b09d2ed9bb2aa61489eab67616d00001e0212e6d484386a69ee7854c97aab67616d00001e025d3b4100a66a7ab18fcc3a03ab67616d00001e028af713a6472447fb99cf893c 60w
+                                                   "
+                                                />
+                                             </div>
+                                             <div
+                                                class="cS2oX60hERkVbAKR Oi9oYhoIybYd9R1n"
+                                             >
+                                                <div
+                                                   class="pk3lz3TYlskuAfwV"
+                                                   role="div"
+                                                >
+                                                   <button
+                                                      data-testid="play-button"
+                                                      class="Button-sc-1dqy6lx-0 itaSgt e-91000-overflow-wrap-anywhere e-91000-button-tertiary--icon-only"
+                                                      aria-label="Play MIX BAG"
+                                                      data-encore-id="buttonTertiary"
+                                                      tabindex="-1"
+                                                   >
+                                                      <span
+                                                         aria-hidden="true"
+                                                         class="e-91000-button__icon-wrapper"
+                                                         ><svg
+                                                            data-encore-id="icon"
+                                                            role="img"
+                                                            aria-hidden="true"
+                                                            class="e-91000-icon e-91000-baseline"
+                                                            viewBox="0 0 24 24"
+                                                         >
+                                                            <path
+                                                               d="m7.05 3.606 13.49 7.788a.7.7 0 0 1 0 1.212L7.05 20.394A.7.7 0 0 1 6 19.788V4.212a.7.7 0 0 1 1.05-.606"
+                                                            ></path></svg
+                                                      ></span>
+                                                   </button>
+                                                </div>
+                                             </div>
+                                          </div>
+                                       </div>
+                                    </div>
+                                    <div
+                                       class="Areas__HeaderArea-sc-8gfrea-3 TJKQw"
+                                    >
+                                       <div
+                                          class="Areas__InteractiveArea-sc-8gfrea-0 Areas__Column-sc-8gfrea-5 bJSfgC jwUvtM"
+                                       >
+                                          <p
+                                             class="e-91000-text encore-text-body-medium encore-internal-color-text-base ListRowTitle__ListRowText-sc-1xe2if1-1 eFGzcP a169WIdVyYkqHYl3 XWXMVnDoisCMvXDc"
+                                             data-encore-id="listRowTitle"
+                                             id="listrow-title-spotify:playlist:1tiFBrbFD0PORBS6mp5tV2"
+                                             dir="auto"
+                                          >
+                                             <span
+                                                class="ListRowTitle__LineClamp-sc-1xe2if1-0 jjpOuK"
+                                                >MIX BAG</span
+                                             >
+                                          </p>
+                                          <div class="oDhANEAwPkg6safa">
+                                             <p
+                                                class="e-91000-text encore-text-body-small encore-internal-color-text-subdued ListRowDetails__ListRowDetailText-sc-sozu4l-0 hxCObm a169WIdVyYkqHYl3"
+                                                data-encore-id="listRowSubtitle"
+                                                id="listrow-subtitle-spotify:playlist:1tiFBrbFD0PORBS6mp5tV2"
+                                                dir="auto"
+                                             >
+                                                <span
+                                                   class="PW_x6HneU4GcUzgn"
+                                                ></span
+                                                ><span class="t2qx66PtSUA0l8Eh"
+                                                   >TopiVEVO</span
+                                                >
+                                             </p>
+                                          </div>
+                                       </div>
+                                    </div>
+                                 </div>
+                              </div>
+                           </div>
+                           <div
+                              class="q8mQFn7r8UYsKdHE _H2ZzS_Atuwx6wh9 tMFkXbMSXNUegQIu aIU4qABgiIgjAEyD EYdwwRebZIgjbKy_ NEK7GtRu3w0JbyBT zoKSw5SN9xUA4OkM gRYsquyVjoW12gob"
+                              role="row"
+                              aria-rowindex="6"
+                              aria-selected="false"
+                              aria-setsize="19"
+                              style="--ylx-folder-depth: 0"
+                              draggable="true"
+                           >
+                              <div role="gridcell" aria-colindex="1">
+                                 <div
+                                    class="e-91000-box e-91000-baseline e-91000-box--naked e-91000-box--interactive e-91000-box--browser-default-focus e-91000-box--padding-custom e-91000-box--min-size e-91000-Box-sc-8t9c76-0 dUGCIT aE_ayHuwU0UG20h2 Box-sc-8t9c76-0 dUGCIT aE_ayHuwU0UG20h2"
+                                    style="
+                                       --box-padding: 8px;
+                                       --box-min-block-size: 56px;
+                                       --box-hover-animation-duration: 0ms;
+                                    "
+                                    data-encore-id="listRow"
+                                    role="group"
+                                    aria-labelledby="listrow-title-spotify:playlist:7vQij2Rp7HzknQYze1zOD4"
+                                 >
+                                    <div
+                                       role="button"
+                                       aria-disabled="false"
+                                       aria-labelledby="listrow-title-spotify:playlist:7vQij2Rp7HzknQYze1zOD4 listrow-subtitle-spotify:playlist:7vQij2Rp7HzknQYze1zOD4"
+                                       aria-describedby="onClickHintspotify:playlist:7vQij2Rp7HzknQYze1zOD4"
+                                       tabindex="-1"
+                                       class="RowButton-sc-xxkq4e-0 cRPTAY"
+                                    ></div>
+                                    <div
+                                       style="display: none"
+                                       id="onClickHintspotify:playlist:7vQij2Rp7HzknQYze1zOD4"
+                                    ></div>
+                                    <div
+                                       class="Areas__HeaderSideArea-sc-8gfrea-1 ljvfQS"
+                                    >
+                                       <div
+                                          class="Areas__HeaderSideAreaFlexContainer-sc-8gfrea-2 hvZiQp"
+                                       >
+                                          <div class="eeJ13KhTNKc4RoVA">
+                                             <div
+                                                class="UWYK6PfFQB893_lp yoA4mzX2Kn0FveXV hWU_wiIM1kQv5e8w"
+                                                style="
+                                                   width: 48px;
+                                                   height: 48px;
+                                                   --extracted-entity-color: #980808;
+                                                "
+                                             >
+                                                <img
+                                                   aria-hidden="true"
+                                                   draggable="false"
+                                                   loading="eager"
+                                                   src="https://mosaic.scdn.co/60/ab67616d00001e0200065f38121eeedcd6de8a50ab67616d00001e0256194cf6ff5620b3fe9ae21bab67616d00001e028ef189233a6b2246e4e5adf5ab67616d00001e02e7eb149d49519843969c600b"
+                                                   data-testid="entity-image"
+                                                   alt="RORECORDINGS"
+                                                   class="obD7rdENNc2n3fC0 eaeL4RTunr0p3ojT WfGUvErXcmIzJo1c qIwhHcbG780QDz68"
+                                                   srcset="
+                                                      https://mosaic.scdn.co/60/ab67616d00001e0200065f38121eeedcd6de8a50ab67616d00001e0256194cf6ff5620b3fe9ae21bab67616d00001e028ef189233a6b2246e4e5adf5ab67616d00001e02e7eb149d49519843969c600b 30w,
+                                                      https://mosaic.scdn.co/60/ab67616d00001e0200065f38121eeedcd6de8a50ab67616d00001e0256194cf6ff5620b3fe9ae21bab67616d00001e028ef189233a6b2246e4e5adf5ab67616d00001e02e7eb149d49519843969c600b 60w
+                                                   "
+                                                />
+                                             </div>
+                                             <div
+                                                class="cS2oX60hERkVbAKR Oi9oYhoIybYd9R1n"
+                                             >
+                                                <div
+                                                   class="pk3lz3TYlskuAfwV"
+                                                   role="div"
+                                                >
+                                                   <button
+                                                      data-testid="play-button"
+                                                      class="Button-sc-1dqy6lx-0 itaSgt e-91000-overflow-wrap-anywhere e-91000-button-tertiary--icon-only"
+                                                      aria-label="Play RORECORDINGS"
+                                                      data-encore-id="buttonTertiary"
+                                                      tabindex="-1"
+                                                   >
+                                                      <span
+                                                         aria-hidden="true"
+                                                         class="e-91000-button__icon-wrapper"
+                                                         ><svg
+                                                            data-encore-id="icon"
+                                                            role="img"
+                                                            aria-hidden="true"
+                                                            class="e-91000-icon e-91000-baseline"
+                                                            viewBox="0 0 24 24"
+                                                         >
+                                                            <path
+                                                               d="m7.05 3.606 13.49 7.788a.7.7 0 0 1 0 1.212L7.05 20.394A.7.7 0 0 1 6 19.788V4.212a.7.7 0 0 1 1.05-.606"
+                                                            ></path></svg
+                                                      ></span>
+                                                   </button>
+                                                </div>
+                                             </div>
+                                          </div>
+                                       </div>
+                                    </div>
+                                    <div
+                                       class="Areas__HeaderArea-sc-8gfrea-3 TJKQw"
+                                    >
+                                       <div
+                                          class="Areas__InteractiveArea-sc-8gfrea-0 Areas__Column-sc-8gfrea-5 bJSfgC jwUvtM"
+                                       >
+                                          <p
+                                             class="e-91000-text encore-text-body-medium encore-internal-color-text-base ListRowTitle__ListRowText-sc-1xe2if1-1 eFGzcP a169WIdVyYkqHYl3 XWXMVnDoisCMvXDc"
+                                             data-encore-id="listRowTitle"
+                                             id="listrow-title-spotify:playlist:7vQij2Rp7HzknQYze1zOD4"
+                                             dir="auto"
+                                          >
+                                             <span
+                                                class="ListRowTitle__LineClamp-sc-1xe2if1-0 jjpOuK"
+                                                >RORECORDINGS</span
+                                             >
+                                          </p>
+                                          <div class="oDhANEAwPkg6safa">
+                                             <p
+                                                class="e-91000-text encore-text-body-small encore-internal-color-text-subdued ListRowDetails__ListRowDetailText-sc-sozu4l-0 hxCObm a169WIdVyYkqHYl3"
+                                                data-encore-id="listRowSubtitle"
+                                                id="listrow-subtitle-spotify:playlist:7vQij2Rp7HzknQYze1zOD4"
+                                                dir="auto"
+                                             >
+                                                <span
+                                                   class="PW_x6HneU4GcUzgn"
+                                                ></span
+                                                ><span class="t2qx66PtSUA0l8Eh"
+                                                   >TopiVEVO</span
+                                                >
+                                             </p>
+                                          </div>
+                                       </div>
+                                    </div>
+                                 </div>
+                              </div>
+                           </div>
+                           <div
+                              class="q8mQFn7r8UYsKdHE _H2ZzS_Atuwx6wh9 tMFkXbMSXNUegQIu aIU4qABgiIgjAEyD EYdwwRebZIgjbKy_ NEK7GtRu3w0JbyBT zoKSw5SN9xUA4OkM gRYsquyVjoW12gob"
+                              role="row"
+                              aria-rowindex="7"
+                              aria-selected="false"
+                              aria-setsize="19"
+                              style="--ylx-folder-depth: 0"
+                              draggable="true"
+                           >
+                              <div role="gridcell" aria-colindex="1">
+                                 <div
+                                    class="e-91000-box e-91000-baseline e-91000-box--naked e-91000-box--interactive e-91000-box--browser-default-focus e-91000-box--padding-custom e-91000-box--min-size e-91000-Box-sc-8t9c76-0 dUGCIT aE_ayHuwU0UG20h2 Box-sc-8t9c76-0 dUGCIT aE_ayHuwU0UG20h2"
+                                    style="
+                                       --box-padding: 8px;
+                                       --box-min-block-size: 56px;
+                                       --box-hover-animation-duration: 0ms;
+                                    "
+                                    data-encore-id="listRow"
+                                    role="group"
+                                    aria-labelledby="listrow-title-spotify:playlist:6XrupPUbYKR9jHNK1Qj98o"
+                                 >
+                                    <div
+                                       role="button"
+                                       aria-disabled="false"
+                                       aria-labelledby="listrow-title-spotify:playlist:6XrupPUbYKR9jHNK1Qj98o listrow-subtitle-spotify:playlist:6XrupPUbYKR9jHNK1Qj98o"
+                                       aria-describedby="onClickHintspotify:playlist:6XrupPUbYKR9jHNK1Qj98o"
+                                       tabindex="-1"
+                                       class="RowButton-sc-xxkq4e-0 cRPTAY"
+                                    ></div>
+                                    <div
+                                       style="display: none"
+                                       id="onClickHintspotify:playlist:6XrupPUbYKR9jHNK1Qj98o"
+                                    ></div>
+                                    <div
+                                       class="Areas__HeaderSideArea-sc-8gfrea-1 ljvfQS"
+                                    >
+                                       <div
+                                          class="Areas__HeaderSideAreaFlexContainer-sc-8gfrea-2 hvZiQp"
+                                       >
+                                          <div class="eeJ13KhTNKc4RoVA">
+                                             <div
+                                                class="UWYK6PfFQB893_lp yoA4mzX2Kn0FveXV hWU_wiIM1kQv5e8w"
+                                                style="
+                                                   width: 48px;
+                                                   height: 48px;
+                                                   --extracted-entity-color: #d44422;
+                                                "
+                                             >
+                                                <img
+                                                   aria-hidden="true"
+                                                   draggable="false"
+                                                   loading="eager"
+                                                   src="https://mosaic.scdn.co/60/ab67616d00001e02365917f940b9d4040862af36ab67616d00001e025d3b4100a66a7ab18fcc3a03ab67616d00001e02aba9717f282aeee02981bc4dab67616d00001e02b8d5917df4e1ae2e338909f1"
+                                                   data-testid="entity-image"
+                                                   alt="FORMULA"
+                                                   class="obD7rdENNc2n3fC0 eaeL4RTunr0p3ojT WfGUvErXcmIzJo1c qIwhHcbG780QDz68"
+                                                   srcset="
+                                                      https://mosaic.scdn.co/60/ab67616d00001e02365917f940b9d4040862af36ab67616d00001e025d3b4100a66a7ab18fcc3a03ab67616d00001e02aba9717f282aeee02981bc4dab67616d00001e02b8d5917df4e1ae2e338909f1 30w,
+                                                      https://mosaic.scdn.co/60/ab67616d00001e02365917f940b9d4040862af36ab67616d00001e025d3b4100a66a7ab18fcc3a03ab67616d00001e02aba9717f282aeee02981bc4dab67616d00001e02b8d5917df4e1ae2e338909f1 60w
+                                                   "
+                                                />
+                                             </div>
+                                             <div
+                                                class="cS2oX60hERkVbAKR Oi9oYhoIybYd9R1n"
+                                             >
+                                                <div
+                                                   class="pk3lz3TYlskuAfwV"
+                                                   role="div"
+                                                >
+                                                   <button
+                                                      data-testid="play-button"
+                                                      class="Button-sc-1dqy6lx-0 itaSgt e-91000-overflow-wrap-anywhere e-91000-button-tertiary--icon-only"
+                                                      aria-label="Play FORMULA"
+                                                      data-encore-id="buttonTertiary"
+                                                      tabindex="-1"
+                                                   >
+                                                      <span
+                                                         aria-hidden="true"
+                                                         class="e-91000-button__icon-wrapper"
+                                                         ><svg
+                                                            data-encore-id="icon"
+                                                            role="img"
+                                                            aria-hidden="true"
+                                                            class="e-91000-icon e-91000-baseline"
+                                                            viewBox="0 0 24 24"
+                                                         >
+                                                            <path
+                                                               d="m7.05 3.606 13.49 7.788a.7.7 0 0 1 0 1.212L7.05 20.394A.7.7 0 0 1 6 19.788V4.212a.7.7 0 0 1 1.05-.606"
+                                                            ></path></svg
+                                                      ></span>
+                                                   </button>
+                                                </div>
+                                             </div>
+                                          </div>
+                                       </div>
+                                    </div>
+                                    <div
+                                       class="Areas__HeaderArea-sc-8gfrea-3 TJKQw"
+                                    >
+                                       <div
+                                          class="Areas__InteractiveArea-sc-8gfrea-0 Areas__Column-sc-8gfrea-5 bJSfgC jwUvtM"
+                                       >
+                                          <p
+                                             class="e-91000-text encore-text-body-medium encore-internal-color-text-base ListRowTitle__ListRowText-sc-1xe2if1-1 eFGzcP a169WIdVyYkqHYl3 XWXMVnDoisCMvXDc"
+                                             data-encore-id="listRowTitle"
+                                             id="listrow-title-spotify:playlist:6XrupPUbYKR9jHNK1Qj98o"
+                                             dir="auto"
+                                          >
+                                             <span
+                                                class="ListRowTitle__LineClamp-sc-1xe2if1-0 jjpOuK"
+                                                >FORMULA</span
+                                             >
+                                          </p>
+                                          <div class="oDhANEAwPkg6safa">
+                                             <p
+                                                class="e-91000-text encore-text-body-small encore-internal-color-text-subdued ListRowDetails__ListRowDetailText-sc-sozu4l-0 hxCObm a169WIdVyYkqHYl3"
+                                                data-encore-id="listRowSubtitle"
+                                                id="listrow-subtitle-spotify:playlist:6XrupPUbYKR9jHNK1Qj98o"
+                                                dir="auto"
+                                             >
+                                                <span
+                                                   class="PW_x6HneU4GcUzgn"
+                                                ></span
+                                                ><span class="t2qx66PtSUA0l8Eh"
+                                                   >TopiVEVO</span
+                                                >
+                                             </p>
+                                          </div>
+                                       </div>
+                                    </div>
+                                 </div>
+                              </div>
+                           </div>
+                           <div
+                              class="q8mQFn7r8UYsKdHE _H2ZzS_Atuwx6wh9 tMFkXbMSXNUegQIu aIU4qABgiIgjAEyD EYdwwRebZIgjbKy_ NEK7GtRu3w0JbyBT zoKSw5SN9xUA4OkM gRYsquyVjoW12gob"
+                              role="row"
+                              aria-rowindex="8"
+                              aria-selected="false"
+                              aria-setsize="19"
+                              style="--ylx-folder-depth: 0"
+                              draggable="true"
+                           >
+                              <div role="gridcell" aria-colindex="1">
+                                 <div
+                                    class="e-91000-box e-91000-baseline e-91000-box--naked e-91000-box--interactive e-91000-box--browser-default-focus e-91000-box--padding-custom e-91000-box--min-size e-91000-Box-sc-8t9c76-0 dUGCIT aE_ayHuwU0UG20h2 Box-sc-8t9c76-0 dUGCIT aE_ayHuwU0UG20h2"
+                                    style="
+                                       --box-padding: 8px;
+                                       --box-min-block-size: 56px;
+                                       --box-hover-animation-duration: 0ms;
+                                    "
+                                    data-encore-id="listRow"
+                                    role="group"
+                                    aria-labelledby="listrow-title-spotify:playlist:0iQyfUQgG4fy3yazODOByb"
+                                 >
+                                    <div
+                                       role="button"
+                                       aria-disabled="false"
+                                       aria-labelledby="listrow-title-spotify:playlist:0iQyfUQgG4fy3yazODOByb listrow-subtitle-spotify:playlist:0iQyfUQgG4fy3yazODOByb"
+                                       aria-describedby="onClickHintspotify:playlist:0iQyfUQgG4fy3yazODOByb"
+                                       tabindex="-1"
+                                       class="RowButton-sc-xxkq4e-0 cRPTAY"
+                                    ></div>
+                                    <div
+                                       style="display: none"
+                                       id="onClickHintspotify:playlist:0iQyfUQgG4fy3yazODOByb"
+                                    ></div>
+                                    <div
+                                       class="Areas__HeaderSideArea-sc-8gfrea-1 ljvfQS"
+                                    >
+                                       <div
+                                          class="Areas__HeaderSideAreaFlexContainer-sc-8gfrea-2 hvZiQp"
+                                       >
+                                          <div class="eeJ13KhTNKc4RoVA">
+                                             <div
+                                                class="UWYK6PfFQB893_lp yoA4mzX2Kn0FveXV hWU_wiIM1kQv5e8w"
+                                                style="
+                                                   width: 48px;
+                                                   height: 48px;
+                                                   --extracted-entity-color: #6a7980;
+                                                "
+                                             >
+                                                <img
+                                                   aria-hidden="true"
+                                                   draggable="false"
+                                                   loading="eager"
+                                                   src="https://mosaic.scdn.co/60/ab67616d00001e026ea59c6f5059bedf1c8ce45aab67616d00001e02aba9717f282aeee02981bc4dab67616d00001e02b1cb53962e85818f480707c5ab67616d00001e02d3879d79b66e17a91c59aba8"
+                                                   data-testid="entity-image"
+                                                   alt="E=MC2"
+                                                   class="obD7rdENNc2n3fC0 eaeL4RTunr0p3ojT WfGUvErXcmIzJo1c qIwhHcbG780QDz68"
+                                                   srcset="
+                                                      https://mosaic.scdn.co/60/ab67616d00001e026ea59c6f5059bedf1c8ce45aab67616d00001e02aba9717f282aeee02981bc4dab67616d00001e02b1cb53962e85818f480707c5ab67616d00001e02d3879d79b66e17a91c59aba8 30w,
+                                                      https://mosaic.scdn.co/60/ab67616d00001e026ea59c6f5059bedf1c8ce45aab67616d00001e02aba9717f282aeee02981bc4dab67616d00001e02b1cb53962e85818f480707c5ab67616d00001e02d3879d79b66e17a91c59aba8 60w
+                                                   "
+                                                />
+                                             </div>
+                                             <div
+                                                class="cS2oX60hERkVbAKR Oi9oYhoIybYd9R1n"
+                                             >
+                                                <div
+                                                   class="pk3lz3TYlskuAfwV"
+                                                   role="div"
+                                                >
+                                                   <button
+                                                      data-testid="play-button"
+                                                      class="Button-sc-1dqy6lx-0 itaSgt e-91000-overflow-wrap-anywhere e-91000-button-tertiary--icon-only"
+                                                      aria-label="Play E=MC2"
+                                                      data-encore-id="buttonTertiary"
+                                                      tabindex="-1"
+                                                   >
+                                                      <span
+                                                         aria-hidden="true"
+                                                         class="e-91000-button__icon-wrapper"
+                                                         ><svg
+                                                            data-encore-id="icon"
+                                                            role="img"
+                                                            aria-hidden="true"
+                                                            class="e-91000-icon e-91000-baseline"
+                                                            viewBox="0 0 24 24"
+                                                         >
+                                                            <path
+                                                               d="m7.05 3.606 13.49 7.788a.7.7 0 0 1 0 1.212L7.05 20.394A.7.7 0 0 1 6 19.788V4.212a.7.7 0 0 1 1.05-.606"
+                                                            ></path></svg
+                                                      ></span>
+                                                   </button>
+                                                </div>
+                                             </div>
+                                          </div>
+                                       </div>
+                                    </div>
+                                    <div
+                                       class="Areas__HeaderArea-sc-8gfrea-3 TJKQw"
+                                    >
+                                       <div
+                                          class="Areas__InteractiveArea-sc-8gfrea-0 Areas__Column-sc-8gfrea-5 bJSfgC jwUvtM"
+                                       >
+                                          <p
+                                             class="e-91000-text encore-text-body-medium encore-internal-color-text-base ListRowTitle__ListRowText-sc-1xe2if1-1 eFGzcP a169WIdVyYkqHYl3 XWXMVnDoisCMvXDc"
+                                             data-encore-id="listRowTitle"
+                                             id="listrow-title-spotify:playlist:0iQyfUQgG4fy3yazODOByb"
+                                             dir="auto"
+                                          >
+                                             <span
+                                                class="ListRowTitle__LineClamp-sc-1xe2if1-0 jjpOuK"
+                                                >E=MC2</span
+                                             >
+                                          </p>
+                                          <div class="oDhANEAwPkg6safa">
+                                             <p
+                                                class="e-91000-text encore-text-body-small encore-internal-color-text-subdued ListRowDetails__ListRowDetailText-sc-sozu4l-0 hxCObm a169WIdVyYkqHYl3"
+                                                data-encore-id="listRowSubtitle"
+                                                id="listrow-subtitle-spotify:playlist:0iQyfUQgG4fy3yazODOByb"
+                                                dir="auto"
+                                             >
+                                                <span
+                                                   class="PW_x6HneU4GcUzgn"
+                                                ></span
+                                                ><span class="t2qx66PtSUA0l8Eh"
+                                                   >TopiVEVO</span
+                                                >
+                                             </p>
+                                          </div>
+                                       </div>
+                                    </div>
+                                 </div>
+                              </div>
+                           </div>
+                           <div
+                              class="q8mQFn7r8UYsKdHE _H2ZzS_Atuwx6wh9 tMFkXbMSXNUegQIu aIU4qABgiIgjAEyD EYdwwRebZIgjbKy_ NEK7GtRu3w0JbyBT zoKSw5SN9xUA4OkM gRYsquyVjoW12gob"
+                              role="row"
+                              aria-rowindex="9"
+                              aria-selected="false"
+                              aria-setsize="19"
+                              style="--ylx-folder-depth: 0"
+                              draggable="true"
+                           >
+                              <div role="gridcell" aria-colindex="1">
+                                 <div
+                                    class="e-91000-box e-91000-baseline e-91000-box--naked e-91000-box--interactive e-91000-box--browser-default-focus e-91000-box--padding-custom e-91000-box--min-size e-91000-Box-sc-8t9c76-0 dUGCIT aE_ayHuwU0UG20h2 Box-sc-8t9c76-0 dUGCIT aE_ayHuwU0UG20h2"
+                                    style="
+                                       --box-padding: 8px;
+                                       --box-min-block-size: 56px;
+                                       --box-hover-animation-duration: 0ms;
+                                    "
+                                    data-encore-id="listRow"
+                                    role="group"
+                                    aria-labelledby="listrow-title-spotify:playlist:7CNc7z6FZVpsaClFdsDh1M"
+                                 >
+                                    <div
+                                       role="button"
+                                       aria-disabled="false"
+                                       aria-labelledby="listrow-title-spotify:playlist:7CNc7z6FZVpsaClFdsDh1M listrow-subtitle-spotify:playlist:7CNc7z6FZVpsaClFdsDh1M"
+                                       aria-describedby="onClickHintspotify:playlist:7CNc7z6FZVpsaClFdsDh1M"
+                                       tabindex="-1"
+                                       class="RowButton-sc-xxkq4e-0 cRPTAY"
+                                    ></div>
+                                    <div
+                                       style="display: none"
+                                       id="onClickHintspotify:playlist:7CNc7z6FZVpsaClFdsDh1M"
+                                    ></div>
+                                    <div
+                                       class="Areas__HeaderSideArea-sc-8gfrea-1 ljvfQS"
+                                    >
+                                       <div
+                                          class="Areas__HeaderSideAreaFlexContainer-sc-8gfrea-2 hvZiQp"
+                                       >
+                                          <div class="eeJ13KhTNKc4RoVA">
+                                             <div
+                                                class="UWYK6PfFQB893_lp yoA4mzX2Kn0FveXV hWU_wiIM1kQv5e8w"
+                                                style="
+                                                   width: 48px;
+                                                   height: 48px;
+                                                   --extracted-entity-color: #882058;
+                                                "
+                                             >
+                                                <img
+                                                   aria-hidden="true"
+                                                   draggable="false"
+                                                   loading="eager"
+                                                   src="https://mosaic.scdn.co/60/ab67616d00001e02034f85da463faf79527d1fe0ab67616d00001e02360aa4bb2864aa1e6ad16364ab67616d00001e02496be3b5a2efe736db26c86eab67616d00001e02d058cd84602ed47f4f0a391b"
+                                                   data-testid="entity-image"
+                                                   alt="TO BE REVIEWED"
+                                                   class="obD7rdENNc2n3fC0 eaeL4RTunr0p3ojT WfGUvErXcmIzJo1c qIwhHcbG780QDz68"
+                                                   srcset="
+                                                      https://mosaic.scdn.co/60/ab67616d00001e02034f85da463faf79527d1fe0ab67616d00001e02360aa4bb2864aa1e6ad16364ab67616d00001e02496be3b5a2efe736db26c86eab67616d00001e02d058cd84602ed47f4f0a391b 30w,
+                                                      https://mosaic.scdn.co/60/ab67616d00001e02034f85da463faf79527d1fe0ab67616d00001e02360aa4bb2864aa1e6ad16364ab67616d00001e02496be3b5a2efe736db26c86eab67616d00001e02d058cd84602ed47f4f0a391b 60w
+                                                   "
+                                                />
+                                             </div>
+                                             <div
+                                                class="cS2oX60hERkVbAKR Oi9oYhoIybYd9R1n"
+                                             >
+                                                <div
+                                                   class="pk3lz3TYlskuAfwV"
+                                                   role="div"
+                                                >
+                                                   <button
+                                                      data-testid="play-button"
+                                                      class="Button-sc-1dqy6lx-0 itaSgt e-91000-overflow-wrap-anywhere e-91000-button-tertiary--icon-only"
+                                                      aria-label="Play TO BE REVIEWED"
+                                                      data-encore-id="buttonTertiary"
+                                                      tabindex="-1"
+                                                   >
+                                                      <span
+                                                         aria-hidden="true"
+                                                         class="e-91000-button__icon-wrapper"
+                                                         ><svg
+                                                            data-encore-id="icon"
+                                                            role="img"
+                                                            aria-hidden="true"
+                                                            class="e-91000-icon e-91000-baseline"
+                                                            viewBox="0 0 24 24"
+                                                         >
+                                                            <path
+                                                               d="m7.05 3.606 13.49 7.788a.7.7 0 0 1 0 1.212L7.05 20.394A.7.7 0 0 1 6 19.788V4.212a.7.7 0 0 1 1.05-.606"
+                                                            ></path></svg
+                                                      ></span>
+                                                   </button>
+                                                </div>
+                                             </div>
+                                          </div>
+                                       </div>
+                                    </div>
+                                    <div
+                                       class="Areas__HeaderArea-sc-8gfrea-3 TJKQw"
+                                    >
+                                       <div
+                                          class="Areas__InteractiveArea-sc-8gfrea-0 Areas__Column-sc-8gfrea-5 bJSfgC jwUvtM"
+                                       >
+                                          <p
+                                             class="e-91000-text encore-text-body-medium encore-internal-color-text-base ListRowTitle__ListRowText-sc-1xe2if1-1 eFGzcP a169WIdVyYkqHYl3 XWXMVnDoisCMvXDc"
+                                             data-encore-id="listRowTitle"
+                                             id="listrow-title-spotify:playlist:7CNc7z6FZVpsaClFdsDh1M"
+                                             dir="auto"
+                                          >
+                                             <span
+                                                class="ListRowTitle__LineClamp-sc-1xe2if1-0 jjpOuK"
+                                                >TO BE REVIEWED</span
+                                             >
+                                          </p>
+                                          <div class="oDhANEAwPkg6safa">
+                                             <p
+                                                class="e-91000-text encore-text-body-small encore-internal-color-text-subdued ListRowDetails__ListRowDetailText-sc-sozu4l-0 hxCObm a169WIdVyYkqHYl3"
+                                                data-encore-id="listRowSubtitle"
+                                                id="listrow-subtitle-spotify:playlist:7CNc7z6FZVpsaClFdsDh1M"
+                                                dir="auto"
+                                             >
+                                                <span
+                                                   class="PW_x6HneU4GcUzgn"
+                                                ></span
+                                                ><span class="t2qx66PtSUA0l8Eh"
+                                                   >TopiVEVO</span
+                                                >
+                                             </p>
+                                          </div>
+                                       </div>
+                                    </div>
+                                 </div>
+                              </div>
+                           </div>
+                           <div
+                              class="q8mQFn7r8UYsKdHE _H2ZzS_Atuwx6wh9 tMFkXbMSXNUegQIu aIU4qABgiIgjAEyD EYdwwRebZIgjbKy_ NEK7GtRu3w0JbyBT zoKSw5SN9xUA4OkM gRYsquyVjoW12gob"
+                              role="row"
+                              aria-rowindex="10"
+                              aria-selected="false"
+                              aria-setsize="19"
+                              style="--ylx-folder-depth: 0"
+                              draggable="true"
+                           >
+                              <div role="gridcell" aria-colindex="1">
+                                 <div
+                                    class="e-91000-box e-91000-baseline e-91000-box--naked e-91000-box--interactive e-91000-box--browser-default-focus e-91000-box--padding-custom e-91000-box--min-size e-91000-Box-sc-8t9c76-0 dUGCIT aE_ayHuwU0UG20h2 Box-sc-8t9c76-0 dUGCIT aE_ayHuwU0UG20h2"
+                                    style="
+                                       --box-padding: 8px;
+                                       --box-min-block-size: 56px;
+                                       --box-hover-animation-duration: 0ms;
+                                    "
+                                    data-encore-id="listRow"
+                                    role="group"
+                                    aria-labelledby="listrow-title-spotify:playlist:03Cs148GfcOXvCQpeyew1i"
+                                 >
+                                    <div
+                                       role="button"
+                                       aria-disabled="false"
+                                       aria-labelledby="listrow-title-spotify:playlist:03Cs148GfcOXvCQpeyew1i listrow-subtitle-spotify:playlist:03Cs148GfcOXvCQpeyew1i"
+                                       aria-describedby="onClickHintspotify:playlist:03Cs148GfcOXvCQpeyew1i"
+                                       tabindex="-1"
+                                       class="RowButton-sc-xxkq4e-0 cRPTAY"
+                                    ></div>
+                                    <div
+                                       style="display: none"
+                                       id="onClickHintspotify:playlist:03Cs148GfcOXvCQpeyew1i"
+                                    ></div>
+                                    <div
+                                       class="Areas__HeaderSideArea-sc-8gfrea-1 ljvfQS"
+                                    >
+                                       <div
+                                          class="Areas__HeaderSideAreaFlexContainer-sc-8gfrea-2 hvZiQp"
+                                       >
+                                          <div class="eeJ13KhTNKc4RoVA">
+                                             <div
+                                                class="UWYK6PfFQB893_lp yoA4mzX2Kn0FveXV hWU_wiIM1kQv5e8w"
+                                                style="
+                                                   width: 48px;
+                                                   height: 48px;
+                                                   --extracted-entity-color: #a00000;
+                                                "
+                                             >
+                                                <img
+                                                   aria-hidden="true"
+                                                   draggable="false"
+                                                   loading="eager"
+                                                   src="https://mosaic.scdn.co/60/ab67616d00001e021ee6732ccb8f07bd15b33bebab67616d00001e025031189c0e6aa3de04cf69aaab67616d00001e02b8d5917df4e1ae2e338909f1ab67616d00001e02d5554b491b7a16996b52e1a5"
+                                                   data-testid="entity-image"
+                                                   alt="REFLECT BACK"
+                                                   class="obD7rdENNc2n3fC0 eaeL4RTunr0p3ojT WfGUvErXcmIzJo1c qIwhHcbG780QDz68"
+                                                   srcset="
+                                                      https://mosaic.scdn.co/60/ab67616d00001e021ee6732ccb8f07bd15b33bebab67616d00001e025031189c0e6aa3de04cf69aaab67616d00001e02b8d5917df4e1ae2e338909f1ab67616d00001e02d5554b491b7a16996b52e1a5 30w,
+                                                      https://mosaic.scdn.co/60/ab67616d00001e021ee6732ccb8f07bd15b33bebab67616d00001e025031189c0e6aa3de04cf69aaab67616d00001e02b8d5917df4e1ae2e338909f1ab67616d00001e02d5554b491b7a16996b52e1a5 60w
+                                                   "
+                                                />
+                                             </div>
+                                             <div
+                                                class="cS2oX60hERkVbAKR Oi9oYhoIybYd9R1n"
+                                             >
+                                                <div
+                                                   class="pk3lz3TYlskuAfwV"
+                                                   role="div"
+                                                >
+                                                   <button
+                                                      data-testid="play-button"
+                                                      class="Button-sc-1dqy6lx-0 itaSgt e-91000-overflow-wrap-anywhere e-91000-button-tertiary--icon-only"
+                                                      aria-label="Play REFLECT BACK"
+                                                      data-encore-id="buttonTertiary"
+                                                      tabindex="-1"
+                                                   >
+                                                      <span
+                                                         aria-hidden="true"
+                                                         class="e-91000-button__icon-wrapper"
+                                                         ><svg
+                                                            data-encore-id="icon"
+                                                            role="img"
+                                                            aria-hidden="true"
+                                                            class="e-91000-icon e-91000-baseline"
+                                                            viewBox="0 0 24 24"
+                                                         >
+                                                            <path
+                                                               d="m7.05 3.606 13.49 7.788a.7.7 0 0 1 0 1.212L7.05 20.394A.7.7 0 0 1 6 19.788V4.212a.7.7 0 0 1 1.05-.606"
+                                                            ></path></svg
+                                                      ></span>
+                                                   </button>
+                                                </div>
+                                             </div>
+                                          </div>
+                                       </div>
+                                    </div>
+                                    <div
+                                       class="Areas__HeaderArea-sc-8gfrea-3 TJKQw"
+                                    >
+                                       <div
+                                          class="Areas__InteractiveArea-sc-8gfrea-0 Areas__Column-sc-8gfrea-5 bJSfgC jwUvtM"
+                                       >
+                                          <p
+                                             class="e-91000-text encore-text-body-medium encore-internal-color-text-base ListRowTitle__ListRowText-sc-1xe2if1-1 eFGzcP a169WIdVyYkqHYl3 XWXMVnDoisCMvXDc"
+                                             data-encore-id="listRowTitle"
+                                             id="listrow-title-spotify:playlist:03Cs148GfcOXvCQpeyew1i"
+                                             dir="auto"
+                                          >
+                                             <span
+                                                class="ListRowTitle__LineClamp-sc-1xe2if1-0 jjpOuK"
+                                                >REFLECT BACK</span
+                                             >
+                                          </p>
+                                          <div class="oDhANEAwPkg6safa">
+                                             <p
+                                                class="e-91000-text encore-text-body-small encore-internal-color-text-subdued ListRowDetails__ListRowDetailText-sc-sozu4l-0 hxCObm a169WIdVyYkqHYl3"
+                                                data-encore-id="listRowSubtitle"
+                                                id="listrow-subtitle-spotify:playlist:03Cs148GfcOXvCQpeyew1i"
+                                                dir="auto"
+                                             >
+                                                <span
+                                                   class="PW_x6HneU4GcUzgn"
+                                                ></span
+                                                ><span class="t2qx66PtSUA0l8Eh"
+                                                   >TopiVEVO</span
+                                                >
+                                             </p>
+                                          </div>
+                                       </div>
+                                    </div>
+                                 </div>
+                              </div>
+                           </div>
+                           <div
+                              class="q8mQFn7r8UYsKdHE _H2ZzS_Atuwx6wh9 tMFkXbMSXNUegQIu aIU4qABgiIgjAEyD EYdwwRebZIgjbKy_ NEK7GtRu3w0JbyBT zoKSw5SN9xUA4OkM gRYsquyVjoW12gob"
+                              role="row"
+                              aria-rowindex="11"
+                              aria-selected="false"
+                              aria-setsize="19"
+                              style="--ylx-folder-depth: 0"
+                              draggable="true"
+                           >
+                              <div role="gridcell" aria-colindex="1">
+                                 <div
+                                    class="e-91000-box e-91000-baseline e-91000-box--naked e-91000-box--interactive e-91000-box--browser-default-focus e-91000-box--padding-custom e-91000-box--min-size e-91000-Box-sc-8t9c76-0 dUGCIT aE_ayHuwU0UG20h2 Box-sc-8t9c76-0 dUGCIT aE_ayHuwU0UG20h2"
+                                    style="
+                                       --box-padding: 8px;
+                                       --box-min-block-size: 56px;
+                                       --box-hover-animation-duration: 0ms;
+                                    "
+                                    data-encore-id="listRow"
+                                    role="group"
+                                    aria-labelledby="listrow-title-spotify:playlist:1m3GyGUpIriGNLUU1fdNrV"
+                                 >
+                                    <div
+                                       role="button"
+                                       aria-disabled="false"
+                                       aria-labelledby="listrow-title-spotify:playlist:1m3GyGUpIriGNLUU1fdNrV listrow-subtitle-spotify:playlist:1m3GyGUpIriGNLUU1fdNrV"
+                                       aria-describedby="onClickHintspotify:playlist:1m3GyGUpIriGNLUU1fdNrV"
+                                       tabindex="-1"
+                                       class="RowButton-sc-xxkq4e-0 cRPTAY"
+                                    ></div>
+                                    <div
+                                       style="display: none"
+                                       id="onClickHintspotify:playlist:1m3GyGUpIriGNLUU1fdNrV"
+                                    ></div>
+                                    <div
+                                       class="Areas__HeaderSideArea-sc-8gfrea-1 ljvfQS"
+                                    >
+                                       <div
+                                          class="Areas__HeaderSideAreaFlexContainer-sc-8gfrea-2 hvZiQp"
+                                       >
+                                          <div class="eeJ13KhTNKc4RoVA">
+                                             <div
+                                                class="UWYK6PfFQB893_lp yoA4mzX2Kn0FveXV hWU_wiIM1kQv5e8w"
+                                                style="
+                                                   width: 48px;
+                                                   height: 48px;
+                                                   --extracted-entity-color: #d02860;
+                                                "
+                                             >
+                                                <img
+                                                   aria-hidden="true"
+                                                   draggable="false"
+                                                   loading="eager"
+                                                   src="https://mosaic.scdn.co/60/ab67616d00001e021295a2c49e79c1b88a4ebd00ab67616d00001e02144e0de96b81bf167b23c536ab67616d00001e026023e293d226c7b656a77ef4ab67616d00001e02b4e1bca21b1dfe2aac65ff20"
+                                                   data-testid="entity-image"
+                                                   alt="TOP 50 CURRENT"
+                                                   class="obD7rdENNc2n3fC0 eaeL4RTunr0p3ojT WfGUvErXcmIzJo1c qIwhHcbG780QDz68"
+                                                   srcset="
+                                                      https://mosaic.scdn.co/60/ab67616d00001e021295a2c49e79c1b88a4ebd00ab67616d00001e02144e0de96b81bf167b23c536ab67616d00001e026023e293d226c7b656a77ef4ab67616d00001e02b4e1bca21b1dfe2aac65ff20 30w,
+                                                      https://mosaic.scdn.co/60/ab67616d00001e021295a2c49e79c1b88a4ebd00ab67616d00001e02144e0de96b81bf167b23c536ab67616d00001e026023e293d226c7b656a77ef4ab67616d00001e02b4e1bca21b1dfe2aac65ff20 60w
+                                                   "
+                                                />
+                                             </div>
+                                             <div
+                                                class="cS2oX60hERkVbAKR Oi9oYhoIybYd9R1n"
+                                             >
+                                                <div
+                                                   class="pk3lz3TYlskuAfwV"
+                                                   role="div"
+                                                >
+                                                   <button
+                                                      data-testid="play-button"
+                                                      class="Button-sc-1dqy6lx-0 itaSgt e-91000-overflow-wrap-anywhere e-91000-button-tertiary--icon-only"
+                                                      aria-label="Play TOP 50 CURRENT"
+                                                      data-encore-id="buttonTertiary"
+                                                      tabindex="-1"
+                                                   >
+                                                      <span
+                                                         aria-hidden="true"
+                                                         class="e-91000-button__icon-wrapper"
+                                                         ><svg
+                                                            data-encore-id="icon"
+                                                            role="img"
+                                                            aria-hidden="true"
+                                                            class="e-91000-icon e-91000-baseline"
+                                                            viewBox="0 0 24 24"
+                                                         >
+                                                            <path
+                                                               d="m7.05 3.606 13.49 7.788a.7.7 0 0 1 0 1.212L7.05 20.394A.7.7 0 0 1 6 19.788V4.212a.7.7 0 0 1 1.05-.606"
+                                                            ></path></svg
+                                                      ></span>
+                                                   </button>
+                                                </div>
+                                             </div>
+                                          </div>
+                                       </div>
+                                    </div>
+                                    <div
+                                       class="Areas__HeaderArea-sc-8gfrea-3 TJKQw"
+                                    >
+                                       <div
+                                          class="Areas__InteractiveArea-sc-8gfrea-0 Areas__Column-sc-8gfrea-5 bJSfgC jwUvtM"
+                                       >
+                                          <p
+                                             class="e-91000-text encore-text-body-medium encore-internal-color-text-base ListRowTitle__ListRowText-sc-1xe2if1-1 eFGzcP a169WIdVyYkqHYl3 XWXMVnDoisCMvXDc"
+                                             data-encore-id="listRowTitle"
+                                             id="listrow-title-spotify:playlist:1m3GyGUpIriGNLUU1fdNrV"
+                                             dir="auto"
+                                          >
+                                             <span
+                                                class="ListRowTitle__LineClamp-sc-1xe2if1-0 jjpOuK"
+                                                >TOP 50 CURRENT</span
+                                             >
+                                          </p>
+                                          <div class="oDhANEAwPkg6safa">
+                                             <p
+                                                class="e-91000-text encore-text-body-small encore-internal-color-text-subdued ListRowDetails__ListRowDetailText-sc-sozu4l-0 hxCObm a169WIdVyYkqHYl3"
+                                                data-encore-id="listRowSubtitle"
+                                                id="listrow-subtitle-spotify:playlist:1m3GyGUpIriGNLUU1fdNrV"
+                                                dir="auto"
+                                             >
+                                                <span
+                                                   class="PW_x6HneU4GcUzgn"
+                                                ></span
+                                                ><span class="t2qx66PtSUA0l8Eh"
+                                                   >TopiVEVO</span
+                                                >
+                                             </p>
+                                          </div>
+                                       </div>
+                                    </div>
+                                 </div>
+                              </div>
+                           </div>
+                        </div>
+                        <div
+                           data-testid="bottom-sentinel"
+                           class="Df7FJJOGsrwyBq9p"
+                           style="height: calc(100% - 192px)"
+                           role="presentation"
+                        >
+                           <div style="height: 512px" role="presentation"></div>
+                           <div
+                              class="DTD2wBL5oiABNB41"
+                              role="row"
+                              aria-rowindex="1"
+                              style="height: calc(100% - 512px)"
+                           ></div>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
+      <div
+         class="os-scrollbar os-scrollbar-horizontal os-theme-spotify os-scrollbar-auto-hide os-scrollbar-handle-interactive os-scrollbar-track-interactive os-scrollbar-visible os-scrollbar-auto-hide-hidden"
+         style="
+            --os-scroll-percent: 0;
+            --os-viewport-percent: 0.6316;
+            --os-scroll-direction: 0;
+         "
+      >
+         <div class="os-scrollbar-track">
+            <div class="os-scrollbar-handle"></div>
+         </div>
+      </div>
+      <div
+         class="os-scrollbar os-scrollbar-vertical os-theme-spotify os-scrollbar-auto-hide os-scrollbar-handle-interactive os-scrollbar-track-interactive os-scrollbar-visible os-scrollbar-auto-hide-hidden"
+         style="
+            --os-scroll-percent: 0;
+            --os-viewport-percent: 0;
+            --os-scroll-direction: 0;
+         "
+      >
+         <div class="os-scrollbar-track">
+            <div class="os-scrollbar-handle"></div>
+         </div>
+      </div>
    </div>
 </div>
