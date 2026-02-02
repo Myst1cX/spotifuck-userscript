@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Userscript v6
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      6.1.0
+// @version      6.2.0
 // @description  Full Spotifuck 1.6.4 UI hack (browser-focused) + enhanced ad blocking + playback control port on open.spotify.com
 // @author       Myst1cX (adapted from Spotifuck app v1.6.4)
 // @match        https://open.spotify.com/*
@@ -74,6 +74,11 @@
 
             /* Hide the entire left sidebar by default */
             #Desktop_LeftSidebar_Id {
+                display: none !important;
+            }
+
+            /* Hide the original sidebar library button */
+            #Desktop_LeftSidebar_Id header > div > div:first-child button {
                 display: none !important;
             }
 
@@ -304,34 +309,53 @@
         
         // Prevent double-inject
         if (document.querySelector('.fuckd-nav-library-button')) {
-            console.log('[Spotifuck v6] Library button already relocated, skipping');
+            console.log('[Spotifuck v6] Library button already created, skipping');
             return;
         }
 
-        const libraryButton = document.querySelector('#Desktop_LeftSidebar_Id header > div > div:first-child button');
         const navbar = document.querySelector('#global-nav-bar');
         
-        if (libraryButton && navbar) {
-            console.log('[Spotifuck v6] Relocating library button to navbar');
+        if (navbar) {
+            console.log('[Spotifuck v6] Creating new library button in navbar');
             
-            // Mark button to prevent re-processing
-            libraryButton.classList.add('fuckd-nav-library-button');
+            // Create a brand new button element
+            const newLibraryButton = document.createElement('button');
+            newLibraryButton.classList.add('fuckd-nav-library-button');
+            newLibraryButton.innerHTML = '📚 Your Library';
             
-            // Style the button for navbar placement
-            libraryButton.style.marginLeft = '10px';
-            libraryButton.style.marginRight = '10px';
-            libraryButton.style.padding = '8px';
-            libraryButton.style.height = 'auto';
+            // Style the new button for navbar placement
+            newLibraryButton.style.marginLeft = '10px';
+            newLibraryButton.style.marginRight = '10px';
+            newLibraryButton.style.padding = '8px 12px';
+            newLibraryButton.style.height = 'auto';
+            newLibraryButton.style.background = '#282828';
+            newLibraryButton.style.border = 'none';
+            newLibraryButton.style.borderRadius = '20px';
+            newLibraryButton.style.color = '#ffffff';
+            newLibraryButton.style.fontSize = '14px';
+            newLibraryButton.style.fontWeight = '700';
+            newLibraryButton.style.cursor = 'pointer';
+            newLibraryButton.style.display = 'inline-flex';
+            newLibraryButton.style.alignItems = 'center';
+            newLibraryButton.style.justifyContent = 'center';
             
-            // Move button to navbar (this MOVES it, doesn't clone)
-            navbar.prepend(libraryButton);
+            // Add hover effect
+            newLibraryButton.addEventListener('mouseenter', () => {
+                newLibraryButton.style.background = '#3e3e3e';
+            });
+            newLibraryButton.addEventListener('mouseleave', () => {
+                newLibraryButton.style.background = '#282828';
+            });
             
-            // Add click handler for toggling sidebar (setTimeout ensures DOM updates complete)
-            libraryButton.addEventListener('click', () => setTimeout(switchLeftSidebar, 0));
+            // Add click handler for toggling sidebar
+            newLibraryButton.addEventListener('click', () => setTimeout(switchLeftSidebar, 0));
             
-            console.log('[Spotifuck v6] Library button successfully relocated to navbar');
+            // Insert new button as first element in navbar
+            navbar.prepend(newLibraryButton);
+            
+            console.log('[Spotifuck v6] New library button successfully created in navbar');
         } else {
-            console.log('[Spotifuck v6] Library button or navbar not found yet');
+            console.log('[Spotifuck v6] Navbar not found yet');
         }
 
         const libraryGridItems = document.querySelector('#Desktop_LeftSidebar_Id div[role=grid]:not(.fuckd)');
