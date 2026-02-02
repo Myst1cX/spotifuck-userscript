@@ -225,6 +225,11 @@
                 overflow: hidden;
             }
 
+            form[role="search"] {
+                z-index: 10;
+                margin-left: 50px;
+            }
+
             div[data-testid="now-playing-widget"] > div:last-child > button {
                 transform: scale(1.3);
             }
@@ -289,7 +294,7 @@
             leftSidebar.style.zIndex = '1';
             leftSidebar.style.position = 'fixed';
             leftSidebar.style.top = '2px';
-            leftSidebar.style.left = '120px';
+            leftSidebar.style.left = '60px';
             leftSidebar.style.width = '50px';
             leftSidebar.style.height = '40px';
         }
