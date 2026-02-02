@@ -35,6 +35,7 @@
     let playing = false;
     let pfint = null;    // Primary features interval
     let cssint = null;   // CSS injection interval
+    let libExpanded = false;  // Track library expanded state explicitly
     
     // Note: Class name ".fuckd" used throughout is from original APK source (r0/e.java)
     // It marks elements as "already processed" to prevent duplicate event handlers
@@ -42,53 +43,79 @@
     /**
      * switchLs - Toggle library sidebar between expanded and collapsed states
      * From r0/e.java line 202: window.switchLs=function(){...}
+     * FIXED: Uses explicit state tracking instead of fragile classList.length check
      */
     window.switchLs = function() {
         const leftSidebar = document.querySelector('#Desktop_LeftSidebar_Id');
-        if (!leftSidebar) return;
+        if (!leftSidebar) {
+            console.log('#Library: Sidebar not found');
+            return;
+        }
 
         const navFirstChild = leftSidebar.querySelector('nav>div>div:first-child');
-        if (!navFirstChild) return;
+        if (!navFirstChild) {
+            console.log('#Library: Nav element not found');
+            return;
+        }
 
-        // Check if expanded (classList.length === 2 means expanded in APK logic)
-        const isExpanded = navFirstChild.classList.length === 2;
+        // Toggle state based on explicit tracking (more reliable than classList.length)
+        libExpanded = !libExpanded;
         
-        if (isExpanded) {
+        if (libExpanded) {
             // Expand to full-screen overlay
-            console.log('#Library: Expanded');
+            console.log('#Library: Expanding to full-screen');
             leftSidebar.style.position = 'fixed';
             leftSidebar.style.width = '100%';
             leftSidebar.style.height = '92%';
             leftSidebar.style.left = '0';
+            leftSidebar.style.top = '0';
             leftSidebar.style.zIndex = '20';
             
             const headerH1 = leftSidebar.querySelector('header>div>div:first-child h1');
             if (headerH1) {
-                // Using textContent for security, then manually adding close icon
+                // Using textContent for security
                 headerH1.textContent = '✖ \u00A0 Close Library';
             }
         } else {
             // Collapse to small button
-            console.log('#Library: Collapsed');
+            console.log('#Library: Collapsing to small button');
             leftSidebar.style.zIndex = '1';
             leftSidebar.style.position = 'fixed';
             leftSidebar.style.top = '0';
             leftSidebar.style.left = '60px';
             leftSidebar.style.width = '48px';
             leftSidebar.style.height = '48px';
+            
+            const headerH1 = leftSidebar.querySelector('header>div>div:first-child h1');
+            if (headerH1) {
+                // Restore original text when collapsed
+                headerH1.textContent = 'Your Library';
+            }
         }
     };
 
     /**
      * closeNowPlay - Close the now-playing right panel if open
      * From r0/e.java line 200: window.closeNowPlay=function(){...}
+     * FIXED: Added better null checks and logging
      */
     window.closeNowPlay = function() {
         const panelContainer = document.querySelector('#Desktop_PanelContainer_Id');
-        if (panelContainer && panelContainer.parentNode.parentNode.ariaHidden === 'false') {
-            console.log('#Close NowPlaying');
-            const toggleBtn = panelContainer.parentNode.parentNode.nextElementSibling?.querySelector('button');
-            if (toggleBtn) toggleBtn.click();
+        if (!panelContainer) {
+            return;  // Panel doesn't exist, nothing to close
+        }
+        
+        const panelParent = panelContainer.parentNode?.parentNode;
+        if (!panelParent) {
+            return;
+        }
+        
+        if (panelParent.ariaHidden === 'false') {
+            console.log('#Close NowPlaying panel');
+            const toggleBtn = panelParent.nextElementSibling?.querySelector('button');
+            if (toggleBtn) {
+                toggleBtn.click();
+            }
         }
     };
 
@@ -144,6 +171,7 @@
     /**
      * addCSSJSHack - Add CSS modifications and event listeners
      * From r0/e.java line 200: window.addCSSJSHack=function(){...}
+     * FIXED: Improved reliability and auto-close logic
      */
     window.addCSSJSHack = function() {
         if (cssint) clearInterval(cssint);
@@ -158,21 +186,30 @@
                 libBtn.style.padding = '0';
                 libBtn.style.height = '20px';
                 libBtn.addEventListener('click', function() {
-                    setTimeout(() => switchLs(), 0);
+                    // Small delay to ensure click is registered
+                    setTimeout(() => switchLs(), 50);
                 });
+                // Initialize in collapsed state
+                libExpanded = false;
                 switchLs();
             }
             
             // Auto-close library on item click
+            // FIXED: Only auto-close if library is currently expanded
             const libGrid = document.querySelector('#Desktop_LeftSidebar_Id div[role=grid]:not(.fuckd)');
             if (libGrid) {
                 libGrid.classList.add('fuckd');
-                libGrid.addEventListener('click', () => {
-                    setTimeout(() => {
-                        console.log('AutoCloseLib');
-                        if (window.lBtn) lBtn.click();
-                        closeNowPlay();
-                    }, 0);
+                libGrid.addEventListener('click', (e) => {
+                    // Check if an actual item was clicked (not just the grid container)
+                    const clickedItem = e.target.closest('div[role=gridcell], div[role=row]');
+                    if (clickedItem && libExpanded && window.lBtn) {
+                        // Only auto-close if library is expanded
+                        setTimeout(() => {
+                            console.log('AutoCloseLib (item clicked)');
+                            lBtn.click();
+                            closeNowPlay();
+                        }, 100);
+                    }
                 });
             }
             
@@ -180,7 +217,10 @@
             const homeBtn = document.querySelector('#global-nav-bar button[data-testid=home-button]:not(.fuckd)');
             if (homeBtn) {
                 homeBtn.classList.add('fuckd');
-                homeBtn.addEventListener('click', () => { closeNowPlay(); });
+                homeBtn.addEventListener('click', () => { 
+                    console.log('#Home clicked');
+                    closeNowPlay(); 
+                });
             }
             
             // Search input
@@ -188,11 +228,13 @@
             if (searchInput) {
                 searchInput.classList.add('fuckd');
                 searchInput.addEventListener('focus', () => {
+                    console.log('#Search focused');
                     const npBar = document.querySelector('aside[data-testid=now-playing-bar]');
                     if (npBar) npBar.style.display = 'none';
                     closeNowPlay();
                 });
                 searchInput.addEventListener('blur', () => {
+                    console.log('#Search blurred');
                     const npBar = document.querySelector('aside[data-testid=now-playing-bar]');
                     if (npBar) npBar.style.display = 'flex';
                 });
@@ -202,7 +244,10 @@
             const userBtn = document.querySelector('button[data-testid=user-widget-link]:not(.fuckd)');
             if (userBtn) {
                 userBtn.classList.add('fuckd');
-                userBtn.addEventListener('click', () => { closeNowPlay(); });
+                userBtn.addEventListener('click', () => { 
+                    console.log('#User button clicked');
+                    closeNowPlay(); 
+                });
             }
         }, 5000);
     };
