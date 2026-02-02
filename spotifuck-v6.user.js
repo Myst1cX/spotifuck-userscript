@@ -74,6 +74,15 @@
             leftSidebar.style.left = '60px';
             leftSidebar.style.width = '48px';
             leftSidebar.style.height = '48px';
+            
+            // Apply button styling after a small delay to avoid glitches
+            // Spotify's React needs time to update button state
+            setTimeout(() => {
+                if (window.lBtn) {
+                    window.lBtn.style.padding = '0';
+                    window.lBtn.style.height = '20px';
+                }
+            }, 100);
         }
     };
 
@@ -154,6 +163,7 @@
                 console.log('LibBtnFuckd');
                 window.lBtn = libBtn;
                 libBtn.classList.add('fuckd', 'lbtn');
+                // Apply button styling immediately to avoid glitched appearance
                 libBtn.style.padding = '0';
                 libBtn.style.height = '20px';
                 libBtn.addEventListener('click', function() {
