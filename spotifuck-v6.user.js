@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck v6
 // @namespace    http://tampermonkey.net/
-// @version      6.0
+// @version      6.1
 // @description  Accurate port of Spotifuck Android app v1.6.4
 // @author       Spotifuck Team
 // @match        https://open.spotify.com/*
@@ -9,12 +9,14 @@
 // @run-at       document-start
 // ==/UserScript==
 
+// fix. library button glitch 
+
 /*
  * Spotifuck v6 - Accurate port from reverse-engineered v1.6.4 APK
  * Based on r0/e.java from classes1.dex
  *
  * Features from APK:
- * - Library button toggle (expand 100%×92% / collapse 48×48px)
+ * - Library button toggle (expand 100%×100% / collapse 48×48px)
  * - Pure black AMOLED mode for playback controls
  * - Auto-close library on item selection
  * - UI improvements (sidebar, search bar, playback controls)
@@ -28,21 +30,19 @@
     console.log('🎵 Spotifuck v6 - APK v1.6.4 Port');
 
     // Global state variables
-    let reqPause = false;
-    let firstPlay = true;
     let ulFlag = false;  // Unlock flag
     let ffDone = false;  // First fuck done (firstFuck initialization complete)
     let pfint = null;    // Primary features interval
-    let cssint = null;   // CSS injection interval
-    
+
     // Note: Class name ".fuckd" used throughout is from original APK source (r0/e.java)
     // It marks elements as "already processed" to prevent duplicate event handlers
 
     /**
      * switchLs - Toggle library sidebar between expanded and collapsed states
      * From r0/e.java line 202: window.switchLs=function(){...}
+     * @param {boolean} forceCollapse - If true, force collapse regardless of current state
      */
-    window.switchLs = function() {
+    window.switchLs = function(forceCollapse = false) {
         const leftSidebar = document.querySelector('#Desktop_LeftSidebar_Id');
         if (!leftSidebar) return;
 
@@ -51,8 +51,8 @@
 
         // Check if expanded (classList.length === 2 means expanded in APK logic)
         const isExpanded = navFirstChild.classList.length === 2;
-        
-        if (isExpanded) {
+
+        if (!forceCollapse && isExpanded) {
             // Expand to full-screen overlay
             console.log('#Library: Expanded');
             leftSidebar.style.position = 'fixed';
@@ -61,7 +61,7 @@
             leftSidebar.style.left = '0';
             leftSidebar.style.top = '0';
             leftSidebar.style.zIndex = '20';
-            
+
             const headerH1 = leftSidebar.querySelector('header>div>div:first-child h1');
             if (headerH1) {
                 // Using textContent for security, then manually adding close icon
@@ -98,7 +98,7 @@
      */
     window.firstFuck = function() {
         if (pfint) clearInterval(pfint);
-        
+
         pfint = setInterval(() => {
             // Find and setup play button
             const playBtn = document.querySelector('aside button[data-testid=control-button-playpause]:not(.fuckd)');
@@ -106,16 +106,14 @@
                 console.log('#pBtn fuckd');
                 playBtn.classList.add('fuckd');
                 window.pBtn = playBtn;
-                
+
                 // Add click handler
                 window.pBtn.addEventListener('click', () => {
                     console.log('PlayClicked');
                     if (window.pBtn && window.pBtn.getAttribute('aria-label') !== 'Play') {
                         console.log('Pause Req');
-                        reqPause = true;
                         ulFlag = false;
                     } else if (!ulFlag) {
-                        reqPause = false;
                         console.log('Play Req');
                         ulFlag = true;
                         setTimeout(() => {
@@ -131,7 +129,7 @@
                         }, 10000);
                     }
                 });
-                
+
                 // First initialization
                 if (!ffDone) {
                     ffDone = true;
@@ -147,12 +145,14 @@
      * From r0/e.java line 200: window.addCSSJSHack=function(){...}
      */
     window.addCSSJSHack = function() {
-        if (cssint) clearInterval(cssint);
-        
-        cssint = setInterval(function() {
-            // Setup library button
-            const libBtn = document.querySelector('#Desktop_LeftSidebar_Id header>div>div:first-child button:not(.fuckd)');
-            if (libBtn) {
+        // Setup library button once
+        const setupLibraryButton = () => {
+            // Use aria-label to identify the correct library button (not back button)
+            // Library button has aria-label containing "Your Library" (either "Open Your Library" or "Collapse Your Library")
+            // Back button has aria-label="Go back" which doesn't contain "Your Library"
+            const libBtn = document.querySelector('#Desktop_LeftSidebar_Id header button[aria-label*="Your Library"]:not(.fuckd)');
+
+            if (libBtn && !libBtn.classList.contains('fuckd')) {
                 console.log('LibBtnFuckd');
                 window.lBtn = libBtn;
                 libBtn.classList.add('fuckd', 'lbtn');
@@ -161,30 +161,29 @@
                 libBtn.addEventListener('click', function() {
                     setTimeout(() => switchLs(), 0);
                 });
-                switchLs();
+
+                // Collapse library on startup if it's expanded
+                // Check if button says "Collapse" (meaning library is currently expanded)
+                if (libBtn.getAttribute('aria-label') === 'Collapse Your Library') {
+                    console.log('Library is expanded on startup, collapsing it...');
+                    // Click the button to let Spotify update its state properly
+                    // This ensures the button will show "Open your library" after collapse
+                    libBtn.click();
+                }
             }
-            
-            // Auto-close library on item click (but not for folders)
+        };
+
+        // Setup library grid click handler once
+        const setupLibraryGrid = () => {
             const libGrid = document.querySelector('#Desktop_LeftSidebar_Id div[role=grid]:not(.fuckd)');
             if (libGrid) {
                 libGrid.classList.add('fuckd');
-                
-                // Debug: Log instructions for future maintenance
-                console.log('📚 Library Grid Setup: Folder detection enabled');
-                console.log('ℹ️  If Spotify DOM changes and folder detection breaks:');
-                console.log('   1. Click library button to open library grid');
-                console.log('   2. Right-click a FOLDER → Inspect Element');
-                console.log('   3. Copy the HTML of the folder button element');
-                console.log('   4. Right-click a PLAYLIST → Inspect Element');
-                console.log('   5. Copy the HTML of the playlist button element');
-                console.log('   6. Compare aria-labelledby and aria-describedby attributes');
-                console.log('   7. Update the detection code with new patterns');
-                
+
                 libGrid.addEventListener('click', (event) => {
                     // Check if clicked element or its parent is a folder
                     let target = event.target;
                     let isFolder = false;
-                    
+
                     // Traverse up to 5 levels to find the button element
                     for (let i = 0; i < 5 && target; i++) {
                         // Check aria-labelledby for :folder: pattern (verified from Spotify DOM)
@@ -194,7 +193,7 @@
                             console.log('Folder clicked (aria-labelledby contains ":folder:"), keeping library open');
                             break;
                         }
-                        
+
                         // Check aria-describedby for :folder: pattern
                         const ariaDescribedBy = target.getAttribute('aria-describedby');
                         if (ariaDescribedBy && ariaDescribedBy.includes(':folder:')) {
@@ -202,29 +201,36 @@
                             console.log('Folder clicked (aria-describedby contains ":folder:"), keeping library open');
                             break;
                         }
-                        
+
                         target = target.parentElement;
                     }
-                    
+
                     // Only auto-close library if it's NOT a folder
                     if (!isFolder) {
+                        console.log('AutoCloseLib (playlist/item clicked)');
+                        // Add delay to allow Spotify's navigation to complete first
+                        // IMPORTANT: Use switchLs(true) for direct CSS collapse, NOT lBtn.click()
+                        // Clicking lBtn inside folders triggers "back" navigation which cancels playlist navigation
                         setTimeout(() => {
-                            console.log('AutoCloseLib (playlist/item clicked)');
-                            if (window.lBtn) window.lBtn.click();
+                            switchLs(true);  // Direct collapse without clicking button
                             closeNowPlay();
-                        }, 0);
+                        }, 150);  // 150ms allows playlist navigation to initiate
                     }
                 });
             }
-            
-            // Home button
+        };
+
+        // Setup home button once
+        const setupHomeButton = () => {
             const homeBtn = document.querySelector('#global-nav-bar button[data-testid=home-button]:not(.fuckd)');
             if (homeBtn) {
                 homeBtn.classList.add('fuckd');
                 homeBtn.addEventListener('click', () => { closeNowPlay(); });
             }
-            
-            // Search input
+        };
+
+        // Setup search input once
+        const setupSearchInput = () => {
             const searchInput = document.querySelector('input[data-testid=search-input]:not(.fuckd)');
             if (searchInput) {
                 searchInput.classList.add('fuckd');
@@ -238,14 +244,33 @@
                     if (npBar) npBar.style.display = 'flex';
                 });
             }
-            
-            // User button
+        };
+
+        // Setup user button once
+        const setupUserButton = () => {
             const userBtn = document.querySelector('button[data-testid=user-widget-link]:not(.fuckd)');
             if (userBtn) {
                 userBtn.classList.add('fuckd');
                 userBtn.addEventListener('click', () => { closeNowPlay(); });
             }
-        }, 5000);
+        };
+
+        // Try to setup all elements immediately
+        setupLibraryButton();
+        setupLibraryGrid();
+        setupHomeButton();
+        setupSearchInput();
+        setupUserButton();
+
+        // Use a short retry mechanism for elements that might not be ready yet
+        // Check once more after 2 seconds for any missed elements
+        setTimeout(() => {
+            setupLibraryButton();
+            setupLibraryGrid();
+            setupHomeButton();
+            setupSearchInput();
+            setupUserButton();
+        }, 2000);
     };
 
     /**
@@ -308,7 +333,7 @@ div[data-testid=hover-or-focus-tooltip],#Desktop_LeftSidebar_Id header>div>div:l
 .YourLibraryX header{padding:14px}
         `;
         document.head.appendChild(style);
-        
+
         // AMOLED pure black mode (from r0/e.java line 207)
         const amoled = document.createElement('style');
         amoled.textContent = `
@@ -316,7 +341,7 @@ div[data-testid=hover-or-focus-tooltip],#Desktop_LeftSidebar_Id header>div>div:l
 aside[data-testid=now-playing-bar]{background:#000!important;box-shadow:none;border-top:1px solid #666}
         `;
         document.head.appendChild(amoled);
-        
+
         console.log('#CSS Injected');
     }
 
@@ -330,11 +355,7 @@ aside[data-testid=now-playing-bar]{background:#000!important;box-shadow:none;bor
             clearInterval(pfint);
             pfint = null;
         }
-        if (cssint) {
-            clearInterval(cssint);
-            cssint = null;
-        }
-        console.log('#Cleanup: Intervals cleared');
+        console.log('#Cleanup: Interval cleared');
     });
 
     console.log('🚀 Spotifuck v6 Ready (APK v1.6.4 Port)');
