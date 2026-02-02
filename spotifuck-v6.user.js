@@ -364,6 +364,20 @@
             return;
         }
 
+        // Add click handler to library grid items to auto-close sidebar
+        const libraryGridItems = document.querySelector('#Desktop_LeftSidebar_Id div[role=grid]:not(.fuckd)');
+        if (libraryGridItems) {
+            console.log('[Spotifuck v6] Library grid items found, adding click handler');
+            libraryGridItems.classList.add('fuckd');
+            libraryGridItems.addEventListener('click', () => setTimeout(() => {
+                console.log('[Spotifuck v6] Library item clicked, closing sidebar');
+                const sidebar = document.querySelector('#Desktop_LeftSidebar_Id');
+                if (sidebar) {
+                    sidebar.style.display = 'none';
+                }
+            }, 0));
+        }
+
         const createButton = document.querySelector('#Desktop_LeftSidebar_Id header > div > div:last-child');
         if (createButton) {
             console.log('[Spotifuck v6] Create button found, hiding');
