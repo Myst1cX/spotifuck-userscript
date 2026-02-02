@@ -28,9 +28,10 @@
     console.log('🎵 Spotifuck v6 - APK v1.6.4 Port');
 
     // Hide all library buttons in sidebar header (we move ours to navbar)
+    // Exclude .fuckd buttons (our processed button) from being hidden
     const style = document.createElement('style');
     style.textContent = `
-        #Desktop_LeftSidebar_Id header button {
+        #Desktop_LeftSidebar_Id header button:not(.fuckd) {
             display: none !important;
         }
     `;
