@@ -157,7 +157,7 @@
                 libBtn.addEventListener('click', function() {
                     setTimeout(() => switchLs(), 0);
                 });
-                switchLs();
+                // Don't call switchLs() here - it causes auto-reopen after manual collapse
             }
             
             // Auto-close library on item click (but not for folders)
