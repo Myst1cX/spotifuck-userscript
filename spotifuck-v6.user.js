@@ -168,22 +168,35 @@
             if (libGrid) {
                 libGrid.classList.add('fuckd');
                 libGrid.addEventListener('click', (event) => {
-                    // Check if clicked element or its parent is a folder link
+                    // Check if clicked element or its parent is a folder
                     let target = event.target;
                     let isFolder = false;
                     
-                    // Traverse up to 5 levels to find a link element
+                    // Traverse up to 5 levels to find the button/link element
                     for (let i = 0; i < 5 && target; i++) {
-                        if (target.tagName === 'A' && target.href) {
-                            // Check if it's a folder link (contains /folder/)
-                            if (target.href.includes('/folder/')) {
-                                isFolder = true;
-                                console.log('Folder clicked, keeping library open');
-                                break;
-                            }
-                            // If it's a playlist or other link, break to close library
+                        // Check aria-labelledby for :folder: pattern (verified from Spotify DOM)
+                        const ariaLabelledBy = target.getAttribute('aria-labelledby');
+                        if (ariaLabelledBy && ariaLabelledBy.includes(':folder:')) {
+                            isFolder = true;
+                            console.log('Folder clicked (aria-labelledby), keeping library open');
                             break;
                         }
+                        
+                        // Check aria-describedby for :folder: pattern
+                        const ariaDescribedBy = target.getAttribute('aria-describedby');
+                        if (ariaDescribedBy && ariaDescribedBy.includes(':folder:')) {
+                            isFolder = true;
+                            console.log('Folder clicked (aria-describedby), keeping library open');
+                            break;
+                        }
+                        
+                        // Fallback: Check href for /folder/ pattern
+                        if (target.tagName === 'A' && target.href && target.href.includes('/folder/')) {
+                            isFolder = true;
+                            console.log('Folder clicked (href), keeping library open');
+                            break;
+                        }
+                        
                         target = target.parentElement;
                     }
                     
