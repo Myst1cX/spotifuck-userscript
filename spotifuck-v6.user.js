@@ -77,11 +77,6 @@
                 display: none !important;
             }
 
-            /* v6: Hide the original library button in sidebar since we'll create a new one */
-            #Desktop_LeftSidebar_Id header > div > div:first-child button {
-                display: none !important;
-            }
-
             /* Artist page layout optimization */
             section[data-testid="artist-page"] > div > div:first-child:not([data-encore-id]) {
                 height: 25vh;
@@ -367,26 +362,6 @@
         if (document.querySelector('#Desktop_LeftSidebar_Id .fuckd')) {
             console.log('[Spotifuck v6] Sidebar already fixed, skipping');
             return;
-        }
-
-        const libraryButton = document.querySelector('#Desktop_LeftSidebar_Id header > div > div:first-child button:not(.fuckd)');
-        if (libraryButton) {
-            console.log('[Spotifuck v6] Library button found, adding event listener');
-            libraryButton.classList.add('fuckd');
-            libraryButton.style.padding = '0';
-            libraryButton.style.height = '20px';
-            libraryButton.addEventListener('click', () => setTimeout(switchLeftSidebar, 0));
-            switchLeftSidebar();
-        }
-
-        const libraryGridItems = document.querySelector('#Desktop_LeftSidebar_Id div[role=grid]:not(.fuckd)');
-        if (libraryGridItems) {
-            console.log('[Spotifuck v6] Library grid items found, adding click handler');
-            libraryGridItems.classList.add('fuckd');
-            libraryGridItems.addEventListener('click', () => setTimeout(() => {
-                const libraryButtonClicked = document.querySelector('button.fuckd');
-                if (libraryButtonClicked) libraryButtonClicked.click();
-            }, 0));
         }
 
         const createButton = document.querySelector('#Desktop_LeftSidebar_Id header > div > div:last-child');
