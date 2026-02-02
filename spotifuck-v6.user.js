@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Userscript v6
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      6.3.0
+// @version      6.4.0
 // @description  Full Spotifuck 1.6.4 UI hack (browser-focused) + enhanced ad blocking + playback control port on open.spotify.com
 // @author       Myst1cX (adapted from Spotifuck app v1.6.4)
 // @match        https://open.spotify.com/*
@@ -77,16 +77,37 @@
                 display: none !important;
             }
 
-            /* Position library button in navbar */
+            /* Position library button in navbar - aligned with navbar height */
             #Desktop_LeftSidebar_Id header > div > div:first-child button,
             #Desktop_LeftSidebar_Id header button[aria-label*="Library"],
             #Desktop_LeftSidebar_Id header button[aria-label*="library"] {
                 display: block !important;
                 position: fixed !important;
-                top: 10px !important;
-                left: 10px !important;
+                top: 8px !important;
+                left: 16px !important;
                 z-index: 100 !important;
                 margin: 0 !important;
+                height: 48px !important;
+                padding: 0 16px !important;
+            }
+
+            /* When sidebar is open, make it full-screen overlay */
+            #Desktop_LeftSidebar_Id[style*="display: block"] {
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100vw !important;
+                height: 100vh !important;
+                z-index: 20 !important;
+                background: #000 !important;
+                overflow-y: auto !important;
+            }
+
+            /* Make library grid content use full width when sidebar is open */
+            #Desktop_LeftSidebar_Id[style*="display: block"] nav,
+            #Desktop_LeftSidebar_Id[style*="display: block"] > div {
+                width: 100% !important;
+                max-width: 100% !important;
             }
 
             /* Artist page layout optimization */
