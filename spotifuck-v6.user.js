@@ -31,10 +31,13 @@
     let reqPause = false;
     let firstPlay = true;
     let ulFlag = false;  // Unlock flag
-    let ffDone = false;  // First fuck done
+    let ffDone = false;  // First fuck done (firstFuck initialization complete)
     let playing = false;
     let pfint = null;    // Primary features interval
     let cssint = null;   // CSS injection interval
+    
+    // Note: Class name ".fuckd" used throughout is from original APK source (r0/e.java)
+    // It marks elements as "already processed" to prevent duplicate event handlers
 
     /**
      * switchLs - Toggle library sidebar between expanded and collapsed states
@@ -61,7 +64,8 @@
             
             const headerH1 = leftSidebar.querySelector('header>div>div:first-child h1');
             if (headerH1) {
-                headerH1.innerHTML = '✖ &nbsp; Close Library';
+                // Using textContent for security, then manually adding close icon
+                headerH1.textContent = '✖ \u00A0 Close Library';
             }
         } else {
             // Collapse to small button
