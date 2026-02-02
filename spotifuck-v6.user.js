@@ -77,6 +77,11 @@
                 display: none !important;
             }
 
+            /* v6: Hide the original library button in sidebar since we'll create a new one */
+            #Desktop_LeftSidebar_Id header > div > div:first-child button {
+                display: none !important;
+            }
+
             /* Artist page layout optimization */
             section[data-testid="artist-page"] > div > div:first-child:not([data-encore-id]) {
                 height: 25vh;
@@ -266,44 +271,60 @@
         `);
     console.log('[Spotifuck v6] CSS styles injected');
 
-    // --- Move library button between home and search in nav bar ---
-    function moveLibraryButtonToNavBar() {
-        console.log('[Spotifuck v6] moveLibraryButtonToNavBar() called');
+    // --- Create library button in nav bar ---
+    function createLibraryButtonInNavBar() {
+        console.log('[Spotifuck v6] createLibraryButtonInNavBar() called');
         
-        // Check if already moved
         const navBar = document.querySelector('#global-nav-bar');
         if (!navBar) {
             console.log('[Spotifuck v6] Nav bar not found');
             return;
         }
         
-        // Check if button already in nav bar
-        if (navBar.querySelector('.spotifuck-library-moved')) {
+        // Check if button already exists
+        if (navBar.querySelector('.spotifuck-library-btn')) {
             console.log('[Spotifuck v6] Library button already in nav bar');
             return;
         }
         
-        // Find home button in nav bar
+        // Find home button to insert after it
         const homeButton = navBar.querySelector('button[data-testid="home-button"]');
         if (!homeButton) {
             console.log('[Spotifuck v6] Home button not found in nav bar');
             return;
         }
         
-        // Find the original library button in the hidden sidebar
-        const libraryButton = document.querySelector('#Desktop_LeftSidebar_Id header > div > div:first-child button');
-        if (!libraryButton) {
-            console.log('[Spotifuck v6] Library button not found in sidebar');
-            return;
-        }
+        console.log('[Spotifuck v6] Creating library button in nav bar');
         
-        console.log('[Spotifuck v6] Moving library button between home and search');
-        // Mark it so we know it's been moved
-        libraryButton.classList.add('spotifuck-library-moved');
+        // Create the library button
+        const libraryButton = document.createElement('button');
+        libraryButton.className = 'spotifuck-library-btn';
+        libraryButton.setAttribute('aria-label', 'Your Library');
+        libraryButton.innerHTML = `<svg role="img" height="24" width="24" aria-hidden="true" viewBox="0 0 24 24"><path d="M3 22a1 1 0 0 1-1-1V3a1 1 0 0 1 2 0v18a1 1 0 0 1-1 1zM15.5 2.134A1 1 0 0 0 14 3v18a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V6.464a1 1 0 0 0-.5-.866l-6-3.464zM9 2a1 1 0 0 0-1 1v18a1 1 0 1 0 2 0V3a1 1 0 0 0-1-1z"></path></svg>`;
         
-        // Insert library button AFTER home button (before search)
+        // Add click handler to toggle sidebar
+        libraryButton.addEventListener('click', () => {
+            console.log('[Spotifuck v6] Library button clicked');
+            const sidebar = document.querySelector('#Desktop_LeftSidebar_Id');
+            if (!sidebar) return;
+            
+            // Toggle sidebar visibility
+            if (sidebar.style.display === 'none' || !sidebar.style.display) {
+                sidebar.style.display = 'block';
+                sidebar.style.position = 'fixed';
+                sidebar.style.width = '100%';
+                sidebar.style.height = '92%';
+                sidebar.style.left = '0';
+                sidebar.style.top = '0';
+                sidebar.style.zIndex = '20';
+            } else {
+                sidebar.style.display = 'none';
+            }
+        });
+        
+        // Insert after home button
         homeButton.parentNode.insertBefore(libraryButton, homeButton.nextSibling);
-        console.log('[Spotifuck v6] Library button placed between home and search');
+        console.log('[Spotifuck v6] Library button created between home and search');
     }
 
     // --- Sidebar toggle logic ---
@@ -591,14 +612,14 @@
     // --- Initialization ---
     function init() {
         console.log('[Spotifuck v6] Initializing main features');
-        moveLibraryButtonToNavBar();
+        createLibraryButtonInNavBar();
         injectSidebarFixes();
     }
 
     // Wait for the page content to load and inject fixes periodically
     const readyInterval = setInterval(() => {
-        if (document.querySelector('#Desktop_LeftSidebar_Id') && document.querySelector('#global-nav-bar')) {
-            console.log('[Spotifuck v6] Sidebar and nav bar detected, initializing');
+        if (document.querySelector('#global-nav-bar')) {
+            console.log('[Spotifuck v6] Nav bar detected, initializing');
             init();
             clearInterval(readyInterval);
         }
@@ -606,7 +627,7 @@
     
     // Periodic re-injection for dynamic content
     setInterval(() => {
-        moveLibraryButtonToNavBar();
+        createLibraryButtonInNavBar();
         injectSidebarFixes();
     }, 5000);
 
