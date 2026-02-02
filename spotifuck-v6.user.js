@@ -78,7 +78,9 @@
             }
 
             /* Position library button in navbar */
-            #Desktop_LeftSidebar_Id header > div > div:first-child button {
+            #Desktop_LeftSidebar_Id header > div > div:first-child button,
+            #Desktop_LeftSidebar_Id header button[aria-label*="Library"],
+            #Desktop_LeftSidebar_Id header button[aria-label*="library"] {
                 display: block !important;
                 position: fixed !important;
                 top: 10px !important;
@@ -318,7 +320,11 @@
             return;
         }
 
-        const libraryButton = document.querySelector('#Desktop_LeftSidebar_Id header > div > div:first-child button');
+        // Library button selector (matches CSS selector for consistency)
+        const libraryButtonSelector = '#Desktop_LeftSidebar_Id header > div > div:first-child button, ' +
+                                      '#Desktop_LeftSidebar_Id header button[aria-label*="Library"], ' +
+                                      '#Desktop_LeftSidebar_Id header button[aria-label*="library"]';
+        const libraryButton = document.querySelector(libraryButtonSelector);
         
         if (libraryButton) {
             console.log('[Spotifuck v6] Library button found, adding toggle handler');
