@@ -72,12 +72,13 @@
             #global-nav-bar a[href="/download"],
             button[data-testid="fullscreen-mode-button"],
             div.main-view-container__mh-footer-container,
-            div[data-testid="hover-or-focus-tooltip"] {
+            div[data-testid="hover-or-focus-tooltip"],
+            #Desktop_LeftSidebar_Id header > div > div:last-child {
                 display: none !important;
             }
 
-            /* Hide the entire Desktop left sidebar */
-            #Desktop_LeftSidebar_Id {
+            /* Sidebar is visible by default, will be hidden when user clicks "Close Library" */
+            #Desktop_LeftSidebar_Id.spotifuck-closed {
                 display: none !important;
             }
 
@@ -282,9 +283,9 @@
                 padding: 14px;
             }
 
-            /* Custom Library Button in Navigation Bar */
+            /* Custom Library Button in Navigation Bar (shown only when sidebar is closed) */
             .spotifuck-library-btn {
-                display: flex;
+                display: none; /* Hidden by default, shown after sidebar closed */
                 align-items: center;
                 justify-content: center;
                 background: transparent;
@@ -296,6 +297,10 @@
                 font-size: 14px;
                 font-weight: 700;
                 transition: background 0.2s;
+            }
+
+            .spotifuck-library-btn.visible {
+                display: flex;
             }
 
             .spotifuck-library-btn:hover {
@@ -312,6 +317,27 @@
                 width: 24px;
                 height: 24px;
                 margin-right: 8px;
+            }
+
+            /* Close Library Button in Sidebar Header */
+            .spotifuck-close-sidebar-btn {
+                position: absolute;
+                top: 16px;
+                right: 16px;
+                background: rgba(255, 255, 255, 0.1);
+                border: none;
+                color: #fff;
+                cursor: pointer;
+                padding: 8px 16px;
+                border-radius: 20px;
+                font-size: 14px;
+                font-weight: 700;
+                z-index: 100;
+                transition: background 0.2s;
+            }
+
+            .spotifuck-close-sidebar-btn:hover {
+                background: rgba(255, 255, 255, 0.2);
             }
 
             /* Library Overlay - Full screen when shown */
@@ -611,23 +637,45 @@
                 }, 2000);
             };
 
-            // --- CSS/JS Hacks for Navigation and Library ---
-            // The library button is now in the navigation bar between Home and Search
-            // Clicking it shows a full-screen overlay with the library grid
+            // --- CSS/JS Hacks for Sidebar and Navigation ---
+            // Initially, sidebar is visible. User can click "Close Library" to hide it.
+            // After closing, library button appears in nav bar between Home and Search
             window.addCSSHacks = function() {
                 if (cssHackInterval) clearInterval(cssHackInterval);
                 
                 cssHackInterval = setInterval(() => {
-                    // Create custom library button in navigation bar
+                    const sidebar = document.querySelector('#Desktop_LeftSidebar_Id');
+                    const isSidebarClosed = sidebar?.classList.contains('spotifuck-closed');
+                    
+                    // Add "Close Library" button to sidebar header
+                    if (sidebar && !isSidebarClosed && !document.querySelector('.spotifuck-close-sidebar-btn')) {
+                        const libraryHeader = sidebar.querySelector('header > div > div:first-child');
+                        if (libraryHeader) {
+                            console.log('[Spotifuck v6] Adding Close Library button to sidebar');
+                            
+                            const closeBtn = document.createElement('button');
+                            closeBtn.className = 'spotifuck-close-sidebar-btn';
+                            closeBtn.textContent = '✖ Close Library';
+                            closeBtn.addEventListener('click', closeSidebarAndEnableNavButton);
+                            
+                            libraryHeader.style.position = 'relative';
+                            libraryHeader.appendChild(closeBtn);
+                        }
+                    }
+
+                    // Create library button in nav bar (hidden until sidebar is closed)
                     if (!document.querySelector('.spotifuck-library-btn')) {
                         const navBar = document.querySelector('#global-nav-bar');
                         const searchButton = document.querySelector('#global-nav-bar button[data-testid="search-button"]');
                         
                         if (navBar && searchButton) {
-                            console.log('[Spotifuck v6] Creating library button in nav bar');
+                            console.log('[Spotifuck v6] Creating library button in nav bar (hidden)');
                             
                             const libraryBtn = document.createElement('button');
                             libraryBtn.className = 'spotifuck-library-btn';
+                            if (isSidebarClosed) {
+                                libraryBtn.classList.add('visible');
+                            }
                             libraryBtn.innerHTML = \`
                                 <svg viewBox="0 0 24 24" fill="currentColor">
                                     <path d="M3 22a1 1 0 0 1-1-1V3a1 1 0 0 1 2 0v18a1 1 0 0 1-1 1zM15.5 2.134A1 1 0 0 0 14 3v18a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V6.464a1 1 0 0 0-.5-.866l-6-3.464zM9 2a1 1 0 0 0-1 1v18a1 1 0 1 0 2 0V3a1 1 0 0 0-1-1z"/>
@@ -641,6 +689,16 @@
                             searchButton.parentNode.insertBefore(libraryBtn, searchButton);
                             
                             window.libraryButton = libraryBtn;
+                        }
+                    } else {
+                        // Update visibility based on sidebar state
+                        const libraryBtn = document.querySelector('.spotifuck-library-btn');
+                        if (libraryBtn) {
+                            if (isSidebarClosed) {
+                                libraryBtn.classList.add('visible');
+                            } else {
+                                libraryBtn.classList.remove('visible');
+                            }
                         }
                     }
 
@@ -680,6 +738,40 @@
                     }
                 }, 5000);
             };
+
+            // --- Close Sidebar and Enable Nav Button ---
+            window.closeSidebarAndEnableNavButton = function() {
+                console.log('[Spotifuck v6] Closing sidebar, enabling nav button');
+                const sidebar = document.querySelector('#Desktop_LeftSidebar_Id');
+                const libraryBtn = document.querySelector('.spotifuck-library-btn');
+                
+                if (sidebar) {
+                    sidebar.classList.add('spotifuck-closed');
+                }
+                
+                if (libraryBtn) {
+                    libraryBtn.classList.add('visible');
+                }
+                
+                // Store preference in localStorage
+                try {
+                    localStorage.setItem('spotifuck-sidebar-closed', 'true');
+                } catch(e) {}
+            };
+
+            // --- Check if sidebar was previously closed ---
+            (function checkSidebarState() {
+                try {
+                    const wasClosed = localStorage.getItem('spotifuck-sidebar-closed');
+                    if (wasClosed === 'true') {
+                        const sidebar = document.querySelector('#Desktop_LeftSidebar_Id');
+                        if (sidebar) {
+                            sidebar.classList.add('spotifuck-closed');
+                            console.log('[Spotifuck v6] Sidebar state restored: closed');
+                        }
+                    }
+                } catch(e) {}
+            })();
 
             // --- Library Overlay Toggle ---
             window.toggleLibraryOverlay = function() {
