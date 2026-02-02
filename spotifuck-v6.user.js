@@ -206,16 +206,13 @@
                     // Only auto-close library if it's NOT a folder
                     if (!isFolder) {
                         console.log('AutoCloseLib (playlist/item clicked)');
-                        // Add small delay to allow Spotify's navigation to complete first
-                        // This is especially important in deeply nested folders
+                        // Add delay to allow Spotify's navigation to complete first
+                        // IMPORTANT: Use switchLs(true) for direct CSS collapse, NOT lBtn.click()
+                        // Clicking lBtn inside folders triggers "back" navigation which cancels playlist navigation
                         setTimeout(() => {
-                            // Click the library button to let Spotify update its state properly
-                            // This ensures the button shows "Open your library" after collapse
-                            if (window.lBtn) {
-                                window.lBtn.click();
-                            }
+                            switchLs(true);  // Direct collapse without clicking button
                             closeNowPlay();
-                        }, 150);  // 150ms delay allows navigation to initiate before collapse
+                        }, 150);  // 150ms allows playlist navigation to initiate
                     }
                 });
             }
