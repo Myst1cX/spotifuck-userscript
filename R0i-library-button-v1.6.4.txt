@@ -1,0 +1,158 @@
+/*
+ * Decompiled with JADX v0.9.0.
+ */
+package R0;
+
+public final class i implements android.view.View.OnClickListener {
+    public final /* synthetic */ int f;
+    public final /* synthetic */ java.lang.Object g;
+
+    public /* synthetic */ i(int r1, java.lang.Object r2) {
+        r0 = this;
+        r0.f = r1;
+        r0.g = r2;
+        r0.<init>();
+        return;
+    }
+
+    public final void onClick(android.view.View r4) {
+        r3 = this;
+        r0 = r3.f;
+        switch(r0) {
+            case 0: goto L_0x0079;
+            case 1: goto L_0x0065;
+            case 2: goto L_0x005d;
+            case 3: goto L_0x001f;
+            case 4: goto L_0x0017;
+            default: goto L_0x0005;
+        };
+    L_0x0005:
+        r4 = r3.g;
+        r4 = (androidx.appcompat.widget.Toolbar) r4;
+        r4 = r4.Q;
+        if (r4 != 0) goto L_0x000f;
+    L_0x000d:
+        r4 = 0;
+        goto L_0x0011;
+    L_0x000f:
+        r4 = r4.g;
+    L_0x0011:
+        if (r4 == 0) goto L_0x0016;
+    L_0x0013:
+        r4.collapseActionView();
+    L_0x0016:
+        return;
+    L_0x0017:
+        r4 = r3.g;
+        r4 = (m.a) r4;
+        r4.a();
+        return;
+    L_0x001f:
+        r0 = r3.g;
+        r0 = (h.h) r0;
+        r1 = r0.i;
+        if (r4 != r1) goto L_0x0030;
+    L_0x0027:
+        r1 = r0.k;
+        if (r1 == 0) goto L_0x0030;
+    L_0x002b:
+        r4 = android.os.Message.obtain(r1);
+        goto L_0x004b;
+    L_0x0030:
+        r1 = r0.l;
+        if (r4 != r1) goto L_0x003d;
+    L_0x0034:
+        r1 = r0.n;
+        if (r1 == 0) goto L_0x003d;
+    L_0x0038:
+        r4 = android.os.Message.obtain(r1);
+        goto L_0x004b;
+    L_0x003d:
+        r1 = r0.o;
+        if (r4 != r1) goto L_0x004a;
+    L_0x0041:
+        r4 = r0.q;
+        if (r4 == 0) goto L_0x004a;
+    L_0x0045:
+        r4 = android.os.Message.obtain(r4);
+        goto L_0x004b;
+    L_0x004a:
+        r4 = 0;
+    L_0x004b:
+        if (r4 == 0) goto L_0x0050;
+    L_0x004d:
+        r4.sendToTarget();
+    L_0x0050:
+        r4 = r0.F;
+        r1 = 1;
+        r0 = r0.b;
+        r4 = r4.obtainMessage(r1, r0);
+        r4.sendToTarget();
+        return;
+    L_0x005d:
+        r0 = r3.g;
+        r0 = (androidx.preference.Preference) r0;
+        r0.r(r4);
+        return;
+    L_0x0065:
+        r4 = r3.g;
+        r4 = (com.google.android.material.datepicker.j) r4;
+        r0 = r4.d0;
+        r1 = 2;
+        r2 = 1;
+        if (r0 != r1) goto L_0x0073;
+    L_0x006f:
+        r4.L(r2);
+        goto L_0x0078;
+    L_0x0073:
+        if (r0 != r2) goto L_0x0078;
+    L_0x0075:
+        r4.L(r1);
+    L_0x0078:
+        return;
+    L_0x0079:
+        r4 = it.deviato.spotifuck.MainActivity.L;
+        r4 = r4.isChecked();
+        r0 = "ServiceOn";
+        r1 = r3.g;
+        r1 = (it.deviato.spotifuck.MainActivity) r1;
+        if (r4 == 0) goto L_0x009f;
+    L_0x0087:
+        r4 = 1;
+        it.deviato.spotifuck.AppSingleton.m = r4;
+        r2 = it.deviato.spotifuck.AppSingleton.i;
+        r2.putBoolean(r0, r4);
+        r4 = it.deviato.spotifuck.AppSingleton.i;
+        r4.commit();
+        r4 = it.deviato.spotifuck.AppSingleton.f;
+        r0 = it.deviato.spotifuck.MainActivity.N;
+        p0.a.G0(r4, r0);
+        r1.s();
+        goto L_0x00d0;
+    L_0x009f:
+        r4 = 0;
+        it.deviato.spotifuck.AppSingleton.m = r4;
+        r2 = it.deviato.spotifuck.AppSingleton.i;
+        r2.putBoolean(r0, r4);
+        r4 = it.deviato.spotifuck.AppSingleton.i;
+        r4.commit();
+        r1.getClass();
+        r4 = it.deviato.spotifuck.MainActivity.H;
+        r0 = 2131755240; // 0x7f1000e8 float:1.9141354E38 double:1.0532270294E-314;
+        r4.setText(r0);
+        r4 = it.deviato.spotifuck.MainActivity.G;
+        r0 = it.deviato.spotifuck.MainActivity.K;
+        r4.removeView(r0);
+        r4 = new android.content.Intent;
+        r0 = it.deviato.spotifuck.AppSingleton.f;
+        r2 = it.deviato.spotifuck.WebService.class;
+        r4.<init>(r0, r2);
+        r0 = "STOP_SERVICE";
+        r4 = r4.setAction(r0);
+        r1.startService(r4);
+    L_0x00d0:
+        r1.getClass();
+        it.deviato.spotifuck.MainActivity.u();
+        return;
+    }
+}
