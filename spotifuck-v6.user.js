@@ -167,18 +167,30 @@
             const libGrid = document.querySelector('#Desktop_LeftSidebar_Id div[role=grid]:not(.fuckd)');
             if (libGrid) {
                 libGrid.classList.add('fuckd');
+                
+                // Debug: Log instructions for future maintenance
+                console.log('📚 Library Grid Setup: Folder detection enabled');
+                console.log('ℹ️  If Spotify DOM changes and folder detection breaks:');
+                console.log('   1. Click library button to open library grid');
+                console.log('   2. Right-click a FOLDER → Inspect Element');
+                console.log('   3. Copy the HTML of the folder button element');
+                console.log('   4. Right-click a PLAYLIST → Inspect Element');
+                console.log('   5. Copy the HTML of the playlist button element');
+                console.log('   6. Compare aria-labelledby and aria-describedby attributes');
+                console.log('   7. Update the detection code with new patterns');
+                
                 libGrid.addEventListener('click', (event) => {
                     // Check if clicked element or its parent is a folder
                     let target = event.target;
                     let isFolder = false;
                     
-                    // Traverse up to 5 levels to find the button/link element
+                    // Traverse up to 5 levels to find the button element
                     for (let i = 0; i < 5 && target; i++) {
                         // Check aria-labelledby for :folder: pattern (verified from Spotify DOM)
                         const ariaLabelledBy = target.getAttribute('aria-labelledby');
                         if (ariaLabelledBy && ariaLabelledBy.includes(':folder:')) {
                             isFolder = true;
-                            console.log('Folder clicked (aria-labelledby), keeping library open');
+                            console.log('Folder clicked (aria-labelledby contains ":folder:"), keeping library open');
                             break;
                         }
                         
@@ -186,14 +198,7 @@
                         const ariaDescribedBy = target.getAttribute('aria-describedby');
                         if (ariaDescribedBy && ariaDescribedBy.includes(':folder:')) {
                             isFolder = true;
-                            console.log('Folder clicked (aria-describedby), keeping library open');
-                            break;
-                        }
-                        
-                        // Fallback: Check href for /folder/ pattern
-                        if (target.tagName === 'A' && target.href && target.href.includes('/folder/')) {
-                            isFolder = true;
-                            console.log('Folder clicked (href), keeping library open');
+                            console.log('Folder clicked (aria-describedby contains ":folder:"), keeping library open');
                             break;
                         }
                         
