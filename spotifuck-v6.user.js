@@ -31,7 +31,6 @@
     let ulFlag = false;  // Unlock flag
     let ffDone = false;  // First fuck done (firstFuck initialization complete)
     let pfint = null;    // Primary features interval
-    let cssint = null;   // CSS injection interval
     
     // Note: Class name ".fuckd" used throughout is from original APK source (r0/e.java)
     // It marks elements as "already processed" to prevent duplicate event handlers
@@ -144,10 +143,8 @@
      * From r0/e.java line 200: window.addCSSJSHack=function(){...}
      */
     window.addCSSJSHack = function() {
-        if (cssint) clearInterval(cssint);
-        
-        cssint = setInterval(function() {
-            // Setup library button
+        // Setup library button once
+        const setupLibraryButton = () => {
             const libBtn = document.querySelector('#Desktop_LeftSidebar_Id header>div>div:first-child button:not(.fuckd)');
             if (libBtn) {
                 console.log('LibBtnFuckd');
@@ -158,12 +155,14 @@
                 libBtn.addEventListener('click', function() {
                     setTimeout(() => switchLs(), 0);
                 });
-                // Don't call switchLs() here - it causes auto-reopen after manual collapse
+                // Collapse library on startup
+                switchLs(true);
+                console.log('Library collapsed on startup');
             }
-            
-            // Auto-close library on item click (but not for folders)
-            // Folder detection: Checks aria-labelledby and aria-describedby for ':folder:' pattern
-            // to distinguish folders from playlists. Folders keep library open for navigation.
+        };
+        
+        // Setup library grid click handler once
+        const setupLibraryGrid = () => {
             const libGrid = document.querySelector('#Desktop_LeftSidebar_Id div[role=grid]:not(.fuckd)');
             if (libGrid) {
                 libGrid.classList.add('fuckd');
@@ -203,15 +202,19 @@
                     }
                 });
             }
-            
-            // Home button
+        };
+        
+        // Setup home button once
+        const setupHomeButton = () => {
             const homeBtn = document.querySelector('#global-nav-bar button[data-testid=home-button]:not(.fuckd)');
             if (homeBtn) {
                 homeBtn.classList.add('fuckd');
                 homeBtn.addEventListener('click', () => { closeNowPlay(); });
             }
-            
-            // Search input
+        };
+        
+        // Setup search input once
+        const setupSearchInput = () => {
             const searchInput = document.querySelector('input[data-testid=search-input]:not(.fuckd)');
             if (searchInput) {
                 searchInput.classList.add('fuckd');
@@ -225,14 +228,33 @@
                     if (npBar) npBar.style.display = 'flex';
                 });
             }
-            
-            // User button
+        };
+        
+        // Setup user button once
+        const setupUserButton = () => {
             const userBtn = document.querySelector('button[data-testid=user-widget-link]:not(.fuckd)');
             if (userBtn) {
                 userBtn.classList.add('fuckd');
                 userBtn.addEventListener('click', () => { closeNowPlay(); });
             }
-        }, 5000);
+        };
+        
+        // Try to setup all elements immediately
+        setupLibraryButton();
+        setupLibraryGrid();
+        setupHomeButton();
+        setupSearchInput();
+        setupUserButton();
+        
+        // Use a short retry mechanism for elements that might not be ready yet
+        // Check once more after 2 seconds for any missed elements
+        setTimeout(() => {
+            setupLibraryButton();
+            setupLibraryGrid();
+            setupHomeButton();
+            setupSearchInput();
+            setupUserButton();
+        }, 2000);
     };
 
     /**
@@ -317,11 +339,7 @@ aside[data-testid=now-playing-bar]{background:#000!important;box-shadow:none;bor
             clearInterval(pfint);
             pfint = null;
         }
-        if (cssint) {
-            clearInterval(cssint);
-            cssint = null;
-        }
-        console.log('#Cleanup: Intervals cleared');
+        console.log('#Cleanup: Interval cleared');
     });
 
     console.log('🚀 Spotifuck v6 Ready (APK v1.6.4 Port)');
