@@ -197,7 +197,16 @@
                     if (!isFolder) {
                         setTimeout(() => {
                             console.log('AutoCloseLib (playlist/item clicked)');
-                            if (window.lBtn) window.lBtn.click();
+                            // Apply collapse styling directly to avoid triggering back navigation in folders
+                            const leftSidebar = document.querySelector('#Desktop_LeftSidebar_Id');
+                            if (leftSidebar) {
+                                leftSidebar.style.zIndex = '1';
+                                leftSidebar.style.position = 'fixed';
+                                leftSidebar.style.top = '0';
+                                leftSidebar.style.left = '60px';
+                                leftSidebar.style.width = '48px';
+                                leftSidebar.style.height = '48px';
+                            }
                             closeNowPlay();
                         }, 0);
                     }
