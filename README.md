@@ -1,31 +1,78 @@
-## SPOTIFUCK USERSCRIPT
+## SPOTIFUCK USERSCRIPT v6
 
-> Ports the full Spotifuck 1.4.1 UI hack experience directly to the Spotify Web Player for use in the Firefox mobile browser.  
-> Provides **UI enhancements**, **playback controls**, **desktop client spoof**, and **silent ad blocking** for a cleaner and unrestricted Spotify experience.  
+> Complete port of the Spotifuck Android app to Spotify Web Player for mobile browsers (primarily Firefox).  
+> Reverse-engineered from the latest APK and optimized for web use.
+> Provides **enhanced ad blocking**, **comprehensive UI overhaul**, **playback controls**, **library management**, **desktop client spoofing**, and more.  
 > **Recommended userscript manager:** [Violentmonkey](https://violentmonkey.github.io/)
 
-## Features
+## Features (v6)
 
-> **UI HACKS & ENHANCEMENTS**  
-> Customizes the Spotify Web Player's interface for a desktop-like experience.  
-> Removes unnecessary elements, expands panels, and tweaks layout for maximum usability.
+> **🚫 ENHANCED AD BLOCKING**  
+> - Blocks tracking domains (doubleclick.net, googlesyndication.com, fastly-insights.com, sentry.io)
+> - Blocks audio ad sources (scdn.co/audio/, spotifycdn.com/audio/, akamaized.net/audio/, etc.)
+> - Blocks ad networks (amillionads.com, 2mdn.net, adxcel.com, adstudio-assets.scdn.co)
+> - Whitelists legitimate content (podcasts, player API)
+> - Silent MP3 replacement for blocked ads
 >
-> **PLAYBACK CONTROL**  
-> Instantly play, pause, skip, seek, and control playback with injected functions.  
-> Exposes global JS functions for automation and integration.
+> **📡 FETCH API INTERCEPTOR**  
+> - Automatically captures Spotify auth tokens, client tokens, and device IDs
+> - Monitors playback state changes in real-time
+> - Auto-reloads on player lock errors
+> - Comprehensive timestamped logging
 >
-> **CLIENT SPOOFING**  
-> Spoofs browser and device properties to unlock desktop features (e.g., screen size, platform, vendor).
+> **📚 MEDIA LIBRARY FETCHER** (Optional, Configurable)
+> - Auto-fetches all user library items (playlists, albums, artists, podcasts)
+> - Parses and structures library data
+> - Triggered automatically when tokens are captured
 >
-> **SILENT AD BLOCKING**  
-> Blocks audio ads by intercepting requests and replacing them with silent audio.  
-> No visual interruptions or delays.
+> **🎮 PLAYBACK CONTROL API**  
+> - `spotifyPlayPause(play)` - Play/pause control
+> - `spotifySkipBack()` / `spotifySkipForward()` - Track navigation
+> - `spotifyToggleRepeat()` - Cycle repeat modes
+> - `spotifyToggleFavorite()` - Add/remove favorites
+> - `spotifySeek(positionMs)` - Seek to position
+> - `spotifyPlayFromUri(uri)` - Play specific URI
 >
-> **SIDEBAR & SEARCH FIXES**  
-> Adds improved sidebar toggle, fixes for library/playlist navigation, and better search behavior.
+> **📊 MEDIA STATE TRACKING**  
+> - Real-time tracking of current track, artist, position, duration
+> - Play/pause state monitoring
+> - Repeat mode tracking
+> - Favorite status tracking
+> - Cover art URL tracking
+> - Position jump detection
 >
-> **STATUS REPORTING**  
-> Logs current playback status (track, artist, progress) for debugging and automation.
+> **🎨 COMPREHENSIVE UI OVERHAUL**  
+> - Optimized tracklist layouts (responsive 3/4/5 column grids)
+> - Enhanced now-playing bar (vertical layout, gradient background)
+> - Library sidebar fullscreen toggle with close button
+> - Auto-close library after item selection (configurable)
+> - Search focus handling (hides now-playing bar)
+> - Content spacing optimizations
+> - Typography adjustments
+> - Button scaling and positioning
+>
+> **🔓 SMART FEATURES**  
+> - Unlock mechanism - Detects stuck playback and auto-skips
+> - Take Control - Auto-handles device conflicts (configurable)
+> - Play button hooking with 10s unlock timeout
+> - Disabled button detection with page reload
+>
+> **🎭 CLIENT SPOOFING**  
+> - Desktop screen dimensions (1920x1080)
+> - Navigator properties (Win32, Google Inc.)
+> - Early injection to unlock desktop features
+>
+> **🌑 AMOLED THEME** (Optional, Configurable)
+> - Pure black backgrounds for OLED screens
+> - Default: OFF (easily enabled via userscript manager settings)
+>
+> **📝 COMPREHENSIVE LOGGING**  
+> - All features include detailed console logs for debugging
+> - Token capture events
+> - Playback control actions
+> - UI modifications
+> - Media state updates
+> - Error handling and warnings
 
 ## Screenshots
 
@@ -39,7 +86,7 @@
 > 4. Recommended: [Spotify AdBlocker](https://greasyfork.org/en/scripts/522592-spotify-adblocker)
 > 5. Recommended - for stock lyrics button: [Cigi Spotify Translator](https://greasyfork.org/en/scripts/523415-cigi-spotify-translator)
 > 6. Recommended: [Spotify Lyrics+](https://raw.githubusercontent.com/Myst1cX/spotify-web-lyrics-plus/main/pip-gui.user.js)
-> 7. Install [Spotifuck](https://raw.githubusercontent.com/Myst1cX/spotifuck-userscript/main/spotifuck-v5.user.js)
+> 7. Install [Spotifuck v6](https://raw.githubusercontent.com/Myst1cX/spotifuck-userscript/main/spotifuck-v6.user.js)
 > 8. Install Chameleon extension
 > 9. Chameleon extension settings > Profile Panel (globe icon) > Select Random Profile (Desktop)
 > 10. Chameleon extension settings > Options Panel > Select the 'Profile' option under the 'Screen size' option
@@ -48,10 +95,22 @@
 > 13. Open Spotify Web and login to your account
 > 14. The interface should be mobile-friendly > If it ever resets, repeat steps 7 and 8 > Keep Desktop Mode Disabled 
 
+## Configuration (Optional)
+
+> **Userscript Manager Settings** (Violentmonkey/Tampermonkey)
+> 
+> You can customize these settings in your userscript manager:
+> - `amoled_theme` - Enable pure black AMOLED theme (default: false)
+> - `auto_fetch_library` - Auto-fetch user library on token capture (default: true)
+> - `take_control` - Auto-take control on device conflicts (default: true)
+> - `auto_close_library` - Close library after item selection (default: true)
+
 * * *
 > **TIP 1:** All UI changes and playback controls apply instantly. No configuration needed!
 >
-> **TIP 2:** Add Spotify Web Player to your home screen for a PWA-like experience.  
+> **TIP 2:** Add Spotify Web Player to your home screen for a PWA-like experience.
+>
+> **TIP 3:** Check the browser console (F12) for detailed logs of all features and actions.
 
 * * *
 
