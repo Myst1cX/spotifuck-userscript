@@ -150,23 +150,6 @@
     };
 
     /**
-     * Collapse library after initialization
-     * Ensures library is always closed on startup
-     */
-    const collapseLibraryOnStartup = () => {
-        if (libButtonSetup && libGridSetup && window.lBtn) {
-            // Check if library is currently expanded
-            if (window.lBtn.getAttribute('aria-label') === LIBRARY_BUTTON_COLLAPSED) {
-                console.log('✓ Library initialized - collapsing to default closed state');
-                // Click the button to collapse library
-                window.lBtn.click();
-            } else {
-                console.log('✓ Library already in collapsed state on startup');
-            }
-        }
-    };
-
-    /**
      * addCSSJSHack - Add CSS modifications and event listeners
      * From r0/e.java line 200: window.addCSSJSHack=function(){...}
      */
@@ -190,12 +173,11 @@
                 libBtn.addEventListener('click', function() {
                     setTimeout(() => switchLs(), 0);
                 });
+                // Call switchLs immediately to set initial library state (from APK source)
+                switchLs();
                 
                 libButtonSetup = true;
                 console.log('✓ Library button setup complete');
-                
-                // Try to collapse library if grid is also ready
-                collapseLibraryOnStartup();
             }
         };
 
@@ -253,9 +235,6 @@
 
                 libGridSetup = true;
                 console.log('✓ Library grid setup complete');
-                
-                // Try to collapse library if button is also ready
-                collapseLibraryOnStartup();
             }
         };
 
