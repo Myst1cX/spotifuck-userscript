@@ -36,6 +36,10 @@
     let ffDone = false;  // First fuck done (firstFuck initialization complete)
     let pfint = null;    // Primary features interval
 
+    // Constants for library button states and timing
+    const LIBRARY_BUTTON_COLLAPSED = 'Collapse Your Library';
+    const PLAYLIST_NAVIGATION_DELAY_MS = 300;  // Delay before collapsing library after playlist click
+
     // Note: Class name ".fuckd" used throughout is from original APK source (r0/e.java)
     // It marks elements as "already processed" to prevent duplicate event handlers
 
@@ -166,7 +170,7 @@
 
                 // Collapse library on startup if it's expanded
                 // Check if button says "Collapse" (meaning library is currently expanded)
-                if (libBtn.getAttribute('aria-label') === 'Collapse Your Library') {
+                if (libBtn.getAttribute('aria-label') === LIBRARY_BUTTON_COLLAPSED) {
                     console.log('Library is expanded on startup, collapsing it...');
                     // Click the button to let Spotify update its state properly
                     // This ensures the button will show "Open your library" after collapse
@@ -215,12 +219,12 @@
                         setTimeout(() => {
                             // Check if library is still expanded before collapsing
                             // This prevents unnecessary clicks if user manually collapsed it
-                            if (window.lBtn && window.lBtn.getAttribute('aria-label') === 'Collapse Your Library') {
+                            if (window.lBtn && window.lBtn.getAttribute('aria-label') === LIBRARY_BUTTON_COLLAPSED) {
                                 // Library is still expanded, collapse it
                                 window.lBtn.click();
                             }
                             closeNowPlay();
-                        }, 300);  // 300ms ensures playlist navigation has initiated
+                        }, PLAYLIST_NAVIGATION_DELAY_MS);
                     }
                 });
             }
