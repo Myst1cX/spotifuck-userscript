@@ -78,19 +78,6 @@
             leftSidebar.style.left = '60px';
             leftSidebar.style.width = '48px';
             leftSidebar.style.height = '48px';
-
-            // Fix: When using forceCollapse (direct CSS manipulation), sync button state
-            // The button needs to be clicked to update its icon/aria-label to match the collapsed state
-            if (forceCollapse && window.lBtn) {
-                const libBtn = window.lBtn;
-                // Only click if button still shows "Collapse" (meaning it's out of sync)
-                if (libBtn.getAttribute('aria-label') === 'Collapse Your Library') {
-                    console.log('#Library: Syncing button state after CSS collapse');
-                    // Click button to update its visual state without affecting navigation
-                    // This is safe because we're clicking AFTER navigation has already started
-                    libBtn.click();
-                }
-            }
         }
     };
 
@@ -224,12 +211,15 @@
                     if (!isFolder) {
                         console.log('AutoCloseLib (playlist/item clicked)');
                         // Add delay to allow Spotify's navigation to complete first
-                        // IMPORTANT: Use switchLs(true) for direct CSS collapse, NOT lBtn.click()
-                        // Clicking lBtn inside folders triggers "back" navigation which cancels playlist navigation
+                        // Increased delay to ensure navigation starts before collapsing
                         setTimeout(() => {
-                            switchLs(true);  // Direct collapse without clicking button
+                            // Use button click to collapse so button state stays synchronized
+                            // Longer delay (300ms) ensures navigation has started and won't be cancelled
+                            if (window.lBtn) {
+                                window.lBtn.click();
+                            }
                             closeNowPlay();
-                        }, 150);  // 150ms allows playlist navigation to initiate
+                        }, 300);  // 300ms ensures playlist navigation has initiated
                     }
                 });
             }
