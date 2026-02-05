@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         Spotifuck v6 
+// @name         Spotifuck (Browser) 
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
 // @version      6.4
-// @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + silent audio ad blocking port on open.spotify.com
+// @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + silent ad blocking port on open.spotify.com
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        https://open.spotify.com/*
 // @grant        none
@@ -425,5 +425,5 @@ aside[data-testid=now-playing-bar]{background:#000!important;box-shadow:none;bor
         console.log('#Cleanup: Interval cleared');
     });
 
-    console.log('🚀 Spotifuck v6.4 Ready (APK v1.6.4 Port + Silent Audio Ad Blocking)');
+    console.log('🚀 Spotifuck v6.4 Initialized');
 })();
