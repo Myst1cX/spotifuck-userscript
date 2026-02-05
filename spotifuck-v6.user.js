@@ -355,6 +355,27 @@ aside[data-testid=now-playing-bar]{background:#000!important;box-shadow:none;bor
         console.log('#CSS Injected');
     }
 
+    /**
+     * silentAudioAdBlocker - Block audio ads by intercepting fetch requests
+     * Ported from v5 - replaces audio/mpeg requests with silent audio
+     */
+    (function silentAudioAdBlocker() {
+        const originalFetch = window.fetch;
+        const silentAudioBlob = new Blob([new Uint8Array(44)], { type: 'audio/wav' });
+        window.fetch = function(resource, init) {
+            const url = (typeof resource === 'string') ? resource : resource.url;
+            if (url && url.includes('audio/mpeg')) {
+                console.log('[Spotifuck] Blocking audio ad:', url);
+                return Promise.resolve(new Response(silentAudioBlob, {
+                    status: 200,
+                    statusText: 'OK',
+                    headers: { 'Content-Type': 'audio/wav' }
+                }));
+            }
+            return originalFetch.apply(this, arguments);
+        };
+    })();
+
     // Initialize immediately
     injectCSS();
     firstFuck();
