@@ -1,15 +1,17 @@
 // ==UserScript==
-// @name         Spotifuck v6
-// @namespace    http://tampermonkey.net/
+// @name         Spotifuck v6 
+// @namespace    https://github.com/Myst1cX/spotifuck-userscript
 // @version      6.1
-// @description  Accurate port of Spotifuck Android app v1.6.4
-// @author       Spotifuck Team
+// @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + silent ad blocking port on open.spotify.com
+// @author       Myst1cX (adapted from Spotifuck app)
 // @match        https://open.spotify.com/*
 // @grant        none
 // @run-at       document-start
+// @homepageURL  https://github.com/Myst1cX/spotifuck-userscript
+// @supportURL   https://github.com/Myst1cX/spotifuck-userscript/issues
+// @updateURL    https://raw.githubusercontent.com/Myst1cX/spotifuck-userscript/main/spotifuck-v6.user.js
+// @downloadURL  https://raw.githubusercontent.com/Myst1cX/spotifuck-userscript/main/spotifuck-v6.user.js
 // ==/UserScript==
-
-// fix. library button glitch 
 
 /*
  * Spotifuck v6 - Accurate port from reverse-engineered v1.6.4 APK
