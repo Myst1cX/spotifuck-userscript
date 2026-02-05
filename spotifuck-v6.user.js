@@ -35,6 +35,8 @@
     let ulFlag = false;  // Unlock flag
     let ffDone = false;  // First fuck done (firstFuck initialization complete)
     let pfint = null;    // Primary features interval
+    let libButtonSetup = false;  // Library button initialized flag
+    let libGridSetup = false;    // Library grid initialized flag
 
     // Constants for library button states and timing
     const LIBRARY_BUTTON_COLLAPSED = 'Collapse Your Library';
@@ -147,12 +149,32 @@
     };
 
     /**
+     * Collapse library after initialization
+     * Ensures library is always closed on startup
+     */
+    const collapseLibraryOnStartup = () => {
+        if (libButtonSetup && libGridSetup && window.lBtn) {
+            // Check if library is currently expanded
+            if (window.lBtn.getAttribute('aria-label') === LIBRARY_BUTTON_COLLAPSED) {
+                console.log('✓ Library initialized - collapsing to default closed state');
+                // Click the button to collapse library
+                window.lBtn.click();
+            } else {
+                console.log('✓ Library already in collapsed state on startup');
+            }
+        }
+    };
+
+    /**
      * addCSSJSHack - Add CSS modifications and event listeners
      * From r0/e.java line 200: window.addCSSJSHack=function(){...}
      */
     window.addCSSJSHack = function() {
         // Setup library button once
         const setupLibraryButton = () => {
+            // Skip if already set up
+            if (libButtonSetup) return;
+
             // Use aria-label to identify the correct library button (not back button)
             // Library button has aria-label containing "Your Library" (either "Open Your Library" or "Collapse Your Library")
             // Back button has aria-label="Go back" which doesn't contain "Your Library"
@@ -167,20 +189,20 @@
                 libBtn.addEventListener('click', function() {
                     setTimeout(() => switchLs(), 0);
                 });
-
-                // Collapse library on startup if it's expanded
-                // Check if button says "Collapse" (meaning library is currently expanded)
-                if (libBtn.getAttribute('aria-label') === LIBRARY_BUTTON_COLLAPSED) {
-                    console.log('Library is expanded on startup, collapsing it...');
-                    // Click the button to let Spotify update its state properly
-                    // This ensures the button will show "Open your library" after collapse
-                    libBtn.click();
-                }
+                
+                libButtonSetup = true;
+                console.log('✓ Library button setup complete');
+                
+                // Try to collapse library if grid is also ready
+                collapseLibraryOnStartup();
             }
         };
 
         // Setup library grid click handler once
         const setupLibraryGrid = () => {
+            // Skip if already set up
+            if (libGridSetup) return;
+
             const libGrid = document.querySelector('#Desktop_LeftSidebar_Id div[role=grid]:not(.fuckd)');
             if (libGrid) {
                 libGrid.classList.add('fuckd');
@@ -227,6 +249,12 @@
                         }, PLAYLIST_NAVIGATION_DELAY_MS);
                     }
                 });
+
+                libGridSetup = true;
+                console.log('✓ Library grid setup complete');
+                
+                // Try to collapse library if button is also ready
+                collapseLibraryOnStartup();
             }
         };
 
@@ -272,15 +300,19 @@
         setupSearchInput();
         setupUserButton();
 
-        // Use a short retry mechanism for elements that might not be ready yet
-        // Check once more after 2 seconds for any missed elements
-        setTimeout(() => {
+        // Use a more robust retry mechanism for elements that might not be ready yet
+        // Check multiple times with increasing delays to ensure initialization
+        const retrySetup = () => {
             setupLibraryButton();
             setupLibraryGrid();
             setupHomeButton();
             setupSearchInput();
             setupUserButton();
-        }, 2000);
+        };
+        
+        setTimeout(retrySetup, 1000);  // First retry after 1 second
+        setTimeout(retrySetup, 2000);  // Second retry after 2 seconds
+        setTimeout(retrySetup, 3000);  // Third retry after 3 seconds
     };
 
     /**
