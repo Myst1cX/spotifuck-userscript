@@ -303,8 +303,11 @@
         // Use a more robust retry mechanism for elements that might not be ready yet
         // Check multiple times with increasing delays to ensure initialization
         const retrySetup = () => {
-            setupLibraryButton();
-            setupLibraryGrid();
+            // Only retry if not fully initialized
+            if (!libButtonSetup || !libGridSetup) {
+                setupLibraryButton();
+                setupLibraryGrid();
+            }
             setupHomeButton();
             setupSearchInput();
             setupUserButton();
