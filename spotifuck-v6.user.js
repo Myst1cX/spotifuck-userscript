@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Userscript
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      6.4
+// @version      6.5
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + silent ad blocking port on open.spotify.com
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        https://open.spotify.com/*
@@ -24,13 +24,13 @@
  * - UI improvements (sidebar, search bar, playback controls)
  * - Video ad detection and blocking
  * - Silent audio ad blocking (from v5)
- * - CSS hacks for better mobile experience
+ * - CSS hacks for better mobile experience (csshack mode from APK)
  */
 
 (function() {
     'use strict';
 
-    console.log('🎵 Spotifuck v6.4 - APK v1.6.4 Port');
+    console.log('🎵 Spotifuck v6.5 - APK v1.6.4 Port');
 
     // Global state variables
     let ulFlag = false;  // Unlock flag
@@ -321,7 +321,8 @@
 
     /**
      * Inject CSS styles from APK
-     * From r0/e.java line 204: let st=document.createElement('style');st.textContent='...'
+     * From r0/e.java line 204: csshack mode (mobile ccc+js) CSS
+     * This is the mobile-optimized CSS injected when AppSingleton.f3147l.equals("csshack")
      */
     function injectCSS() {
         const style = document.createElement('style');
@@ -344,6 +345,8 @@ div[data-testid=tracklist-row]>div:first-child>div:first-child{height:24px;min-h
 [aria-colcount="5"] div[data-testid=tracklist-row]{grid-template-columns:[index] var(--tracklist-index-column-width,40px) [first] minmax(120px,var(--col1,6fr)) [var1] minmax(120px,var(--col2,4fr)) [var2] minmax(120px,var(--col3,3fr)) [last] minmax(82px,var(--col4,1fr))!important}
 section[data-testid=track-page]>div.contentSpacing>div:nth-child(2) [aria-colcount="2"] div[data-testid=tracklist-row]{grid-template-columns:[first] minmax(120px,var(--col0,4fr)) [last] minmax(82px,var(--col1,1fr))!important}
 section[data-testid=track-page]>div.contentSpacing>div:nth-child(2) [aria-colcount="3"] div[data-testid=tracklist-row]{grid-template-columns:[first] minmax(120px,var(--col0,4fr)) [var1] minmax(120px,var(--col1,2fr)) [last] minmax(82px,var(--col2,1fr))!important}
+.npbtn{cursor:pointer;color:#b3b3b3;background:transparent;border:none;width:32px;height:32px;padding:8px}
+.npbtn.active{color:#1db954}
 *{--content-spacing:10px}
 section[data-testid=home-page] .contentSpacing{padding:0 10px!important;overflow:hidden}
 div[data-testid=grid-container]{margin-inline:0!important;column-gap:0!important;overflow:hidden!important}
@@ -425,5 +428,5 @@ aside[data-testid=now-playing-bar]{background:#000!important;box-shadow:none;bor
         console.log('#Cleanup: Interval cleared');
     });
 
-    console.log('🚀 Spotifuck Userscript v6.4 Initialized');
+    console.log('🚀 Spotifuck Userscript v6.5 Initialized');
 })();
