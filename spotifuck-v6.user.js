@@ -36,10 +36,6 @@
     let ffDone = false;  // First fuck done (firstFuck initialization complete)
     let pfint = null;    // Primary features interval
 
-    // Constants for library button states and timing
-    const LIBRARY_BUTTON_COLLAPSED = 'Collapse Your Library';
-    const PLAYLIST_NAVIGATION_DELAY_MS = 300;  // Delay before collapsing library after playlist click
-
     // Note: Class name ".fuckd" used throughout is from original APK source (r0/e.java)
     // It marks elements as "already processed" to prevent duplicate event handlers
 
@@ -149,16 +145,17 @@
     /**
      * addCSSJSHack - Add CSS modifications and event listeners
      * From r0/e.java line 200: window.addCSSJSHack=function(){...}
+     * Runs in a 5-second interval to continuously check for elements (APK behavior)
      */
     window.addCSSJSHack = function() {
-        // Setup library button once
-        const setupLibraryButton = () => {
-            // Use aria-label to identify the correct library button (not back button)
-            // Library button has aria-label containing "Your Library" (either "Open Your Library" or "Collapse Your Library")
-            // Back button has aria-label="Go back" which doesn't contain "Your Library"
-            const libBtn = document.querySelector('#Desktop_LeftSidebar_Id header button[aria-label*="Your Library"]:not(.fuckd)');
-
-            if (libBtn && !libBtn.classList.contains('fuckd')) {
+        let cssint = null;  // CSS interval timer
+        
+        if (cssint) clearInterval(cssint);
+        
+        cssint = setInterval(function() {
+            // Setup library button (APK line 200)
+            const libBtn = document.querySelector('#Desktop_LeftSidebar_Id header>div>div:first-child button:not(.fuckd)');
+            if (libBtn) {
                 console.log('LibBtnFuckd');
                 window.lBtn = libBtn;
                 libBtn.classList.add('fuckd', 'lbtn');
@@ -167,75 +164,35 @@
                 libBtn.addEventListener('click', function() {
                     setTimeout(() => switchLs(), 0);
                 });
-
-                // Apply initial library state styling
-                // This syncs the CSS with the current button state
+                // Apply initial CSS state to match current library state
                 switchLs();
             }
-        };
 
-        // Setup library grid click handler once
-        const setupLibraryGrid = () => {
+            // Setup library grid click handler (APK line 200)
             const libGrid = document.querySelector('#Desktop_LeftSidebar_Id div[role=grid]:not(.fuckd)');
             if (libGrid) {
                 libGrid.classList.add('fuckd');
-
-                libGrid.addEventListener('click', (event) => {
-                    // Check if clicked element or its parent is a folder
-                    let target = event.target;
-                    let isFolder = false;
-
-                    // Traverse up to 5 levels to find the button element
-                    for (let i = 0; i < 5 && target; i++) {
-                        // Check aria-labelledby for :folder: pattern (verified from Spotify DOM)
-                        const ariaLabelledBy = target.getAttribute('aria-labelledby');
-                        if (ariaLabelledBy && ariaLabelledBy.includes(':folder:')) {
-                            isFolder = true;
-                            console.log('Folder clicked (aria-labelledby contains ":folder:"), keeping library open');
-                            break;
+                libGrid.addEventListener('click', () => {
+                    setTimeout(() => {
+                        console.log('AutoCloseLib');
+                        // Use lBtn.click() to collapse library after playlist selection
+                        // This ensures button state stays synchronized
+                        if (window.lBtn) {
+                            window.lBtn.click();
                         }
-
-                        // Check aria-describedby for :folder: pattern
-                        const ariaDescribedBy = target.getAttribute('aria-describedby');
-                        if (ariaDescribedBy && ariaDescribedBy.includes(':folder:')) {
-                            isFolder = true;
-                            console.log('Folder clicked (aria-describedby contains ":folder:"), keeping library open');
-                            break;
-                        }
-
-                        target = target.parentElement;
-                    }
-
-                    // Only auto-close library if it's NOT a folder
-                    if (!isFolder) {
-                        console.log('AutoCloseLib (playlist/item clicked)');
-                        // Add delay to allow Spotify's navigation to complete first
-                        // Increased delay to ensure navigation starts before collapsing
-                        setTimeout(() => {
-                            // Check if library is still expanded before collapsing
-                            // This prevents unnecessary clicks if user manually collapsed it
-                            if (window.lBtn && window.lBtn.getAttribute('aria-label') === LIBRARY_BUTTON_COLLAPSED) {
-                                // Library is still expanded, collapse it
-                                window.lBtn.click();
-                            }
-                            closeNowPlay();
-                        }, PLAYLIST_NAVIGATION_DELAY_MS);
-                    }
+                        closeNowPlay();
+                    }, 0);  // APK uses 0ms delay
                 });
             }
-        };
 
-        // Setup home button once
-        const setupHomeButton = () => {
+            // Setup home button (APK line 200)
             const homeBtn = document.querySelector('#global-nav-bar button[data-testid=home-button]:not(.fuckd)');
             if (homeBtn) {
                 homeBtn.classList.add('fuckd');
                 homeBtn.addEventListener('click', () => { closeNowPlay(); });
             }
-        };
 
-        // Setup search input once
-        const setupSearchInput = () => {
+            // Setup search input (APK line 200)
             const searchInput = document.querySelector('input[data-testid=search-input]:not(.fuckd)');
             if (searchInput) {
                 searchInput.classList.add('fuckd');
@@ -249,33 +206,14 @@
                     if (npBar) npBar.style.display = 'flex';
                 });
             }
-        };
 
-        // Setup user button once
-        const setupUserButton = () => {
+            // Setup user button (APK line 200)
             const userBtn = document.querySelector('button[data-testid=user-widget-link]:not(.fuckd)');
             if (userBtn) {
                 userBtn.classList.add('fuckd');
                 userBtn.addEventListener('click', () => { closeNowPlay(); });
             }
-        };
-
-        // Try to setup all elements immediately
-        setupLibraryButton();
-        setupLibraryGrid();
-        setupHomeButton();
-        setupSearchInput();
-        setupUserButton();
-
-        // Use a short retry mechanism for elements that might not be ready yet
-        // Check once more after 2 seconds for any missed elements
-        setTimeout(() => {
-            setupLibraryButton();
-            setupLibraryGrid();
-            setupHomeButton();
-            setupSearchInput();
-            setupUserButton();
-        }, 2000);
+        }, 5000);  // APK uses 5000ms interval
     };
 
     /**
