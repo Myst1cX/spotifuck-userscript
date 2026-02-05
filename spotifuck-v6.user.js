@@ -172,16 +172,45 @@
             const libGrid = document.querySelector('#Desktop_LeftSidebar_Id div[role=grid]:not(.fuckd)');
             if (libGrid) {
                 libGrid.classList.add('fuckd');
-                libGrid.addEventListener('click', () => {
-                    setTimeout(() => {
-                        console.log('AutoCloseLib');
-                        // Use lBtn.click() to collapse library after playlist selection
-                        // This ensures button state stays synchronized
-                        if (window.lBtn) {
-                            window.lBtn.click();
+                libGrid.addEventListener('click', (event) => {
+                    // Check if clicked element or its parent is a folder
+                    // Folders should keep library open for navigation
+                    let target = event.target;
+                    let isFolder = false;
+
+                    // Traverse up to 5 levels to find folder indicators
+                    for (let i = 0; i < 5 && target; i++) {
+                        // Check aria-labelledby for :folder: pattern
+                        const ariaLabelledBy = target.getAttribute('aria-labelledby');
+                        if (ariaLabelledBy && ariaLabelledBy.includes(':folder:')) {
+                            isFolder = true;
+                            console.log('Folder clicked, keeping library open');
+                            break;
                         }
-                        closeNowPlay();
-                    }, 0);  // APK uses 0ms delay
+
+                        // Check aria-describedby for :folder: pattern
+                        const ariaDescribedBy = target.getAttribute('aria-describedby');
+                        if (ariaDescribedBy && ariaDescribedBy.includes(':folder:')) {
+                            isFolder = true;
+                            console.log('Folder clicked, keeping library open');
+                            break;
+                        }
+
+                        target = target.parentElement;
+                    }
+
+                    // Only auto-close library if it's NOT a folder
+                    if (!isFolder) {
+                        setTimeout(() => {
+                            console.log('AutoCloseLib');
+                            // Use lBtn.click() to collapse library after playlist selection
+                            // This ensures button state stays synchronized
+                            if (window.lBtn) {
+                                window.lBtn.click();
+                            }
+                            closeNowPlay();
+                        }, 50);  // Small delay for Spotify navigation to start
+                    }
                 });
             }
 
