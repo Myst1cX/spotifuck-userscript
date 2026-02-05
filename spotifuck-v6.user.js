@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck v6 
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      6.1
+// @version      6.2
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + silent ad blocking port on open.spotify.com
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        https://open.spotify.com/*
@@ -35,6 +35,10 @@
     let ulFlag = false;  // Unlock flag
     let ffDone = false;  // First fuck done (firstFuck initialization complete)
     let pfint = null;    // Primary features interval
+
+    // Constants for library button states and timing
+    const LIBRARY_BUTTON_COLLAPSED = 'Collapse Your Library';
+    const PLAYLIST_NAVIGATION_DELAY_MS = 300;  // Delay before collapsing library after playlist click
 
     // Note: Class name ".fuckd" used throughout is from original APK source (r0/e.java)
     // It marks elements as "already processed" to prevent duplicate event handlers
@@ -166,7 +170,7 @@
 
                 // Collapse library on startup if it's expanded
                 // Check if button says "Collapse" (meaning library is currently expanded)
-                if (libBtn.getAttribute('aria-label') === 'Collapse Your Library') {
+                if (libBtn.getAttribute('aria-label') === LIBRARY_BUTTON_COLLAPSED) {
                     console.log('Library is expanded on startup, collapsing it...');
                     // Click the button to let Spotify update its state properly
                     // This ensures the button will show "Open your library" after collapse
@@ -211,12 +215,16 @@
                     if (!isFolder) {
                         console.log('AutoCloseLib (playlist/item clicked)');
                         // Add delay to allow Spotify's navigation to complete first
-                        // IMPORTANT: Use switchLs(true) for direct CSS collapse, NOT lBtn.click()
-                        // Clicking lBtn inside folders triggers "back" navigation which cancels playlist navigation
+                        // Increased delay to ensure navigation starts before collapsing
                         setTimeout(() => {
-                            switchLs(true);  // Direct collapse without clicking button
+                            // Check if library is still expanded before collapsing
+                            // This prevents unnecessary clicks if user manually collapsed it
+                            if (window.lBtn && window.lBtn.getAttribute('aria-label') === LIBRARY_BUTTON_COLLAPSED) {
+                                // Library is still expanded, collapse it
+                                window.lBtn.click();
+                            }
                             closeNowPlay();
-                        }, 150);  // 150ms allows playlist navigation to initiate
+                        }, PLAYLIST_NAVIGATION_DELAY_MS);
                     }
                 });
             }
