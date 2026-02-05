@@ -1,0 +1,85 @@
+package q0;
+
+/* renamed from: q0.a  reason: case insensitive filesystem */
+public abstract class C0322a {
+
+    /* renamed from: A  reason: collision with root package name */
+    public static final int[] f4482A = {16842766, 16842906, 16843039, 16843071, 16843088, 16843095, 16843098, 2130968712, 2130968713, 2130968714, 2130968715, 2130968716, 2130968717, 2130968718, 2130968719, 2130968720, 2130968721, 2130968722, 2130968931, 2130968932, 2130968933, 2130968934, 2130968935, 2130968936, 2130968939, 2130968940, 2130969018, 2130969019, 2130969020, 2130969021, 2130969022, 2130969023, 2130969024, 2130969025, 2130969032, 2130969033, 2130969034, 2130969035, 2130969036, 2130969037, 2130969039, 2130969040, 2130969043, 2130969147, 2130969148, 2130969149, 2130969150, 2130969156, 2130969157, 2130969158, 2130969159, 2130969499, 2130969500, 2130969501, 2130969502, 2130969503, 2130969514, 2130969515, 2130969516, 2130969534, 2130969535, 2130969536, 2130969588, 2130969596, 2130969645, 2130969646, 2130969647, 2130969648, 2130969649, 2130969650, 2130969651, 2130969678, 2130969679, 2130969680};
+
+    /* renamed from: B  reason: collision with root package name */
+    public static final int[] f4483B = {16842804, 2130969026, 2130969027};
+
+    /* renamed from: a  reason: collision with root package name */
+    public static final int[] f4484a = {16843039, 16843040, 16843840, 2130968666, 2130968691, 2130968692, 2130968693, 2130968694, 2130968695, 2130968697, 2130968698, 2130968699, 2130968700, 2130969129, 2130969339, 2130969340, 2130969341, 2130969488, 2130969490, 2130969491, 2130969495, 2130969588, 2130969596, 2130969601};
+
+    /* renamed from: b  reason: collision with root package name */
+    public static final int[] f4485b = {2130968748, 2130968749, 2130968750, 2130968751, 2130968752, 2130968753, 2130968754, 2130968755, 2130968756, 2130968757, 2130968758};
+
+    /* renamed from: c  reason: collision with root package name */
+    public static final int[] f4486c = {16842804, 16842901, 16842904, 16842923, 16843039, 16843087, 16843237, 2130968768, 2130968769, 2130968773, 2130968774, 2130968777, 2130968778, 2130968779, 2130968781, 2130968782, 2130968783, 2130968784, 2130968785, 2130968786, 2130968787, 2130968792, 2130968793, 2130968794, 2130968796, 2130968811, 2130968812, 2130968813, 2130968814, 2130968815, 2130968816, 2130968817, 2130969028, 2130969152, 2130969166, 2130969171, 2130969564, 2130969588, 2130969596, 2130969607, 2130969771, 2130969786};
+
+    /* renamed from: d  reason: collision with root package name */
+    public static final int[] f4487d = {2130968807, 2130968810};
+    public static final int[] e = {2130968808, 2130969370, 2130969586};
+
+    /* renamed from: f  reason: collision with root package name */
+    public static final int[] f4488f = {2130968689, 2130968690};
+
+    /* renamed from: g  reason: collision with root package name */
+    public static final int[] f4489g = {2130968689};
+
+    /* renamed from: h  reason: collision with root package name */
+    public static final int[] f4490h = {16843017, 16843264, 2130969125};
+    public static final int[] i = {16843296, 16843916, 2130969000, 2130969615, 2130969616, 2130969617, 2130969618};
+
+    /* renamed from: j  reason: collision with root package name */
+    public static final int[] f4491j = {16842964, 16843191, 16843192, 16843193, 16843194, 16843237, 2130968666, 2130968667, 2130968925, 2130969010, 2130969165, 2130969167, 2130969168, 2130969169, 2130969172, 2130969173, 2130969564, 2130969588, 2130969596, 2130969665, 2130969666, 2130969835};
+
+    /* renamed from: k  reason: collision with root package name */
+    public static final int[] f4492k = {16842766, 2130968766, 2130969585, 2130969622};
+
+    /* renamed from: l  reason: collision with root package name */
+    public static final int[] f4493l = {16843277, 2130968666, 2130968952, 2130968953, 2130968954, 2130968955, 2130969472, 2130969549, 2130969906, 2130969907, 2130969908};
+
+    /* renamed from: m  reason: collision with root package name */
+    public static final int[] f4494m = {16843191, 16843192, 16843193, 16843194, 2130969200, 2130969212, 2130969213, 2130969220, 2130969221, 2130969226};
+
+    /* renamed from: n  reason: collision with root package name */
+    public static final int[] f4495n = {16843015, 2130968729, 2130968731, 2130968733, 2130968734, 2130968738, 2130968759, 2130968775, 2130969031, 2130969038, 2130969876};
+
+    /* renamed from: o  reason: collision with root package name */
+    public static final int[] f4496o = {2130968738, 2130969876};
+
+    /* renamed from: p  reason: collision with root package name */
+    public static final int[] f4497p = {2130969588, 2130969596};
+
+    /* renamed from: q  reason: collision with root package name */
+    public static final int[] f4498q = {16843958, 16844159, 2130969316};
+
+    /* renamed from: r  reason: collision with root package name */
+    public static final int[] f4499r = {16842804, 16844159, 2130969316};
+
+    /* renamed from: s  reason: collision with root package name */
+    public static final int[] f4500s = {2130969335, 2130969337, 2130969465, 2130969674, 2130969821};
+
+    /* renamed from: t  reason: collision with root package name */
+    public static final int[] f4501t = {2130969370};
+
+    /* renamed from: u  reason: collision with root package name */
+    public static final int[] f4502u = {2130968696};
+
+    /* renamed from: v  reason: collision with root package name */
+    public static final int[] f4503v = {2130968920, 2130968921, 2130968922, 2130968923, 2130968924, 2130968926, 2130968927, 2130968928, 2130968929, 2130968930};
+
+    /* renamed from: w  reason: collision with root package name */
+    public static final int[] f4504w = {16843039, 16843040, 16843840, 2130968666, 2130968691, 2130968919, 2130969588, 2130969596};
+
+    /* renamed from: x  reason: collision with root package name */
+    public static final int[] f4505x = {16843039, 2130968612, 2130968636, 2130968663, 2130968666, 2130968667, 2130969010, 2130969390, 2130969588, 2130969596};
+
+    /* renamed from: y  reason: collision with root package name */
+    public static final int[] f4506y = {16842901, 16842902, 16842903, 16842904, 16842906, 16842907, 16843105, 16843106, 16843107, 16843108, 16843692, 16844165, 2130969112, 2130969121, 2130969726, 2130969781};
+
+    /* renamed from: z  reason: collision with root package name */
+    public static final int[] f4507z = {2130969776};
+}

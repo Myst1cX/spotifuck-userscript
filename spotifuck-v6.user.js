@@ -168,14 +168,9 @@
                     setTimeout(() => switchLs(), 0);
                 });
 
-                // Collapse library on startup if it's expanded
-                // Check if button says "Collapse" (meaning library is currently expanded)
-                if (libBtn.getAttribute('aria-label') === LIBRARY_BUTTON_COLLAPSED) {
-                    console.log('Library is expanded on startup, collapsing it...');
-                    // Click the button to let Spotify update its state properly
-                    // This ensures the button will show "Open your library" after collapse
-                    libBtn.click();
-                }
+                // Apply initial library state styling
+                // This syncs the CSS with the current button state
+                switchLs();
             }
         };
 
