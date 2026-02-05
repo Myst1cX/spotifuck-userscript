@@ -213,9 +213,10 @@
                         // Add delay to allow Spotify's navigation to complete first
                         // Increased delay to ensure navigation starts before collapsing
                         setTimeout(() => {
-                            // Use button click to collapse so button state stays synchronized
-                            // Longer delay (300ms) ensures navigation has started and won't be cancelled
-                            if (window.lBtn) {
+                            // Check if library is still expanded before collapsing
+                            // This prevents unnecessary clicks if user manually collapsed it
+                            if (window.lBtn && window.lBtn.getAttribute('aria-label') === 'Collapse Your Library') {
+                                // Library is still expanded, collapse it
                                 window.lBtn.click();
                             }
                             closeNowPlay();
