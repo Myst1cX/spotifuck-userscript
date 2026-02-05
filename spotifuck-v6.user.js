@@ -375,6 +375,10 @@ aside[data-testid=now-playing-bar]{background:#000!important;box-shadow:none;bor
      * Ported from v5 for silent audio ad blocking functionality
      */
     (function silentAudioAdBlocker() {
+        if (typeof window.fetch !== 'function') {
+            console.error('[Spotifuck] window.fetch not available, ad blocker disabled');
+            return;
+        }
         const originalFetch = window.fetch;
         const silentAudioBlob = new Blob([new Uint8Array(44)], { type: 'audio/wav' });
         window.fetch = function(resource, init) {
@@ -389,6 +393,7 @@ aside[data-testid=now-playing-bar]{background:#000!important;box-shadow:none;bor
             }
             return originalFetch.apply(this, arguments);
         };
+        console.log('[Spotifuck] Ad blocker initialized');
     })();
 
     // Initialize immediately
