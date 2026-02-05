@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Spotifuck v6 
+// @name         Spotifuck Userscript
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      6.3
+// @version      6.4
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + silent ad blocking port on open.spotify.com
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        https://open.spotify.com/*
@@ -23,13 +23,14 @@
  * - Auto-close library on item selection
  * - UI improvements (sidebar, search bar, playback controls)
  * - Video ad detection and blocking
+ * - Silent audio ad blocking (from v5)
  * - CSS hacks for better mobile experience
  */
 
 (function() {
     'use strict';
 
-    console.log('🎵 Spotifuck v6 - APK v1.6.4 Port');
+    console.log('🎵 Spotifuck v6.4 - APK v1.6.4 Port');
 
     // Global state variables
     let ulFlag = false;  // Unlock flag
@@ -390,6 +391,27 @@ aside[data-testid=now-playing-bar]{background:#000!important;box-shadow:none;bor
         console.log('#CSS Injected');
     }
 
+    /**
+     * silentAudioAdBlocker - Intercept fetch() to block audio ads
+     * Ported from v5 for silent audio ad blocking functionality
+     */
+    (function silentAudioAdBlocker() {
+        const originalFetch = window.fetch;
+        const silentAudioBlob = new Blob([new Uint8Array(44)], { type: 'audio/wav' });
+        window.fetch = function(resource, init) {
+            const url = (typeof resource === 'string') ? resource : resource.url;
+            if (url && url.includes('audio/mpeg')) {
+                console.log('[Spotifuck] Blocking audio ad:', url);
+                return Promise.resolve(new Response(silentAudioBlob, {
+                    status: 200,
+                    statusText: 'OK',
+                    headers: { 'Content-Type': 'audio/wav' }
+                }));
+            }
+            return originalFetch.apply(this, arguments);
+        };
+    })();
+
     // Initialize immediately
     injectCSS();
     firstFuck();
@@ -403,5 +425,5 @@ aside[data-testid=now-playing-bar]{background:#000!important;box-shadow:none;bor
         console.log('#Cleanup: Interval cleared');
     });
 
-    console.log('🚀 Spotifuck v6 Ready (APK v1.6.4 Port)');
+    console.log('🚀 Spotifuck Userscript v6.4 Initialized');
 })();
