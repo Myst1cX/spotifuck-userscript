@@ -4,7 +4,7 @@
 // @version      2.1.0
 // @description  Full Spotifuck 1.4.1 UI hack for mobile browser + playback control + spoofclient + silent ad blocking
 // @author       Myst1cX (adapted from Spotifuck reverse-engineering)
-// @match        https://open.spotify.com/*
+// @match        *://open.spotify.com/*
 // @grant        GM_addStyle
 // @run-at       document-start
 // @homepageURL  https://github.com/Myst1cX/spotifuck-userscript
@@ -286,3 +286,4 @@
         addSearchFocusListeners();
     }, 5000);
  })();
+
