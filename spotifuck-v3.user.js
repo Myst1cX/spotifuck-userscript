@@ -4,7 +4,7 @@
 // @version      3.0.0
 // @description  Full Spotifuck 1.4.1 UI hack + playback control + client spoof + silent ad blocking port on open.spotify.com
 // @author       Myst1cX (adapted from Spotifuck app)
-// @match        https://open.spotify.com/*
+// @match        *://open.spotify.com/*
 // @grant        GM_addStyle
 // @run-at       document-start
 // @homepageURL  https://github.com/Myst1cX/spotifuck-userscript
