@@ -46,7 +46,8 @@
 > 11. Go back to Firefox browser > Firefox Settings > Site settings > Click on "DRM-controlled content" and select "Allowed"
 > 12. Restart Firefox
 > 13. Open Spotify Web and login to your account
-> 14. The interface should be mobile-friendly > If it ever resets, repeat steps 7 and 8 > Keep Desktop Mode Disabled 
+> 14. The interface should be mobile-friendly > If it ever resets, try redoing the Chameleon extension configuration and refreshing the Spotify page
+> 15. NOTE: Keep Desktop Mode (browser setting) disabled.
 
 * * *
 > **TIP 1:** All UI changes and playback controls apply instantly. No configuration needed!
