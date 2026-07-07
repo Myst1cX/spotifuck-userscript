@@ -1,6 +1,6 @@
 ## SPOTIFUCK USERSCRIPT
 
-> Ports the full Spotifuck 1.4.1 UI hack experience directly to the Spotify Web Player for use in the Firefox mobile browser.  
+> Ports the full Spotifuck 1.6.4 UI hack experience directly to the Spotify Web Player for use in the Firefox mobile browser.  
 > Provides **UI enhancements**, **playback controls**, **desktop client spoof**, and **silent ad blocking** for a cleaner and unrestricted Spotify experience.  
 > **Recommended userscript manager:** [Violentmonkey](https://violentmonkey.github.io/)
 
