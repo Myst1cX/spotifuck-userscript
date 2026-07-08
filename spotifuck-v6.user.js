@@ -23,6 +23,8 @@
  * - Auto-close library on playlist selection (and load the playlist)
  * - UI improvements (sidebar, search bar, playback controls)
  * - CSS hacks for better mobile experience
+ * Fixed from APK:
+  * - Library folder navigation (original behavior auto-closed library on any item selection, including folders.
  */
 
 (function() {
