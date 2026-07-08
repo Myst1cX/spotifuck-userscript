@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Spotifuck 
+// @name         Spotifuck
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      6.2
+// @version      6.3
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -25,6 +25,13 @@
  * - CSS hacks for better mobile experience
  * Fixed from APK:
   * - Library folder navigation (original behavior auto-closed library on any item selection, including folders.
+ * Newly added:
+ * - Browser-side equivalent of Spotifuck's ForceEn that forces Android app locale to English before loading its WebView
+ * - (Forces English on open.spotify.com: overrides navigator.language/languages,
+ *   and strips a non-English /intl-xx/ locale prefix from the URL if present.)
+ * - The feature is a functional dependency because of the following buttons hardcoded to English aria-label text:
+ * const libBtn = document.querySelector('#Desktop_LeftSidebar_Id header button[aria-label*="Your Library"]:not(.fuckd)');
+ * if (libBtn.getAttribute('aria-label') === 'Collapse Your Library') {
  */
 
 (function() {
@@ -36,6 +43,24 @@
     let ulFlag = false;  // Unlock flag
     let ffDone = false;  // First fuck done (firstFuck initialization complete)
     let pfint = null;    // Primary features interval
+
+    /**
+     * forceEnglish - Force the web player to render in English.
+     * open.spotify.com localizes via an /intl-xx/ URL prefix
+     * Runs at document-start, before Spotify's own scripts get a chance to read navigator.language.
+     */
+    function forceEnglish() {
+        try {
+            Object.defineProperty(navigator, 'language', { get: () => 'en-US', configurable: true });
+            Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'], configurable: true });
+        } catch (e) {}
+
+        const m = location.pathname.match(/^\/intl-([a-z]{2})(\/.*)?$/i);
+        if (m && m[1].toLowerCase() !== 'en') {
+            location.replace(location.origin + (m[2] || '/') + location.search + location.hash);
+        }
+    }
+    forceEnglish();
 
     // Note: Class name ".fuckd" used throughout is from original APK source (r0/e.java)
     // It marks elements as "already processed" to prevent duplicate event handlers
