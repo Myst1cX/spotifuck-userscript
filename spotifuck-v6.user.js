@@ -25,7 +25,7 @@
  * - CSS hacks for better mobile experience
  * Fixed from APK:
   * - Library folder navigation (original behavior auto-closed library on any item selection, including folders.
- * Newly added:
+ * Newly added (v6.3):
  * - Browser-side equivalent of Spotifuck's ForceEn that forces Android app locale to English before loading its WebView
  * - (Forces English on open.spotify.com: overrides navigator.language/languages,
  *   and strips a non-English /intl-xx/ locale prefix from the URL if present.)
