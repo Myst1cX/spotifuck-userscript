@@ -2,7 +2,7 @@
 // @name         Spotifuck 
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
 // @version      6.2
-// @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + silent ad blocking port on open.spotify.com
+// @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
 // @grant        none
