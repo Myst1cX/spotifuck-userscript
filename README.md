@@ -36,7 +36,7 @@
 > 1. Download the latest version of Firefox (Original version! - Nightly or other releases might break your userscript manager).
 > 2. Install [Violentmonkey](https://violentmonkey.github.io/)  
 > 3. Recommended: [Ublock Origin](https://addons.mozilla.org/en-US/firefox/addon/ublock-origin/)
-> 4. Recommended: [Spotify AdBlocker](https://greasyfork.org/en/scripts/522592-spotify-adblocker)
+> 4. Alternative to Ublock Origin for blocking Spotify ads: [uSpot - Spotify AdBlocker](https://github.com/Myst1cX/uSpot/)
 > 5. Recommended - for stock lyrics button: [Cigi Spotify Translator](https://greasyfork.org/en/scripts/523415-cigi-spotify-translator)
 > 6. Recommended: [Spotify Lyrics+](https://raw.githubusercontent.com/Myst1cX/spotify-web-lyrics-plus/main/pip-gui-stable.user.js)
 > 7. Install [Spotifuck](https://raw.githubusercontent.com/Myst1cX/spotifuck-userscript/main/spotifuck-v6.user.js)
