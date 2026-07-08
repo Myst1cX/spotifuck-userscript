@@ -22,7 +22,6 @@
  * - Pure black AMOLED mode for playback controls
  * - Auto-close library on item selection
  * - UI improvements (sidebar, search bar, playback controls)
- * - Video ad detection and blocking
  * - CSS hacks for better mobile experience
  */
 
