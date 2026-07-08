@@ -20,7 +20,7 @@
  * Features from APK:
  * - Library button toggle (expand 100%×100% / collapse 48×48px)
  * - Pure black AMOLED mode for playback controls
- * - Auto-close library on item selection
+ * - Auto-close library on playlist selection (and load the playlist)
  * - UI improvements (sidebar, search bar, playback controls)
  * - CSS hacks for better mobile experience
  */
