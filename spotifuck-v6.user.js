@@ -46,7 +46,7 @@
  *   actually takes effect. A localStorage flag means this only runs once ever, and skips the reload
  *   entirely if the account was already set to English.
 
- * Newly added (v6.5) - Fixed "Force English" again (v6.4 has some bug cases)
+ * Newly added (v6.4.fix) - Fixed "Force English" again (v6.4 had some bug cases)
  * - Fixed a case where, if a user landed directly on /preferences (rather than
  *   via the hidden iframe), the code that watches for the language <select> to
  *   appear never actually started watching - it silently did nothing and timed
@@ -59,6 +59,8 @@
  * - The dispatched change event is no longer trusted as proof the setting
  *   actually saved. It's now verified on the next load before being treated as
  *   done, with a capped number of retries if it didn't stick.
+
+ * Newly added (v6.5) - Fixed "Force English" again (:D)
  * - Fixed a race where the hidden iframe's "did it finish loading" check and
  *   its 15-second give-up timer could both fire for the same attempt if the
  *   timing landed close together, causing the same logic to run twice. Now
