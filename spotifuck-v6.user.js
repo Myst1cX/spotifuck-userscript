@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      6.3.was.not.working
+// @version      6.4
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -23,8 +23,10 @@
  * - Auto-close library on playlist selection (and load the playlist)
  * - UI improvements (sidebar, search bar, playback controls)
  * - CSS hacks for better mobile experience
+ 
  * Fixed from APK:
   * - Library folder navigation (original behavior auto-closed library on any item selection, including folders.
+  
  * Newly added (v6.3):
  * - Browser-side equivalent of Spotifuck's ForceEn that forces Android app locale to English before loading its WebView
  * - (Forces English on open.spotify.com: overrides navigator.language/languages,
@@ -32,6 +34,17 @@
  * - The feature is a functional dependency because of the following buttons hardcoded to English aria-label text:
  * const libBtn = document.querySelector('#Desktop_LeftSidebar_Id header button[aria-label*="Your Library"]:not(.fuckd)');
  * if (libBtn.getAttribute('aria-label') === 'Collapse Your Library') {
+ 
+ * Newly added (v6.4) - Fixed "Force English" (v6.3 was not working at all)
+ * - forceEnglish() actually forces English now. The v6.3 version only overrode
+ *   navigator.language and stripped the /intl-xx/ URL prefix, both of which only
+ *   affect a single page load - the aria-labels Spotify actually renders (e.g.
+ *   "Open Your Library") are driven by the account-level language preference at
+ *   open.spotify.com/preferences, which is saved server-side. forceEnglish() now
+ *   also flips that setting to "en" once, via a hidden iframe so it doesn't
+ *   disrupt whatever the user is looking at, then reloads the page so the change
+ *   actually takes effect. A localStorage flag means this only runs once ever, and skips the reload
+ *   entirely if the account was already set to English.
  */
 
 (function() {
@@ -59,7 +72,114 @@
         if (m && m[1].toLowerCase() !== 'en') {
             location.replace(location.origin + (m[2] || '/') + location.search + location.hash);
         }
+
+        forceEnglishAccountSetting();
     }
+
+    /**
+     * forceEnglishAccountSetting - Flip the account-level language preference
+     * (open.spotify.com/preferences, <select id="desktop.settings.selectLanguage">)
+     * to "en" (the "English (English)" option - the base/US-flavored English;
+     * "en-GB" is a separate option and NOT what this targets).
+     * navigator.language and the /intl-xx/ URL prefix above only affect this one
+     * page load - the aria-labels Spotify actually renders (e.g. "Open Your
+     * Library") are driven by this account setting, which is saved server-side
+     * and persists across sessions/devices once set. So this only needs to run
+     * once; a localStorage flag prevents repeating it on every page load.
+     * Confirmed by hand: the setter+dispatch trick below does persist the
+     * setting, but the already-rendered page doesn't pick it up on its own -
+     * only a reload/navigation does. So on first success this reloads the page
+     * once; every load after that is a no-op (DONE_KEY already set).
+     */
+    function forceEnglishAccountSetting() {
+        const DONE_KEY = 'spotifuckForcedEnglishAccountSetting';
+        if (localStorage.getItem(DONE_KEY) === 'true') return;
+        if (window.top !== window.self) return; // only the top frame drives this
+
+        const finish = (changed) => {
+            localStorage.setItem(DONE_KEY, 'true');
+            if (!changed) {
+                console.log('Spotifuck: account language already English - no reload needed');
+                return;
+            }
+            console.log('Spotifuck: account language now English - reloading to apply');
+            // Small delay so the backend save (fired by the dispatched change
+            // event) has time to actually go out before we tear the page down.
+            setTimeout(() => location.reload(), 1000);
+        };
+
+        if (location.pathname.startsWith('/preferences')) {
+            // Already on the settings page (user navigated here themselves) - just apply directly.
+            applyEnglishToLanguageSelect(document, finish);
+            return;
+        }
+
+        // Not on the settings page - load it in a hidden iframe purely to flip
+        // this one setting, without disrupting whatever the user is looking at.
+        // Same-origin (open.spotify.com -> open.spotify.com), so contentDocument
+        // access is allowed.
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.src = 'https://open.spotify.com/preferences';
+        (document.documentElement || document.body).appendChild(iframe);
+
+        iframe.addEventListener('load', () => {
+            try {
+                applyEnglishToLanguageSelect(iframe.contentDocument, finish);
+            } catch (e) {
+                console.log('Spotifuck: could not access preferences iframe', e);
+                iframe.remove();
+            }
+        });
+
+        // Safety net in case the select never appears (layout change, slow load, etc.)
+        setTimeout(() => iframe.remove(), 15000);
+    }
+
+    /**
+     * applyEnglishToLanguageSelect - Set the given document's language <select>
+     * to "en" and dispatch a real change event so Spotify's own (React-controlled)
+     * handler picks it up and saves it - a plain .value assignment gets silently
+     * overwritten by React's next render, so this goes through the native
+     * property setter first, same trick needed for any React-controlled input.
+     * @param {Document} doc - document to operate on (main doc or iframe's)
+     * @param {Function} onDone - called with (changed: boolean) once resolved -
+     *   true if the value was actually flipped to "en", false if it was already "en"
+     */
+    function applyEnglishToLanguageSelect(doc, onDone) {
+        const trySelect = () => {
+            const select = doc.getElementById('desktop.settings.selectLanguage');
+            if (!select) return false;
+
+            if (select.value === 'en') {
+                console.log('Spotifuck: account language already English (en)');
+                onDone(false);
+                return true;
+            }
+
+            const win = doc.defaultView || window;
+            const nativeSetter = Object.getOwnPropertyDescriptor(win.HTMLSelectElement.prototype, 'value').set;
+            nativeSetter.call(select, 'en');
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+
+            console.log('Spotifuck: forced account language to English (en)');
+            onDone(true);
+            return true;
+        };
+
+        if (trySelect()) return;
+
+        // Settings page is client-rendered - the <select> may not exist yet.
+        const win = doc.defaultView || window;
+        const observer = new win.MutationObserver(() => {
+            if (trySelect()) observer.disconnect();
+        });
+        if (doc.body) {
+            observer.observe(doc.body, { childList: true, subtree: true });
+        }
+        setTimeout(() => observer.disconnect(), 12000);
+    }
+
     forceEnglish();
 
     // Note: Class name ".fuckd" used throughout is from original APK source (r0/e.java)
