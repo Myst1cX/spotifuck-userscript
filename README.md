@@ -17,10 +17,6 @@
 > **CLIENT SPOOFING**  
 > Spoofs browser and device properties to unlock desktop features (e.g., screen size, platform, vendor).
 >
-> **SILENT AD BLOCKING**  
-> Blocks audio ads by intercepting requests and replacing them with silent audio.  
-> No visual interruptions or delays.
->
 > **SIDEBAR & SEARCH FIXES**  
 > Adds improved sidebar toggle, fixes for library/playlist navigation, and better search behavior.
 >
