@@ -1,0 +1,531 @@
+// ==UserScript==
+// @name         Spotifuck Beta
+// @namespace    https://github.com/Myst1cX/spotifuck-userscript
+// @version      6.4.beta
+// @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control
+// @author       Myst1cX (adapted from Spotifuck app)
+// @match        *://open.spotify.com/*
+// @grant        none
+// @run-at       document-start
+// @homepageURL  https://github.com/Myst1cX/spotifuck-userscript
+// @supportURL   https://github.com/Myst1cX/spotifuck-userscript/issues
+// @updateURL    https://raw.githubusercontent.com/Myst1cX/spotifuck-userscript/main/spotifuck-v6-beta.user.js
+// @downloadURL  https://raw.githubusercontent.com/Myst1cX/spotifuck-userscript/main/spotifuck-v6-beta.user.js
+// ==/UserScript==
+
+
+/*
+ * Spotifuck v6 - Accurate port from reverse-engineered v1.6.4 APK
+ * Based on r0/e.java from classes1.dex
+ *
+ * Features from APK:
+ * - Library button toggle (expand 100%×100% / collapse 48×48px)
+ * - Pure black AMOLED mode for playback controls
+ * - Auto-close library on playlist selection (and load the playlist)
+ * - UI improvements (sidebar, search bar, playback controls)
+ * - CSS hacks for better mobile experience
+ 
+ * Fixed from APK:
+  * - Library folder navigation (original behavior auto-closed library on any item selection, including folders.
+  
+ * Newly added (v6.3):
+ * - Browser-side equivalent of Spotifuck's ForceEn that forces Android app locale to English before loading its WebView
+ * - (Forces English on open.spotify.com: overrides navigator.language/languages,
+ *   and strips a non-English /intl-xx/ locale prefix from the URL if present.)
+ * - The feature is a functional dependency because of the following buttons hardcoded to English aria-label text:
+ * const libBtn = document.querySelector('#Desktop_LeftSidebar_Id header button[aria-label*="Your Library"]:not(.fuckd)');
+ * if (libBtn.getAttribute('aria-label') === 'Collapse Your Library') {
+ 
+ * Newly added (v6.4) - Fixed "Force English" (v6.3 was not working at all)
+ * - forceEnglish() actually forces English now. The v6.3 version only overrode
+ *   navigator.language and stripped the /intl-xx/ URL prefix, both of which only
+ *   affect a single page load - the aria-labels Spotify actually renders (e.g.
+ *   "Open Your Library") are driven by the account-level language preference at
+ *   open.spotify.com/preferences, which is saved server-side. forceEnglish() now
+ *   also flips that setting to "en" once, via a hidden iframe so it doesn't
+ *   disrupt whatever the user is looking at, then reloads the page so the change
+ *   actually takes effect. A localStorage flag means this only runs once ever, and skips the reload
+ *   entirely if the account was already set to English.
+
+ * Newly added (v6.4.beta):
+ * - Removed the library toggle button's own hardcoded-English dependency
+ *   (the buttons quoted in the v6.3 note above) as a separate fix, so it no
+ *   longer needs forceEnglish() to be working correctly in the first place:
+ *   - Finding the button: switched from matching aria-label*="Your Library" to
+ *     a structural selector (header>div>div:first-child button) - the toggle is
+ *     always the first button in that wrapper, ahead of the "Go back" button and
+ *     folder-name button that appear as later siblings when browsing into a
+ *     folder. Confirmed against captured DOM for both the root and in-folder cases.
+ *   - Reading its state: switched from comparing aria-label === "Collapse Your
+ *     Library" to counting the button's <svg> icons - the expanded/"Collapse"
+ *     state renders one, the collapsed/"Open" state renders two. Stable across
+ *     languages since it's just icon markup, not text.
+ */
+
+(function() {
+    'use strict';
+
+    console.log('🎵 Spotifuck v6 - APK v1.6.4 Port');
+
+    // Global state variables
+    let ulFlag = false;  // Unlock flag
+    let ffDone = false;  // First fuck done (firstFuck initialization complete)
+    let pfint = null;    // Primary features interval
+
+    /**
+     * forceEnglish - Force the web player to render in English.
+     * open.spotify.com localizes via an /intl-xx/ URL prefix
+     * Runs at document-start, before Spotify's own scripts get a chance to read navigator.language.
+     */
+    function forceEnglish() {
+        try {
+            Object.defineProperty(navigator, 'language', { get: () => 'en-US', configurable: true });
+            Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'], configurable: true });
+        } catch (e) {}
+
+        const m = location.pathname.match(/^\/intl-([a-z]{2})(\/.*)?$/i);
+        if (m && m[1].toLowerCase() !== 'en') {
+            location.replace(location.origin + (m[2] || '/') + location.search + location.hash);
+        }
+
+        forceEnglishAccountSetting();
+    }
+
+    /**
+     * forceEnglishAccountSetting - Flip the account-level language preference
+     * (open.spotify.com/preferences, <select id="desktop.settings.selectLanguage">)
+     * to "en" (the "English (English)" option - the base/US-flavored English;
+     * "en-GB" is a separate option and NOT what this targets).
+     * navigator.language and the /intl-xx/ URL prefix above only affect this one
+     * page load - the aria-labels Spotify actually renders (e.g. "Open Your
+     * Library") are driven by this account setting, which is saved server-side
+     * and persists across sessions/devices once set. So this only needs to run
+     * once; a localStorage flag prevents repeating it on every page load.
+     * Confirmed by hand: the setter+dispatch trick below does persist the
+     * setting, but the already-rendered page doesn't pick it up on its own -
+     * only a reload/navigation does. So on first success this reloads the page
+     * once; every load after that is a no-op (DONE_KEY already set).
+     */
+    function forceEnglishAccountSetting() {
+        const DONE_KEY = 'spotifuckForcedEnglishAccountSetting';
+        if (localStorage.getItem(DONE_KEY) === 'true') return;
+        if (window.top !== window.self) return; // only the top frame drives this
+
+        const finish = (changed) => {
+            localStorage.setItem(DONE_KEY, 'true');
+            if (!changed) {
+                console.log('Spotifuck: account language already English - no reload needed');
+                return;
+            }
+            console.log('Spotifuck: account language now English - reloading to apply');
+            // Small delay so the backend save (fired by the dispatched change
+            // event) has time to actually go out before we tear the page down.
+            setTimeout(() => location.reload(), 1000);
+        };
+
+        if (location.pathname.startsWith('/preferences')) {
+            // Already on the settings page (user navigated here themselves) - just apply directly.
+            applyEnglishToLanguageSelect(document, finish);
+            return;
+        }
+
+        // Not on the settings page - load it in a hidden iframe purely to flip
+        // this one setting, without disrupting whatever the user is looking at.
+        // Same-origin (open.spotify.com -> open.spotify.com), so contentDocument
+        // access is allowed.
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.src = 'https://open.spotify.com/preferences';
+        (document.documentElement || document.body).appendChild(iframe);
+
+        iframe.addEventListener('load', () => {
+            try {
+                applyEnglishToLanguageSelect(iframe.contentDocument, finish);
+            } catch (e) {
+                console.log('Spotifuck: could not access preferences iframe', e);
+                iframe.remove();
+            }
+        });
+
+        // Safety net in case the select never appears (layout change, slow load, etc.)
+        setTimeout(() => iframe.remove(), 15000);
+    }
+
+    /**
+     * applyEnglishToLanguageSelect - Set the given document's language <select>
+     * to "en" and dispatch a real change event so Spotify's own (React-controlled)
+     * handler picks it up and saves it - a plain .value assignment gets silently
+     * overwritten by React's next render, so this goes through the native
+     * property setter first, same trick needed for any React-controlled input.
+     * @param {Document} doc - document to operate on (main doc or iframe's)
+     * @param {Function} onDone - called with (changed: boolean) once resolved -
+     *   true if the value was actually flipped to "en", false if it was already "en"
+     */
+    function applyEnglishToLanguageSelect(doc, onDone) {
+        const trySelect = () => {
+            const select = doc.getElementById('desktop.settings.selectLanguage');
+            if (!select) return false;
+
+            if (select.value === 'en') {
+                console.log('Spotifuck: account language already English (en)');
+                onDone(false);
+                return true;
+            }
+
+            const win = doc.defaultView || window;
+            const nativeSetter = Object.getOwnPropertyDescriptor(win.HTMLSelectElement.prototype, 'value').set;
+            nativeSetter.call(select, 'en');
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+
+            console.log('Spotifuck: forced account language to English (en)');
+            onDone(true);
+            return true;
+        };
+
+        if (trySelect()) return;
+
+        // Settings page is client-rendered - the <select> may not exist yet.
+        const win = doc.defaultView || window;
+        const observer = new win.MutationObserver(() => {
+            if (trySelect()) observer.disconnect();
+        });
+        if (doc.body) {
+            observer.observe(doc.body, { childList: true, subtree: true });
+        }
+        setTimeout(() => observer.disconnect(), 12000);
+    }
+
+    forceEnglish();
+
+    // Note: Class name ".fuckd" used throughout is from original APK source (r0/e.java)
+    // It marks elements as "already processed" to prevent duplicate event handlers
+
+    /**
+     * switchLs - Toggle library sidebar between expanded and collapsed states
+     * From r0/e.java line 202: window.switchLs=function(){...}
+     * @param {boolean} forceCollapse - If true, force collapse regardless of current state
+     */
+    window.switchLs = function(forceCollapse = false) {
+        const leftSidebar = document.querySelector('#Desktop_LeftSidebar_Id');
+        if (!leftSidebar) return;
+
+        const navFirstChild = leftSidebar.querySelector('nav>div>div:first-child');
+        if (!navFirstChild) return;
+
+        // Check if expanded (classList.length === 2 means expanded in APK logic)
+        const isExpanded = navFirstChild.classList.length === 2;
+
+        if (!forceCollapse && isExpanded) {
+            // Expand to full-screen overlay
+            console.log('#Library: Expanded');
+            leftSidebar.style.position = 'fixed';
+            leftSidebar.style.width = '100%';
+            leftSidebar.style.height = '100%';
+            leftSidebar.style.left = '0';
+            leftSidebar.style.top = '0';
+            leftSidebar.style.zIndex = '20';
+
+            const headerH1 = leftSidebar.querySelector('header>div>div:first-child h1');
+            if (headerH1) {
+                // Using textContent for security, then manually adding close icon
+                headerH1.textContent = '✖ \u00A0 Close Library';
+            }
+        } else {
+            // Collapse to small button
+            console.log('#Library: Collapsed');
+            leftSidebar.style.zIndex = '1';
+            leftSidebar.style.position = 'fixed';
+            leftSidebar.style.top = '0';
+            leftSidebar.style.left = '60px';
+            leftSidebar.style.width = '48px';
+            leftSidebar.style.height = '48px';
+        }
+    };
+
+    /**
+     * closeNowPlay - Close the now-playing right panel if open
+     * From r0/e.java line 200: window.closeNowPlay=function(){...}
+     */
+    window.closeNowPlay = function() {
+        const panelContainer = document.querySelector('#Desktop_PanelContainer_Id');
+        if (panelContainer && panelContainer.parentNode.parentNode.ariaHidden === 'false') {
+            console.log('#Close NowPlaying');
+            const toggleBtn = panelContainer.parentNode.parentNode.nextElementSibling?.querySelector('button');
+            if (toggleBtn) toggleBtn.click();
+        }
+    };
+
+    /**
+     * firstFuck - Main initialization and monitoring loop
+     * From r0/e.java line 178: window.firstFuck=function(){...}
+     */
+    window.firstFuck = function() {
+        if (pfint) clearInterval(pfint);
+
+        pfint = setInterval(() => {
+            // Find and setup play button
+            const playBtn = document.querySelector('aside button[data-testid=control-button-playpause]:not(.fuckd)');
+            if (playBtn) {
+                console.log('#pBtn fuckd');
+                playBtn.classList.add('fuckd');
+                window.pBtn = playBtn;
+
+                // Add click handler
+                window.pBtn.addEventListener('click', () => {
+                    console.log('PlayClicked');
+                    if (window.pBtn && window.pBtn.getAttribute('aria-label') !== 'Play') {
+                        console.log('Pause Req');
+                        ulFlag = false;
+                    } else if (!ulFlag) {
+                        console.log('Play Req');
+                        ulFlag = true;
+                        setTimeout(() => {
+                            console.log('Unlocker Timeout Reached');
+                            // Add null check for pBtn in timeout callback
+                            if (window.pBtn && ulFlag && window.pBtn.getAttribute('aria-label') === 'Play') {
+                                console.log('#Unlocking!');
+                                ulFlag = false;
+                            } else if (ulFlag) {
+                                console.log('Playing, Removing Unlocker');
+                                ulFlag = false;
+                            }
+                        }, 10000);
+                    }
+                });
+
+                // First initialization
+                if (!ffDone) {
+                    ffDone = true;
+                    console.log('FirstFuck Adding All Features');
+                    addCSSJSHack();
+                }
+            }
+        }, 5000);
+    };
+
+    /**
+     * addCSSJSHack - Add CSS modifications and event listeners
+     * From r0/e.java line 200: window.addCSSJSHack=function(){...}
+     */
+    window.addCSSJSHack = function() {
+        // Setup library button once
+        const setupLibraryButton = () => {
+            // Structural (language-independent) selector: the library toggle button
+            // always sits inside the header's first-child wrapper div, ahead of the
+            // "Go back" button and folder-name button that appear as later siblings
+            // when browsing inside a folder - confirmed against both root and
+            // in-folder DOM captures. querySelector returns the first match in
+            // document order, so this reliably grabs the toggle, never "Go back".
+            const libBtn = document.querySelector('#Desktop_LeftSidebar_Id header > div > div:first-child button:not(.fuckd)');
+
+            if (libBtn && !libBtn.classList.contains('fuckd')) {
+                console.log('LibBtnFuckd');
+                window.lBtn = libBtn;
+                libBtn.classList.add('fuckd', 'lbtn');
+                libBtn.style.padding = '0';
+                libBtn.style.height = '20px';
+                libBtn.addEventListener('click', function() {
+                    setTimeout(() => switchLs(), 0);
+                });
+
+                // Collapse library on startup if it's expanded
+                // Language-independent check: the "Collapse" (expanded) state renders
+                // one <svg> icon in the button, the "Open" (collapsed) state renders two
+                // (see icon markup captured for both states - counts are stable, unlike
+                // the aria-label text which is Spotify's own localization).
+                if (libBtn.querySelectorAll('svg').length === 1) {
+                    console.log('Library is expanded on startup, collapsing it...');
+                    // Click the button to let Spotify update its state properly
+                    // This ensures the button will show "Open your library" after collapse
+                    libBtn.click();
+                }
+            }
+        };
+
+        // Setup library grid click handler once
+        const setupLibraryGrid = () => {
+            const libGrid = document.querySelector('#Desktop_LeftSidebar_Id div[role=grid]:not(.fuckd)');
+            if (libGrid) {
+                libGrid.classList.add('fuckd');
+
+                libGrid.addEventListener('click', (event) => {
+                    // Check if clicked element or its parent is a folder
+                    let target = event.target;
+                    let isFolder = false;
+
+                    // Traverse up to 5 levels to find the button element
+                    for (let i = 0; i < 5 && target; i++) {
+                        // Check aria-labelledby for :folder: pattern (verified from Spotify DOM)
+                        const ariaLabelledBy = target.getAttribute('aria-labelledby');
+                        if (ariaLabelledBy && ariaLabelledBy.includes(':folder:')) {
+                            isFolder = true;
+                            console.log('Folder clicked (aria-labelledby contains ":folder:"), keeping library open');
+                            break;
+                        }
+
+                        // Check aria-describedby for :folder: pattern
+                        const ariaDescribedBy = target.getAttribute('aria-describedby');
+                        if (ariaDescribedBy && ariaDescribedBy.includes(':folder:')) {
+                            isFolder = true;
+                            console.log('Folder clicked (aria-describedby contains ":folder:"), keeping library open');
+                            break;
+                        }
+
+                        target = target.parentElement;
+                    }
+
+                    // Only auto-close library if it's NOT a folder
+                    if (!isFolder) {
+                        console.log('AutoCloseLib (playlist/item clicked)');
+                        // Add delay to allow Spotify's navigation to complete first
+                        // IMPORTANT: Use switchLs(true) for direct CSS collapse, NOT lBtn.click()
+                        // Clicking lBtn inside folders triggers "back" navigation which cancels playlist navigation
+                        setTimeout(() => {
+                            switchLs(true);  // Direct collapse without clicking button
+                            closeNowPlay();
+                        }, 150);  // 150ms allows playlist navigation to initiate
+                    }
+                });
+            }
+        };
+
+        // Setup home button once
+        const setupHomeButton = () => {
+            const homeBtn = document.querySelector('#global-nav-bar button[data-testid=home-button]:not(.fuckd)');
+            if (homeBtn) {
+                homeBtn.classList.add('fuckd');
+                homeBtn.addEventListener('click', () => { closeNowPlay(); });
+            }
+        };
+
+        // Setup search input once
+        const setupSearchInput = () => {
+            const searchInput = document.querySelector('input[data-testid=search-input]:not(.fuckd)');
+            if (searchInput) {
+                searchInput.classList.add('fuckd');
+                searchInput.addEventListener('focus', () => {
+                    const npBar = document.querySelector('aside[data-testid=now-playing-bar]');
+                    if (npBar) npBar.style.display = 'none';
+                    closeNowPlay();
+                });
+                searchInput.addEventListener('blur', () => {
+                    const npBar = document.querySelector('aside[data-testid=now-playing-bar]');
+                    if (npBar) npBar.style.display = 'flex';
+                });
+            }
+        };
+
+        // Setup user button once
+        const setupUserButton = () => {
+            const userBtn = document.querySelector('button[data-testid=user-widget-link]:not(.fuckd)');
+            if (userBtn) {
+                userBtn.classList.add('fuckd');
+                userBtn.addEventListener('click', () => { closeNowPlay(); });
+            }
+        };
+
+        // Try to setup all elements immediately
+        setupLibraryButton();
+        setupLibraryGrid();
+        setupHomeButton();
+        setupSearchInput();
+        setupUserButton();
+
+        // Use a short retry mechanism for elements that might not be ready yet
+        // Check once more after 2 seconds for any missed elements
+        setTimeout(() => {
+            setupLibraryButton();
+            setupLibraryGrid();
+            setupHomeButton();
+            setupSearchInput();
+            setupUserButton();
+        }, 2000);
+    };
+
+    /**
+     * Inject CSS styles from APK
+     * From r0/e.java line 204: let st=document.createElement('style');st.textContent='...'
+     */
+    function injectCSS() {
+        const style = document.createElement('style');
+        // CSS content from r0/e.java (line 204)
+        style.textContent = `
+body{min-width:100%!important;min-height:100%!important}
+.os-scrollbar{--os-size:6px!important}
+.contentSpacing{padding:0}
+div[data-testid=root]{--panel-gap:0!important}
+#main-view+div,#main-view+div>div{overflow:hidden!important;width:auto}
+#main-view+div>div>div>div:nth-child(2)>div{width:100vw!important}
+div[data-encore-id=banner],#global-nav-bar>div:first-of-type,#global-nav-bar a[href="/download"],button[data-testid=fullscreen-mode-button],div.main-view-container__mh-footer-container{display:none!important}
+section[data-testid=artist-page]>div>div:first-child:not([data-encore-id]){height:25vh}
+div[data-testid=tracklist-row]{padding:0 10px 0 0;grid-gap:0}
+div[data-testid=tracklist-row] button:not([data-testid=add-to-playlist-button]){transform:scale(1.3)!important;opacity:0.6!important}
+div[data-testid=tracklist-row] button:hover{color:#2d6!important}
+div[data-testid=tracklist-row]>div:first-child>div:first-child{height:24px;min-height:24px;min-width:24px;margin:0 8px!important}
+[aria-colcount="3"] div[data-testid=tracklist-row]{grid-template-columns:[index] var(--tracklist-index-column-width,40px) [first] minmax(120px,var(--col1,4fr)) [last] minmax(82px,var(--col2,1fr))!important}
+[aria-colcount="4"] div[data-testid=tracklist-row]{grid-template-columns:[index] var(--tracklist-index-column-width,40px) [first] minmax(120px,var(--col1,4fr)) [var1] minmax(120px,var(--col2,2fr)) [last] minmax(82px,var(--col3,1fr))!important}
+[aria-colcount="5"] div[data-testid=tracklist-row]{grid-template-columns:[index] var(--tracklist-index-column-width,40px) [first] minmax(120px,var(--col1,6fr)) [var1] minmax(120px,var(--col2,4fr)) [var2] minmax(120px,var(--col3,3fr)) [last] minmax(82px,var(--col4,1fr))!important}
+section[data-testid=track-page]>div.contentSpacing>div:nth-child(2) [aria-colcount="2"] div[data-testid=tracklist-row]{grid-template-columns:[first] minmax(120px,var(--col0,4fr)) [last] minmax(82px,var(--col1,1fr))!important}
+section[data-testid=track-page]>div.contentSpacing>div:nth-child(2) [aria-colcount="3"] div[data-testid=tracklist-row]{grid-template-columns:[first] minmax(120px,var(--col0,4fr)) [var1] minmax(120px,var(--col1,2fr)) [last] minmax(82px,var(--col2,1fr))!important}
+*{--content-spacing:10px}
+section[data-testid=home-page] .contentSpacing{padding:0 10px!important;overflow:hidden}
+div[data-testid=grid-container]{margin-inline:0!important;column-gap:0!important;overflow:hidden!important}
+div[data-testid=action-bar-row],div[data-testid=topbar-content]{padding:5px 10px}
+div[data-testid=track-list]>div:first-child,div[data-testid=playlist-tracklist]>div:first-child{margin:0!important;padding:0!important}
+main>section:not([data-testid=artist-page])>div:first-child{height:auto!important;min-height:auto!important;padding:10px}
+section[data-testid=track-page]>div>div.contentSpacing>div:last-child{overflow:hidden}
+section[data-testid=artist-page]>div>div:first-child>div.contentSpacing{padding:10px}
+section[data-testid=artist-page] div[data-testid=grid-container] h2,section[data-testid=artist-page] section[data-testid=component-shelf]{padding:0 10px}
+main>section h1.encore-text-headline-large{font-size:22px!important}
+section[data-testid=artist-page] span.encore-text-headline-large{font-size:26px!important}
+section[data-testid=track-page] h1{font-size:20px!important}
+aside[data-testid=now-playing-bar]{min-width:100%!important;box-shadow:0 0 6px #440000;background:linear-gradient(to bottom,#770000,#330000)!important}
+aside[data-testid=now-playing-bar]>div:first-child{margin-top:2px;flex-direction:column!important;height:auto!important}
+aside[data-testid=now-playing-bar]>div>div{width:100%!important}
+aside[data-testid=now-playing-bar]>div>div:last-child>div{min-height:32px;margin:5px 10px}
+aside[data-testid=now-playing-bar]>div>div:last-child button{transform:scale(1.15);margin:0 5px}
+div[data-testid=general-controls]{margin:15px 0 25px}
+div[data-testid=general-controls] button{transform:scale(1.4)!important;margin:0 8px!important}
+div[data-testid=player-controls]{margin:5px 0}
+div[data-testid=now-playing-widget]{justify-content:center;overflow:hidden}
+form[role=search]{z-index:10;margin-left:48px;max-width:88%}
+div[data-testid=now-playing-widget]>div:last-child>button{transform:scale(1.3)}
+div[data-testid=now-playing-widget]>div:first-child{display:none!important}
+div[data-testid=now-playing-widget]>div:nth-child(2){display:flex!important;overflow:hidden!important}
+div[data-testid=now-playing-widget]>div:nth-child(2) span{font-size:13px!important;height:20px!important;margin:0!important}
+div[data-testid=now-playing-widget]>div:nth-child(2)>div{min-width:auto;max-width:66%}
+[data-tippy-root]{overflow:hidden!important}
+[data-tippy-root],[data-tippy-root] *{transition:none!important;transform:none!important}
+div[data-testid=hover-or-focus-tooltip],#Desktop_LeftSidebar_Id header>div>div:last-child{display:none!important}
+#Desktop_LeftSidebar_Id>nav>div{min-height:48px;border-radius:25px}
+.YourLibraryX{overflow:hidden;background:var(--background-elevated-base)!important}
+.YourLibraryX header{padding:14px}
+        `;
+        document.head.appendChild(style);
+
+        // AMOLED pure black mode (from r0/e.java line 207)
+        const amoled = document.createElement('style');
+        amoled.textContent = `
+.encore-dark-theme{--background-base:#000;--background-highlight:#000;--background-elevated-base:#000;--background-elevated-highlight:#000;--background-elevated-press:#000;--background-tinted-base:#000}
+aside[data-testid=now-playing-bar]{background:#000!important;box-shadow:none;border-top:1px solid #666}
+        `;
+        document.head.appendChild(amoled);
+
+        console.log('#CSS Injected');
+    }
+
+    // Initialize immediately
+    injectCSS();
+    firstFuck();
+
+    // Add cleanup on page unload to prevent memory leaks
+    window.addEventListener('beforeunload', () => {
+        if (pfint) {
+            clearInterval(pfint);
+            pfint = null;
+        }
+        console.log('#Cleanup: Interval cleared');
+    });
+
+    console.log('🚀 Spotifuck v6 Ready (APK v1.6.4 Port)');
+})();
