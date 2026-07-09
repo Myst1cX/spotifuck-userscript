@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      6.4
+// @version      6.4.fix
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -35,7 +35,7 @@
  * const libBtn = document.querySelector('#Desktop_LeftSidebar_Id header button[aria-label*="Your Library"]:not(.fuckd)');
  * if (libBtn.getAttribute('aria-label') === 'Collapse Your Library') {
  
- * Newly added (v6.4) - Fixed "Force English" (v6.3 was not working at all)
+ * Newly added (v6.4.fix) - Fixed "Force English" (v6.3 was not working at all)
  * - forceEnglish() actually forces English now. The v6.3 version only overrode
  *   navigator.language and stripped the /intl-xx/ URL prefix, both of which only
  *   affect a single page load - the aria-labels Spotify actually renders (e.g.
@@ -92,68 +92,162 @@
      * once; every load after that is a no-op (DONE_KEY already set).
      */
     function forceEnglishAccountSetting() {
-        const DONE_KEY = 'spotifuckForcedEnglishAccountSetting';
-        if (localStorage.getItem(DONE_KEY) === 'true') return;
+        // NOTE: there used to be a permanent "spotifuckForcedEnglishAccountSetting"
+        // flag here that, once set, skipped this function forever. That assumed
+        // the account setting only ever changes via this script. It doesn't -
+        // the user can change it manually (e.g. via /preferences directly), and
+        // a permanent flag would then never notice and never re-apply English.
+        // So this now re-checks the actual setting on every real page load
+        // instead of trusting a one-time flag. The "already English" case is
+        // cheap (one iframe load, no reload triggered), so this is fine to run
+        // every time; only an actual mismatch triggers the flip+reload below.
+
+        // Set right before we dispatch the change event and reload - tells the
+        // *next* load to verify the setting actually saved instead of blindly
+        // dispatching again.
+        const PENDING_KEY = 'spotifuckEnglishFlipPending';
+        // Caps how many times we'll retry a flip that doesn't stick within one
+        // correction cycle, so a broken selector can't cause endless reloads.
+        const ATTEMPTS_KEY = 'spotifuckEnglishFlipAttempts';
+        const MAX_ATTEMPTS = 3;
+
         if (window.top !== window.self) return; // only the top frame drives this
 
-        const finish = (changed) => {
-            localStorage.setItem(DONE_KEY, 'true');
-            if (!changed) {
-                console.log('Spotifuck: account language already English - no reload needed');
+        const verifying = localStorage.getItem(PENDING_KEY) === 'true';
+        if (verifying) localStorage.removeItem(PENDING_KEY);
+
+        // Runs `callback(doc, cleanup)` against the /preferences document,
+        // either the current page (if we're already there) or a hidden iframe.
+        // `cleanup()` removes the iframe if one was created; call it once done.
+        const withPreferencesDoc = (callback) => {
+            if (location.pathname.startsWith('/preferences')) {
+                callback(document, () => {});
                 return;
             }
-            console.log('Spotifuck: account language now English - reloading to apply');
-            // Small delay so the backend save (fired by the dispatched change
-            // event) has time to actually go out before we tear the page down.
-            setTimeout(() => location.reload(), 1000);
+
+            // Same-origin (open.spotify.com -> open.spotify.com), so
+            // contentDocument access is allowed.
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = 'https://open.spotify.com/preferences';
+            (document.documentElement || document.body).appendChild(iframe);
+
+            let done = false;
+            const cleanup = () => {
+                if (done) return;
+                done = true;
+                iframe.remove();
+            };
+
+            iframe.addEventListener('load', () => {
+                try {
+                    callback(iframe.contentDocument, cleanup);
+                } catch (e) {
+                    console.log('Spotifuck: could not access preferences iframe', e);
+                    cleanup();
+                    callback(null, cleanup);
+                }
+            });
+
+            // Safety net in case the select never appears (layout change, slow load, etc.)
+            setTimeout(() => { const wasDone = done; cleanup(); if (!wasDone) callback(null, cleanup); }, 15000);
         };
 
-        if (location.pathname.startsWith('/preferences')) {
-            // Already on the settings page (user navigated here themselves) - just apply directly.
-            applyEnglishToLanguageSelect(document, finish);
+        const giveUp = (reason) => {
+            // Just stops this correction cycle's automatic retries - no permanent
+            // flag is set, so the next real page load will simply check again.
+            console.log('Spotifuck: ' + reason + ' - not retrying automatically');
+        };
+
+        const attemptFlip = () => {
+            withPreferencesDoc((doc, cleanup) => {
+                if (!doc) { cleanup(); giveUp('could not load preferences document'); return; }
+                applyEnglishToLanguageSelect(doc, (result) => {
+                    if (!result.found) {
+                        cleanup();
+                        giveUp('language selector not found - Spotify may have changed the settings page');
+                        return;
+                    }
+                    if (!result.changed) {
+                        cleanup();
+                        localStorage.removeItem(ATTEMPTS_KEY);
+                        console.log('Spotifuck: account language already English - no reload needed');
+                        return;
+                    }
+                    // Dispatched the change event, but that only proves React
+                    // saw it - not that Spotify's backend actually saved it.
+                    // Reload and verify on the next load before trusting this.
+                    localStorage.setItem(PENDING_KEY, 'true');
+                    console.log('Spotifuck: dispatched English change - reloading to verify it saved');
+                    setTimeout(() => { cleanup(); location.reload(); }, 1000);
+                });
+            });
+        };
+
+        if (!verifying) {
+            attemptFlip();
             return;
         }
 
-        // Not on the settings page - load it in a hidden iframe purely to flip
-        // this one setting, without disrupting whatever the user is looking at.
-        // Same-origin (open.spotify.com -> open.spotify.com), so contentDocument
-        // access is allowed.
-        const iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
-        iframe.src = 'https://open.spotify.com/preferences';
-        (document.documentElement || document.body).appendChild(iframe);
-
-        iframe.addEventListener('load', () => {
-            try {
-                applyEnglishToLanguageSelect(iframe.contentDocument, finish);
-            } catch (e) {
-                console.log('Spotifuck: could not access preferences iframe', e);
-                iframe.remove();
-            }
+        // Verification pass: re-read (never re-dispatch blindly) the setting
+        // to confirm the flip from last load actually persisted.
+        withPreferencesDoc((doc, cleanup) => {
+            if (!doc) { cleanup(); giveUp('could not reload preferences document to verify'); return; }
+            applyEnglishToLanguageSelect(doc, (result) => {
+                cleanup();
+                if (result.found && result.value === 'en') {
+                    localStorage.removeItem(ATTEMPTS_KEY);
+                    console.log('Spotifuck: verified account language is now English');
+                    return;
+                }
+                if (!result.found) {
+                    giveUp('language selector not found during verification - Spotify may have changed the settings page');
+                    return;
+                }
+                const attempts = parseInt(localStorage.getItem(ATTEMPTS_KEY) || '0', 10) + 1;
+                if (attempts >= MAX_ATTEMPTS) {
+                    giveUp('English flip did not stick after ' + attempts + ' attempt(s) - clear localStorage "' + ATTEMPTS_KEY + '" to retry');
+                    return;
+                }
+                localStorage.setItem(ATTEMPTS_KEY, String(attempts));
+                console.log('Spotifuck: flip did not stick yet, retrying (' + attempts + '/' + MAX_ATTEMPTS + ')');
+                attemptFlip();
+            }, { readOnly: true });
         });
-
-        // Safety net in case the select never appears (layout change, slow load, etc.)
-        setTimeout(() => iframe.remove(), 15000);
     }
 
     /**
-     * applyEnglishToLanguageSelect - Set the given document's language <select>
-     * to "en" and dispatch a real change event so Spotify's own (React-controlled)
-     * handler picks it up and saves it - a plain .value assignment gets silently
-     * overwritten by React's next render, so this goes through the native
-     * property setter first, same trick needed for any React-controlled input.
+     * applyEnglishToLanguageSelect - Read or set the given document's language
+     * <select>. In write mode (default) it flips the value to "en" and
+     * dispatches a real change event so Spotify's own (React-controlled)
+     * handler picks it up - a plain .value assignment gets silently overwritten
+     * by React's next render, so this goes through the native property setter
+     * first, same trick needed for any React-controlled input. In read-only
+     * mode it just reports the current value without touching anything, used
+     * to verify a previous flip actually saved.
      * @param {Document} doc - document to operate on (main doc or iframe's)
-     * @param {Function} onDone - called with (changed: boolean) once resolved -
-     *   true if the value was actually flipped to "en", false if it was already "en"
+     * @param {Function} onDone - called once with a single result object:
+     *   { found: boolean, value: string|null, changed: boolean }
+     *   - found: whether the <select> was located at all
+     *   - value: its current value ('en' on success), or null if not found
+     *   - changed: true only if this call just dispatched a change (write mode)
+     * @param {Object} [options]
+     * @param {boolean} [options.readOnly=false] - never modify the select, just report its value
      */
-    function applyEnglishToLanguageSelect(doc, onDone) {
+    function applyEnglishToLanguageSelect(doc, onDone, { readOnly = false } = {}) {
+        let settled = false;
+        const resolve = (result) => {
+            if (settled) return; // guards against double-fire (mutation callback racing the timeout)
+            settled = true;
+            onDone(result);
+        };
+
         const trySelect = () => {
             const select = doc.getElementById('desktop.settings.selectLanguage');
             if (!select) return false;
 
-            if (select.value === 'en') {
-                console.log('Spotifuck: account language already English (en)');
-                onDone(false);
+            if (readOnly || select.value === 'en') {
+                resolve({ found: true, value: select.value, changed: false });
                 return true;
             }
 
@@ -162,22 +256,36 @@
             nativeSetter.call(select, 'en');
             select.dispatchEvent(new Event('change', { bubbles: true }));
 
-            console.log('Spotifuck: forced account language to English (en)');
-            onDone(true);
+            console.log('Spotifuck: dispatched English change on language selector');
+            resolve({ found: true, value: 'en', changed: true });
             return true;
         };
 
         if (trySelect()) return;
 
-        // Settings page is client-rendered - the <select> may not exist yet.
         const win = doc.defaultView || window;
-        const observer = new win.MutationObserver(() => {
-            if (trySelect()) observer.disconnect();
-        });
-        if (doc.body) {
+        const startObserving = () => {
+            if (trySelect()) return; // may have appeared while we were waiting for <body>
+            const observer = new win.MutationObserver(() => {
+                if (trySelect()) observer.disconnect();
+            });
             observer.observe(doc.body, { childList: true, subtree: true });
+            setTimeout(() => {
+                observer.disconnect();
+                resolve({ found: false, value: null, changed: false }); // timed out - selector genuinely missing
+            }, 12000);
+        };
+
+        if (doc.body) {
+            // Normal case: iframe 'load' event already guarantees <body> exists.
+            startObserving();
+        } else {
+            // document-start on the /preferences route itself, reached by
+            // direct navigation - <body> hasn't been parsed yet. Previously
+            // this silently skipped setting up the observer entirely and just
+            // timed out doing nothing. Wait for DOMContentLoaded instead.
+            doc.addEventListener('DOMContentLoaded', startObserving, { once: true });
         }
-        setTimeout(() => observer.disconnect(), 12000);
     }
 
     forceEnglish();
