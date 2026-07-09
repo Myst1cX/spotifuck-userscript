@@ -57,7 +57,7 @@
 
 ## Credits
 
-> 1. **Ported from** [Spotifuck](https://4pda.to/forum/index.php?showtopic=248440&view=findpost&p=137957887) (UI hacks, playback, spoofing, ad block logic).
+> 1. **Ported from** [Spotifuck](https://4pda.to/forum/index.php?showtopic=248440&view=findpost&p=137957887) (UI hacks, playback, spoofing).
 > 2. **Powered by** [Spotify](https://open.spotify.com/).
 
 ## License
