@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      6.3
+// @version      6.3.was.not.working
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
