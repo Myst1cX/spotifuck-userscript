@@ -7,7 +7,7 @@
 ## Features
 
 > **UI HACKS & ENHANCEMENTS**  
-> Customizes the Spotify Web Player's interface for a desktop-like experience.  
+> Customizes the Spotify Web Player's interface for a mobile-like experience.  
 > Removes unnecessary elements, expands panels, and tweaks layout for maximum usability.
 >
 > **PLAYBACK CONTROL**  
