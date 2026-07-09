@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Spotifuck
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      6.4.fix
-// @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control
+// @version      6.5
+// @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
 // @grant        none
@@ -35,7 +35,7 @@
  * const libBtn = document.querySelector('#Desktop_LeftSidebar_Id header button[aria-label*="Your Library"]:not(.fuckd)');
  * if (libBtn.getAttribute('aria-label') === 'Collapse Your Library') {
  
- * Newly added (v6.4.fix) - Fixed "Force English" (v6.3 was not working at all)
+ * Newly added (v6.4) - Fixed "Force English" (v6.3 was not working at all)
  * - forceEnglish() actually forces English now. The v6.3 version only overrode
  *   navigator.language and stripped the /intl-xx/ URL prefix, both of which only
  *   affect a single page load - the aria-labels Spotify actually renders (e.g.
@@ -45,6 +45,28 @@
  *   disrupt whatever the user is looking at, then reloads the page so the change
  *   actually takes effect. A localStorage flag means this only runs once ever, and skips the reload
  *   entirely if the account was already set to English.
+
+ * Newly added (v6.5) - Fixed "Force English" again (v6.4 has some bug cases)
+ * - Fixed a case where, if a user landed directly on /preferences (rather than
+ *   via the hidden iframe), the code that watches for the language <select> to
+ *   appear never actually started watching - it silently did nothing and timed
+ *   out. Now it waits for the page to finish loading first if needed.
+ * - Removed the old "only ever run once" localStorage flag. It assumed the
+ *   account language setting only ever changes via this script, so once set,
+ *   it stopped checking forever - meaning if the user manually changed the
+ *   account language afterward, the script would never notice or fix it again.
+ *   It now re-checks the actual setting on every real page load instead.
+ * - The dispatched change event is no longer trusted as proof the setting
+ *   actually saved. It's now verified on the next load before being treated as
+ *   done, with a capped number of retries if it didn't stick.
+ * - Fixed a race where the hidden iframe's "did it finish loading" check and
+ *   its 15-second give-up timer could both fire for the same attempt if the
+ *   timing landed close together, causing the same logic to run twice. Now
+ *   whichever one happens first is the only one that's acted on.
+ * - Fixed a race where redirecting away from a non-English /intl-xx/ URL
+ *   didn't stop the rest of forceEnglish() from also running against that
+ *   same (already-leaving) page. It now stops immediately after triggering
+ *   that redirect instead.
  */
 
 (function() {
@@ -71,6 +93,9 @@
         const m = location.pathname.match(/^\/intl-([a-z]{2})(\/.*)?$/i);
         if (m && m[1].toLowerCase() !== 'en') {
             location.replace(location.origin + (m[2] || '/') + location.search + location.hash);
+            return; // navigation is pending - don't run forceEnglishAccountSetting()
+                     // against a page that's about to be torn down; it'll run
+                     // fresh on the load this redirect produces instead.
         }
 
         forceEnglishAccountSetting();
@@ -83,13 +108,14 @@
      * "en-GB" is a separate option and NOT what this targets).
      * navigator.language and the /intl-xx/ URL prefix above only affect this one
      * page load - the aria-labels Spotify actually renders (e.g. "Open Your
-     * Library") are driven by this account setting, which is saved server-side
-     * and persists across sessions/devices once set. So this only needs to run
-     * once; a localStorage flag prevents repeating it on every page load.
-     * Confirmed by hand: the setter+dispatch trick below does persist the
-     * setting, but the already-rendered page doesn't pick it up on its own -
-     * only a reload/navigation does. So on first success this reloads the page
-     * once; every load after that is a no-op (DONE_KEY already set).
+     * Library") are driven by this account setting, which is saved server-side.
+     * Because the user can change this setting manually at any time, this
+     * re-checks the current value on every real page load rather than trusting
+     * a one-time flag - the check itself is cheap (one hidden-iframe load) when
+     * the setting is already English, and only triggers a flip + reload when
+     * it's actually wrong. A flip is verified on the following load before
+     * being treated as done, with a capped number of retries if it didn't
+     * stick server-side.
      */
     function forceEnglishAccountSetting() {
         // NOTE: there used to be a permanent "spotifuckForcedEnglishAccountSetting"
@@ -120,8 +146,15 @@
         // either the current page (if we're already there) or a hidden iframe.
         // `cleanup()` removes the iframe if one was created; call it once done.
         const withPreferencesDoc = (callback) => {
+            let settled = false;
+            const fire = (doc, cleanup) => {
+                if (settled) return; // guards against load/error/timeout all racing to call this
+                settled = true;
+                callback(doc, cleanup);
+            };
+
             if (location.pathname.startsWith('/preferences')) {
-                callback(document, () => {});
+                fire(document, () => {});
                 return;
             }
 
@@ -132,25 +165,25 @@
             iframe.src = 'https://open.spotify.com/preferences';
             (document.documentElement || document.body).appendChild(iframe);
 
-            let done = false;
+            let removed = false;
             const cleanup = () => {
-                if (done) return;
-                done = true;
+                if (removed) return;
+                removed = true;
                 iframe.remove();
             };
 
             iframe.addEventListener('load', () => {
                 try {
-                    callback(iframe.contentDocument, cleanup);
+                    fire(iframe.contentDocument, cleanup);
                 } catch (e) {
                     console.log('Spotifuck: could not access preferences iframe', e);
                     cleanup();
-                    callback(null, cleanup);
+                    fire(null, cleanup);
                 }
             });
 
             // Safety net in case the select never appears (layout change, slow load, etc.)
-            setTimeout(() => { const wasDone = done; cleanup(); if (!wasDone) callback(null, cleanup); }, 15000);
+            setTimeout(() => { cleanup(); fire(null, cleanup); }, 15000);
         };
 
         const giveUp = (reason) => {
