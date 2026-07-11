@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Spotifuck log
+// @name         Spotifuck Log (finally cleaned up library, it's fixed. will consider appending back to header, in a clean manner)
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      6.6
+// @version      6.7.log
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -18,8 +18,8 @@
 // @run-at       document-start
 // @homepageURL  https://github.com/Myst1cX/spotifuck-userscript
 // @supportURL   https://github.com/Myst1cX/spotifuck-userscript/issues
-// @updateURL    https://raw.githubusercontent.com/Myst1cX/spotifuck-userscript/main/spotifuck-v6.user.js
-// @downloadURL  https://raw.githubusercontent.com/Myst1cX/spotifuck-userscript/main/spotifuck-v6.user.js
+// @updateURL    https://raw.githubusercontent.com/Myst1cX/spotifuck-userscript/main/spotifucklog.user.js
+// @downloadURL  https://raw.githubusercontent.com/Myst1cX/spotifuck-userscript/main/spotifucklog.user.js
 // ==/UserScript==
 
 /*
@@ -100,7 +100,63 @@
  *       (spotify.com /premium, /duo, /student, /family, purchase pages) and the payments.spotify.com blockers/redirects
  *   HOW DOES IT WORK: Text nodes are taken over by overlays that affirm you do not need Premium.
  *   Each toggle is independent, persists via GM storage, and reloads the page to apply. Both toggles are enabled by default.
+
+ * Newly added (v6.7):
+ * - Fixed AutoCloseLib (what happens when you click a playlist while the library is open,
+ *   which is supposed to auto-close the library and take you to the playlist) leaving a
+ *   glitched, overlapping cluster of icons in the header instead of cleanly closing.
+ *
+ *   Plain-language: closing the library used to be done by just shrinking its box down to
+ *   48x48 pixels with CSS, without ever telling Spotify's own page that the library was
+ *   actually closed. So Spotify kept drawing the full "library is open" screen (all its
+ *   buttons, the search bar, the whole playlist list) and it all got squashed into that
+ *   tiny box - that's the glitch. The fix is to do a real click on Spotify's own
+ *   open/close button instead, so Spotify closes it properly itself.
+ *
+ *   Dev: switchLs(true, ...) (the forceCollapse branch) only ever set inline CSS
+ *   (position/width/height fixed to 48x48) on #Desktop_LeftSidebar_Id - it never
+ *   triggered Spotify's own React re-render into collapsed markup, so the fully expanded
+ *   header/grid stayed mounted and got clipped into the 48x48 box.
+ *   Fix: grid-autoclose (the code that runs 150ms after you click a playlist, so
+ *   Spotify's own navigation has time to start first) now calls .click() on Spotify's own
+ *   library toggle button directly, then resets our own tracked state (dataset.fuckExpanded)
+ *   and clears any leftover inline styles from our fullscreen-overlay EXPAND branch, instead
+ *   of forcing the 48x48 CSS itself. Tested and confirmed this does not break folder-depth
+ *   navigation (a stale comment on the old code claimed a real click would - it doesn't;
+ *   collapsing from inside a folder and reopening returns to the same folder correctly).
+ *   No custom button injection needed either - Spotify's real collapsed header already has
+ *   a working, correctly-labeled toggle button in that spot.
+ *
+ * - Second bug found during testing of the above fix: the .click() we just added also
+ *   fired OUR OWN existing click listener on that same button (the one that normally
+ *   handles manual clicks), which unconditionally re-opened the fullscreen overlay a
+ *   moment later - right on top of the library Spotify had just properly closed. Result:
+ *   a black screen showing only playlist artwork, with everything else stuck hidden
+ *   underneath our own overlay.
+ *   Fix: a one-shot flag (suppressLibBtnHandler) is set immediately before this specific
+ *   synthetic click and read (then cleared) by our click listener, so only that one
+ *   synthetic click skips our own re-open logic. Spotify's native handling of the click,
+ *   and every real click from the user, are completely unaffected.
+ *
+ * - Third bug found during a second round of testing: after the two fixes above, manually
+ *   clicking the library toggle to close it (not the auto-close case, just an ordinary
+ *   click) stopped working entirely - the library no longer collapsed at all.
+ *   Cause: this was a mistake in the first version of this fix. switchLs()'s COLLAPSE
+ *   branch (the "else" side of the expand/collapse toggle) is not only reached by the old,
+ *   now-removed 48x48-forcing behavior - it is also the exact same branch every ordinary
+ *   manual collapse click runs through. Commenting that branch out to remove the old
+ *   48x48 code broke manual collapsing entirely, since nothing else in that branch was
+ *   replaced.
+ *   Fix: the COLLAPSE branch now does what grid-autoclose does - lets Spotify's own click
+ *   handling collapse the real layout (this already happens automatically for a manual
+ *   click, since it's a real click to begin with), and simply clears the inline styles our
+ *   own EXPAND branch had set (position/width/height/left/top/zIndex), so Spotify's real
+ *   collapsed layout can show through cleanly instead of our old fullscreen overlay hiding
+ *   it. The old 48x48-forcing code and the now-always-false forceCollapse parameter it
+ *   depended on have been removed entirely (not just commented out) - it's fully replaced
+ *   by the click-based approach above, so keeping it around as dead code served no purpose.
  */
+
 
 (function() {
     'use strict';
@@ -112,6 +168,10 @@
     let ffDone = false;  // First fuck done (firstFuck initialization complete)
     let pfint = null;    // Primary features interval
     let pendingLibCollapse = null;  // Timeout id for the delayed auto-collapse-on-navigate
+    let suppressLibBtnHandler = false;  // v6.7: set true right before a synthetic click on the
+    // native library toggle (grid-autoclose), so our own libBtn 'click' listener (which fires
+    // on that same synthetic click) skips scheduling switchLs() for it. Consumed (reset to
+    // false) on read, so it only ever suppresses the one synthetic click, never a real one.
 
     // --- Debug logging (v6.7) ---
     // Every click handler in this script logs through dbg() with the same shape:
@@ -416,12 +476,17 @@
     // It marks elements as "already processed" to prevent duplicate event handlers
 
     /**
-     * switchLs - Toggle library sidebar between expanded and collapsed states
+     * switchLs - Toggle library sidebar between expanded (fullscreen overlay) and collapsed
+     * (Spotify's own native narrow layout) states.
      * From r0/e.java line 202: window.switchLs=function(){...}
-     * @param {boolean} forceCollapse - If true, force collapse regardless of current state
+     *
+     * Plain-language: this is the function that opens or closes the big "Your Library"
+     * screen. It looks at whether the library is currently open (tracked on the sidebar
+     * element itself, see isExpanded below) and does the opposite.
+     *
      * @param {string} source - debug-only: which caller invoked this (see dbg() calls at each call site)
      */
-    window.switchLs = function(forceCollapse = false, source = 'unknown') {
+    window.switchLs = function(source = 'unknown') {
         // Cancel a still-pending delayed auto-collapse (see setupLibraryGrid below).
         // Without this, quickly reopening the library after clicking a playlist
         // could get immediately re-collapsed by that stale queued timeout firing
@@ -434,13 +499,13 @@
 
         const leftSidebar = document.querySelector('#Desktop_LeftSidebar_Id');
         if (!leftSidebar) {
-            dbg('switchLs: ABORTED - #Desktop_LeftSidebar_Id not found', '#Desktop_LeftSidebar_Id', { source, forceCollapse });
+            dbg('switchLs: ABORTED - #Desktop_LeftSidebar_Id not found', '#Desktop_LeftSidebar_Id', { source });
             return;
         }
 
         const navFirstChild = leftSidebar.querySelector('nav>div>div:first-child');
         if (!navFirstChild) {
-            dbg('switchLs: ABORTED - nav>div>div:first-child not found', 'nav>div>div:first-child', { source, forceCollapse });
+            dbg('switchLs: ABORTED - nav>div>div:first-child not found', 'nav>div>div:first-child', { source });
             return;
         }
 
@@ -457,14 +522,13 @@
 
         dbg('switchLs: called', '#Desktop_LeftSidebar_Id', {
             source,
-            forceCollapse,
             'dataset.fuckExpanded (before)': leftSidebar.dataset.fuckExpanded ?? '(unset)',
             'computed isExpanded': isExpanded,
             'real libBtn aria-label right now': libBtnNow ? libBtnNow.getAttribute('aria-label') : '(libBtn not found)',
-            willTakeBranch: (!forceCollapse && !isExpanded) ? 'EXPAND' : 'COLLAPSE'
+            willTakeBranch: isExpanded ? 'COLLAPSE' : 'EXPAND'
         });
 
-        if (!forceCollapse && !isExpanded) {
+        if (!isExpanded) {
             // Expand to full-screen overlay
             console.log('#Library: Expanded');
             leftSidebar.dataset.fuckExpanded = 'true';
@@ -488,19 +552,38 @@
                 dbg('switchLs: view manipulated (EXPAND) - header h1 NOT FOUND, icon not updated', 'header>div>div:first-child h1', { source });
             }
         } else {
-            // Collapse to small button
+            // COLLAPSE branch.
+            //
+            // Plain-language version: this runs whenever the library should go from the
+            // big "Your Library" screen back to the small state. We used to do this by
+            // squeezing the library box down to 48x48 pixels ourselves with CSS - but
+            // Spotify's own page never found out the library was supposed to be closed,
+            // so all its buttons and the playlist list stayed fully drawn and just got
+            // squashed into that tiny box (that was the "glitched icon" bug). The real
+            // fix is to let Spotify collapse itself the normal way (a real click already
+            // does this - same idea used for auto-close-after-picking-a-playlist in
+            // v6.7), and here we just clean up after our own fullscreen overlay so it
+            // doesn't stay stuck on top of Spotify's now-properly-collapsed page.
+            //
+            // Dev version: this branch is reached by every collapse, manual or automatic
+            // (switchLs(source) always lands here whenever isExpanded is true - see the
+            // willTakeBranch calculation above). We don't touch Spotify's own layout at all
+            // here; we only clear the inline styles the EXPAND branch above set
+            // (position/width/height/left/top/zIndex), since Spotify's real collapsed
+            // layout should render underneath once our forced overlay is gone. grid-autoclose
+            // (v6.7) additionally fires a real click on the native toggle before this ever
+            // runs, so Spotify's own collapse logic has already run by the time we get here.
             console.log('#Library: Collapsed');
             leftSidebar.dataset.fuckExpanded = 'false';
-            leftSidebar.style.zIndex = '1';
-            leftSidebar.style.position = 'fixed';
-            leftSidebar.style.top = '0';
-            leftSidebar.style.left = '60px';
-            leftSidebar.style.width = '48px';
-            leftSidebar.style.height = '48px';
+            leftSidebar.style.position = '';
+            leftSidebar.style.width = '';
+            leftSidebar.style.height = '';
+            leftSidebar.style.left = '';
+            leftSidebar.style.top = '';
+            leftSidebar.style.zIndex = '';
             dbg('switchLs: view manipulated (COLLAPSE)', '#Desktop_LeftSidebar_Id', {
                 source,
-                'sidebar style set': 'position:fixed; top:0; left:60px; width:48px; height:48px; z-index:1',
-                note: 'header h1 text is NOT reverted here - relies on being visually hidden by the 48x48 size'
+                note: 'cleared fullscreen-overlay inline styles (position/width/height/left/top/zIndex) - native collapsed layout shows through underneath (v6.7)'
             });
         }
     };
@@ -608,11 +691,23 @@
                 libBtn.style.padding = '0';
                 libBtn.style.height = '20px';
                 libBtn.addEventListener('click', function() {
+                    if (suppressLibBtnHandler) {
+                        // This click was a synthetic one fired by grid-autoclose (nativeToggle.click()),
+                        // not a real user click. Native Spotify's own handler still runs normally either
+                        // way - we're only skipping OUR switchLs() scheduling for this one click so it
+                        // doesn't fight the collapse grid-autoclose just triggered. See v6.7 changelog.
+                        suppressLibBtnHandler = false;
+                        dbg('libBtn: clicked (synthetic, suppressed)', '#Desktop_LeftSidebar_Id header button[aria-label*="Your Library"]', {
+                            'aria-label at click time': libBtn.getAttribute('aria-label'),
+                            note: 'synthetic click from grid-autoclose - skipping switchLs() scheduling'
+                        });
+                        return;
+                    }
                     dbg('libBtn: clicked', '#Desktop_LeftSidebar_Id header button[aria-label*="Your Library"]', {
                         'aria-label at click time': libBtn.getAttribute('aria-label'),
                         note: 'native Spotify click handler also runs on this same event; our switchLs() runs after via setTimeout 0'
                     });
-                    setTimeout(() => switchLs(false, 'libBtn-click'), 0);
+                    setTimeout(() => switchLs('libBtn-click'), 0);
                 });
 
                 // Collapse library on startup if it's expanded
@@ -625,6 +720,7 @@
                     });
                     // Click the button to let Spotify update its state properly
                     // This ensures the button will show "Open your library" after collapse
+                    suppressLibBtnHandler = true;
                     libBtn.click();
                 }
             }
@@ -677,18 +773,32 @@
                     if (!isFolder) {
                         console.log('AutoCloseLib (playlist/item clicked)');
                         // Add delay to allow Spotify's navigation to complete first
-                        // IMPORTANT: Use switchLs(true) for direct CSS collapse, NOT lBtn.click()
-                        // Clicking lBtn inside folders triggers "back" navigation which cancels playlist navigation
+                        // Uses a real click on the native toggle instead of CSS-only forcing, so Spotify's
+                        // own layout actually switches to collapsed markup (see v6.7 changelog).
                         // Tracked in pendingLibCollapse so a later switchLs() call (e.g. the user
                         // reopening the library right away) can cancel this before it fires.
                         if (pendingLibCollapse !== null) clearTimeout(pendingLibCollapse);
                         dbg('libGrid: scheduling delayed auto-collapse', '#Desktop_LeftSidebar_Id div[role=grid]', {
-                            delayMs: 150, note: 'will call switchLs(true) + closeNowPlay() in 150ms unless cancelled by another switchLs() call first'
+                            delayMs: 150, note: 'will click native libBtn (if expanded) + closeNowPlay() in 150ms unless cancelled by another switchLs() call first'
                         });
                         pendingLibCollapse = setTimeout(() => {
                             pendingLibCollapse = null;
                             dbg('libGrid: delayed auto-collapse FIRING now', '#Desktop_LeftSidebar_Id div[role=grid]', {});
-                            switchLs(true, 'grid-autoclose');  // Direct collapse without clicking button
+                            const sidebar = document.querySelector('#Desktop_LeftSidebar_Id');
+                            const nativeToggle = sidebar ? sidebar.querySelector('header button[aria-label*="Your Library"]') : null;
+                            if (nativeToggle && nativeToggle.getAttribute('aria-label') === 'Collapse Your Library') {
+                                suppressLibBtnHandler = true;
+                                nativeToggle.click();
+                            }
+                            if (sidebar) {
+                                sidebar.dataset.fuckExpanded = 'false';
+                                sidebar.style.position = '';
+                                sidebar.style.width = '';
+                                sidebar.style.height = '';
+                                sidebar.style.left = '';
+                                sidebar.style.top = '';
+                                sidebar.style.zIndex = '';
+                            }
                             closeNowPlay('grid-autoclose');
                         }, 150);  // 150ms allows playlist navigation to initiate
                     }
