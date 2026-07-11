@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Spotifuck Log (finally cleaned up library, it's fixed. will consider appending back to header, in a clean manner)
+// @name         Spotifuck Log (do not install - testing. finally cleaned up library, it's fixed. will consider appending back to header, in a clean manner)
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      6.7.log
+// @version      6.7.log.do.not.install.
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
