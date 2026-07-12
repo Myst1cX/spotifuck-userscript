@@ -173,7 +173,7 @@
  *   v6.9.
  *
  * Newly added (v6.9) - Actual fix for the v6.8 regression above
- * - Checked the real live markup: #Desktop_PanelContainer_Id (the <aside>
+ * a) Checked the real live markup: #Desktop_PanelContainer_Id (the <aside>
  *   itself) carries aria-label="Now playing view" plus a .NowPlayingView
  *   class when showing NPV; aria-label="Queue" for Queue; and
  *   aria-label="Connect to a device" for the device picker - all three as
@@ -182,8 +182,7 @@
  *   panelContainer.classList directly instead of querySelector-ing into it,
  *   so it correctly identifies NPV vs Queue vs Devices and the guard only
  *   ever acts on genuine unauthorized NPV opens.
- *
- * Newly added (v6.9, cont.) - Debug logging coverage completed
+ * b) Debug logging coverage completed
  * - Added dbg() calls to the functions that didn't have them yet:
  *   logChange, applyReplacements, scanText, runPremium's DOM-scanning pass,
  *   handlePremiumMutations/startPremiumObserver (the debounce),
