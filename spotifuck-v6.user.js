@@ -134,15 +134,23 @@
  *     bottom nav's Search tab is active.
  * c) Added a custom Now Playing view button (next to the lyrics button in
  *   the player bar, styled to match Spotify's own button classes) since
- *   Spotify's native NPV toggle is unreliable/often missing. Only this
- *   button is allowed to open the Now Playing view - a MutationObserver
- *   auto-closes it any other time it becomes visible (Spotify itself,
- *   another script, or already open on page load), so it can't pop open
- *   on its own.
+ *   Spotify's native NPV toggle is unreliable/often missing. Only clicks
+ *   through this button, or the player-bar album art (see (e) below), are
+ *   allowed to open the Now Playing view - a MutationObserver auto-closes
+ *   it any other time it becomes visible (Spotify itself, another script,
+ *   or already open on page load), so it can't pop open on its own.
  * d) The internal SPFDBG console logging used throughout this script is now
  *   gated behind its own "Debug Logging (console)" userscript-manager menu
  *   toggle (off by default), instead of always printing, so an ordinary
  *   user's console doesn't fill up with click-by-click state logs.
+ * e) Fixed the player-bar album art click (Spotify's own native way to open
+ *   the Now Playing view) getting immediately undone by the (c) guard,
+ *   which only trusted opens made through npBtn - so clicking the album art
+ *   looked like it did nothing. It's now a second authorized opener: a
+ *   listener on the album art marks the click as authorized right as it
+ *   happens, before Spotify's own click handling runs, so the guard leaves
+ *   it alone and the album art opens/closes the Now Playing view natively,
+ *   as instantly as npBtn.
  */
 
 
@@ -160,10 +168,12 @@
     // native library toggle (grid-autoclose), so our own libBtn 'click' listener (which fires
     // on that same synthetic click) skips scheduling switchLs() for it. Consumed (reset to
     // false) on read, so it only ever suppresses the one synthetic click, never a real one.
-    let userOpenedNPV = false;  // NPV guard: true only right after our own npBtn (see setupNpvButton)
-    // successfully opens the Now Playing view. closeNowPlay() resets this to false on every
-    // close, and npvGuardObserver auto-closes the panel any time it becomes visible while this
-    // is false - i.e. NPV can only ever be opened via our button, never via the native toggle
+    let userOpenedNPV = false;  // NPV guard: true right after an authorized open (our npBtn -
+    // see setupNpvButton - or a real click on the player-bar album art, see
+    // setupNpvWidgetTrigger) successfully opens the Now Playing view. closeNowPlay() resets
+    // this to false on every close, and npvGuardObserver auto-closes the panel any time it
+    // becomes visible while this is false - i.e. NPV can only ever be opened via one of those
+    // two authorized paths, never via the unreliable native toggle button
     // (unreliable/often absent - see clickNP) or programmatically by anything else.
 
     // --- Bottom nav / library-overlay-persistence state (v6.8) ---
@@ -658,10 +668,12 @@
      * the guard sees ariaHidden flip to visible while the flag is still
      * false and closes it out from under us, every time. Setting it first
      * means the guard's microtask always sees the correct value already in
-     * place by the time it runs. Only ever called from our own npBtn (see
-     * setupNpvButton) - the native toggle button
-     * (data-testid="control-button-npv") is unreliable/often absent, so
-     * this doesn't depend on it.
+     * place by the time it runs. This is one of two authorized paths that
+     * set userOpenedNPV - the other is the direct click on the player-bar
+     * album art (see setupNpvWidgetTrigger). clickNP() itself is only ever
+     * called from our own npBtn (see setupNpvButton) - the native toggle
+     * button (data-testid="control-button-npv") is unreliable/often absent,
+     * so this doesn't depend on it.
      */
     function clickNP(source = 'npBtn-click') {
         const panelContainer = document.querySelector('#Desktop_PanelContainer_Id');
@@ -676,10 +688,12 @@
         toggleBtn.click();
     }
 
-    // --- NowPlayingView guard: only allow opens via our own npBtn (setupNpvButton) ---
+    // --- NowPlayingView guard: only allow opens via an authorized path -
+    // npBtn (clickNP, setupNpvButton) or the native album art click
+    // (setupNpvWidgetTrigger) ---
     // Anything else that makes the panel visible - Spotify itself, another
     // script, a stray native control - gets auto-closed, since userOpenedNPV
-    // only ever becomes true via clickNP() above.
+    // only ever becomes true via one of those two paths.
     const npvGuardObserver = new MutationObserver(() => {
         if (isNpvOpen() && !userOpenedNPV) {
             dbg('NPV guard: panel opened without npBtn click - closing', '#Desktop_PanelContainer_Id', {});
@@ -1281,8 +1295,10 @@
 
         // NPV guard: builds our own Now Playing view toggle button next to the
         // lyrics button, since the native toggle (data-testid="control-button-npv")
-        // is unreliable/often absent. This is the only click path that's allowed
-        // to open NPV - see clickNP()/npvGuardObserver above closeNowPlay().
+        // is unreliable/often absent. This is the only *added* click path -
+        // see setupNpvWidgetTrigger() below for the other legitimate native
+        // path (the player-bar album art) that the guard is also taught to
+        // allow, plus clickNP()/npvGuardObserver above closeNowPlay().
         const setupNpvButton = () => {
             if (document.querySelector('.npbtn')) return; // already inserted
             const lyBtn = document.querySelector('button[data-testid="lyrics-button"]:not(.fuckd-npv)');
@@ -1304,10 +1320,36 @@
             npBtn.addEventListener('click', () => clickNP('npBtn-click'));
             lyBtn.parentNode.insertBefore(npBtn, lyBtn);
 
-            // Make sure NPV starts closed - only npBtn is allowed to open it.
+            // Make sure NPV starts closed - at this point only npBtn is wired
+            // as an authorized opener (setupNpvWidgetTrigger runs separately).
             if (isNpvOpen() && !userOpenedNPV) window.closeNowPlay('npv-guard-init');
 
             dbg('setupNpvButton: button inserted', 'button[data-testid="lyrics-button"]', {});
+        };
+
+        // NPV guard: the player-bar album art (div[data-testid=now-playing-widget]
+        // >div:first-child) natively opens the Now Playing view on click - this is
+        // a real, reliable Spotify affordance, separate from the unreliable native
+        // toggle button npBtn above works around. Without this, npvGuardObserver
+        // (which only trusts opens that went through clickNP()) would see the
+        // native open and immediately undo it, making the click appear to do
+        // nothing. A capture-phase listener sets userOpenedNPV=true the instant
+        // the click lands - strictly before Spotify's own bubble-phase handler
+        // runs - so by the time npvGuardObserver's mutation microtask fires,
+        // userOpenedNPV is already true and the guard leaves it alone. Nothing is
+        // clicked synthetically here (unlike clickNP()), so there's no risk of a
+        // second, self-inflicted toggle undoing Spotify's own native one.
+        const setupNpvWidgetTrigger = () => {
+            const artEl = document.querySelector('div[data-testid="now-playing-widget"]>div:first-child:not(.fuckd-npv-art)');
+            if (!artEl) return;
+            artEl.classList.add('fuckd-npv-art');
+            artEl.addEventListener('click', () => {
+                userOpenedNPV = true;
+                dbg('npvWidget: album art clicked', 'div[data-testid="now-playing-widget"]>div:first-child', {
+                    note: 'userOpenedNPV set true before Spotify\'s own click handling runs, so npvGuardObserver allows this open'
+                });
+            }, { capture: true });
+            dbg('setupNpvWidgetTrigger: listener attached', 'div[data-testid="now-playing-widget"]>div:first-child', {});
         };
 
         // Try to setup all elements immediately
@@ -1318,6 +1360,7 @@
         setupUserButton();
         setupNPBarHeightSync();
         setupNpvButton();
+        setupNpvWidgetTrigger();
 
         // Use a short retry mechanism for elements that might not be ready yet
         // Check once more after 2 seconds for any missed elements
@@ -1329,6 +1372,7 @@
             setupUserButton();
             setupNPBarHeightSync();
             setupNpvButton();
+            setupNpvWidgetTrigger();
         }, 2000);
     };
 
