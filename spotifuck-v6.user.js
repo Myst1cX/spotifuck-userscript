@@ -738,7 +738,10 @@
     // only ever becomes true via one of those two paths.
     const npvGuardObserver = new MutationObserver(() => {
         if (isNpvOpen() && !userOpenedNPV) {
-            dbg('NPV guard: panel opened without npBtn click - closing', '#Desktop_PanelContainer_Id', {});
+            const panelContainer = document.querySelector('#Desktop_PanelContainer_Id');
+            dbg('NPV guard: panel opened without npBtn click - closing', '#Desktop_PanelContainer_Id', {
+                'panelContainer aria-label': panelContainer?.getAttribute('aria-label') ?? null
+            });
             window.closeNowPlay('npv-guard-autoclose');
         }
     });
