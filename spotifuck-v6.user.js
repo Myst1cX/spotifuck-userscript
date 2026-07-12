@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      6.7e
+// @version      6.7.f
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -151,6 +151,8 @@
  *   happens, before Spotify's own click handling runs, so the guard leaves
  *   it alone and the album art opens/closes the Now Playing view natively,
  *   as instantly as npBtn.
+ * f) Hid the native miniplayer/PiP toggle button (button[data-testid=pip-toggle-button],
+ *   via the existing hidden-elements CSS rule.
  */
 
 
@@ -1390,7 +1392,7 @@ body{min-width:100%!important;min-height:100%!important}
 div[data-testid=root]{--panel-gap:0!important}
 #main-view+div,#main-view+div>div{overflow:hidden!important;width:auto}
 #main-view+div>div>div>div:nth-child(2)>div{width:100vw!important}
-div[data-encore-id=banner],#global-nav-bar>div:first-of-type,#global-nav-bar a[href="/download"],button[data-testid=fullscreen-mode-button],div.main-view-container__mh-footer-container{display:none!important}
+div[data-encore-id=banner],#global-nav-bar>div:first-of-type,#global-nav-bar a[href="/download"],button[data-testid=fullscreen-mode-button],button[data-testid=pip-toggle-button],div.main-view-container__mh-footer-container{display:none!important}
 section[data-testid=artist-page]>div>div:first-child:not([data-encore-id]){height:25vh}
 div[data-testid=tracklist-row]{padding:0 10px 0 0;grid-gap:0}
 div[data-testid=tracklist-row] button:not([data-testid=add-to-playlist-button]){transform:scale(1.3)!important;opacity:0.6!important}
