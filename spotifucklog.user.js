@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         Spotifuck Log (do not install - testing. finally cleaned up library, it's fixed. will consider appending back to header, in a clean manner)
+// @name         Spotifuck Log (i think library view fixed)
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
 // @version      6.7.log.do.not.install.
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
@@ -678,14 +678,32 @@
      */
     window.addCSSJSHack = function() {
         // Setup library button once
+        //
+        // v6.8.3 note (ported from the fixing_user.js branch, which surfaced
+        // this via its bottom-nav re-wiring path): guarding purely on
+        // libBtn.classList.contains('fuckd') is fragile, because Spotify's
+        // own re-render of this exact button (switching its icon/aria-label
+        // between Open<->Collapse) recomputes and can overwrite its class
+        // attribute - wiping our 'fuckd'/'lbtn' classes while leaving the
+        // click listener we already attached in place (listeners aren't tied
+        // to attributes). If this function ever runs again against the same
+        // now-class-wiped node (e.g. a future version re-checks/re-wires
+        // periodically), the class-only guard would wrongly treat it as
+        // unwired and attach a second listener, permanently double-firing
+        // every future click. Not currently reachable here (this file only
+        // calls setupLibraryButton() twice, both very early via addCSSJSHack's
+        // immediate + 2s retry, well before any user interaction could have
+        // triggered a re-render), but the property guard below is added
+        // defensively so this stays true even if that changes.
         const setupLibraryButton = () => {
             // Use aria-label to identify the correct library button (not back button)
             // Library button has aria-label containing "Your Library" (either "Open Your Library" or "Collapse Your Library")
             // Back button has aria-label="Go back" which doesn't contain "Your Library"
             const libBtn = document.querySelector('#Desktop_LeftSidebar_Id header button[aria-label*="Your Library"]:not(.fuckd)');
 
-            if (libBtn && !libBtn.classList.contains('fuckd')) {
+            if (libBtn && !libBtn.__spLibBtnWired) {
                 console.log('LibBtnFuckd');
+                libBtn.__spLibBtnWired = true;
                 window.lBtn = libBtn;
                 libBtn.classList.add('fuckd', 'lbtn');
                 libBtn.style.padding = '0';
