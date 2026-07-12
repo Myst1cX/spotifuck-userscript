@@ -206,6 +206,22 @@
     // becomes visible while this is false - i.e. NPV can only ever be opened via one of those
     // two authorized paths, never via the unreliable native toggle button
     // (unreliable/often absent - see clickNP) or programmatically by anything else.
+    let otherPanelOpening = false;  // Queue/Connect guard: true for a short window after a
+    // Queue or Connect click, set via capture-phase listener (same trick as the album-art
+    // authorized-opener - see setupOtherPanelTriggers) before Spotify's own handler runs.
+    // Needed because npvGuardObserver's childList/subtree observation (below) fires on every
+    // DOM mutation anywhere in document.body, not just the one aria-hidden flip - Spotify's
+    // app mutates constantly, so a single click produces a burst of guard-callback
+    // invocations. The flag can't be cleared after the first of those (that reopens the same
+    // race it's meant to close), so markOtherPanelOpening() below lets it expire on its own
+    // short timer instead, covering the whole opening transition regardless of how many
+    // mutations fire during it.
+    let otherPanelOpeningTimer = null;
+    function markOtherPanelOpening() {
+        otherPanelOpening = true;
+        clearTimeout(otherPanelOpeningTimer);
+        otherPanelOpeningTimer = setTimeout(() => { otherPanelOpening = false; }, 500);
+    }
 
     // --- Bottom nav / library-overlay-persistence state (v6.7) ---
     const LIB_OPEN_KEY = 'spf_library_open';  // sessionStorage key, cleared on every fresh page load (see init)
@@ -737,7 +753,7 @@
     // script, a stray native control - gets auto-closed, since userOpenedNPV
     // only ever becomes true via one of those two paths.
     const npvGuardObserver = new MutationObserver(() => {
-        if (isNpvOpen() && !userOpenedNPV) {
+        if (isNpvOpen() && !userOpenedNPV && !otherPanelOpening) {
             const panelContainer = document.querySelector('#Desktop_PanelContainer_Id');
             dbg('NPV guard: panel opened without npBtn click - closing', '#Desktop_PanelContainer_Id', {
                 'panelContainer aria-label': panelContainer?.getAttribute('aria-label') ?? null
@@ -1397,6 +1413,30 @@
             dbg('setupNpvWidgetTrigger: listener attached', 'div[data-testid="now-playing-widget"]>div:first-child', {});
         };
 
+        // Same authorized-opener trick as setupNpvWidgetTrigger above, but for Queue and
+        // Connect - marks otherPanelOpening=true the instant the click lands (capture
+        // phase, before Spotify's own handler runs), so npvGuardObserver's mutation
+        // callback sees it already set and doesn't mistake the shared panel's still-stale
+        // "Now playing view" label for an unauthorized NPV open.
+        const setupOtherPanelTriggers = () => {
+            const queueBtn = document.querySelector('button[data-testid="control-button-queue"]:not(.fuckd-other-panel)');
+            if (queueBtn) {
+                queueBtn.classList.add('fuckd-other-panel');
+                queueBtn.addEventListener('click', () => {
+                    markOtherPanelOpening();
+                    dbg('otherPanel: Queue button clicked', 'button[data-testid="control-button-queue"]', {});
+                }, { capture: true });
+            }
+            const connectBtn = document.querySelector('button[aria-label="Connect to a device"]:not(.fuckd-other-panel)');
+            if (connectBtn) {
+                connectBtn.classList.add('fuckd-other-panel');
+                connectBtn.addEventListener('click', () => {
+                    markOtherPanelOpening();
+                    dbg('otherPanel: Connect button clicked', 'button[aria-label="Connect to a device"]', {});
+                }, { capture: true });
+            }
+        };
+
         // Try to setup all elements immediately
         setupLibraryButton();
         setupLibraryGrid();
@@ -1406,6 +1446,7 @@
         setupNPBarHeightSync();
         setupNpvButton();
         setupNpvWidgetTrigger();
+        setupOtherPanelTriggers();
 
         // Use a short retry mechanism for elements that might not be ready yet
         // Check once more after 2 seconds for any missed elements
@@ -1418,6 +1459,7 @@
             setupNPBarHeightSync();
             setupNpvButton();
             setupNpvWidgetTrigger();
+            setupOtherPanelTriggers();
         }, 2000);
     };
 
