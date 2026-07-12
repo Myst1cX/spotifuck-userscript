@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      6.7.f
+// @version      6.8
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -153,6 +153,21 @@
  *   as instantly as npBtn.
  * f) Hid the native miniplayer/PiP toggle button (button[data-testid=pip-toggle-button],
  *   via the existing hidden-elements CSS rule.
+
+ * Newly added (v6.8) - Fixed Queue / Connect to a Device buttons not opening
+ * - #Desktop_PanelContainer_Id (the right-side panel) is shared by Now
+ *   Playing view, Queue, and Connect to a Device - all three flip the same
+ *   aria-hidden flag when opened. The (v6.7c) NPV guard's isNpvOpen() only
+ *   checked that shared flag, so it couldn't tell NPV apart from Queue/
+ *   Devices - meaning it would sometimes auto-close Queue or Devices right
+ *   after they opened, thinking it was an unauthorized NPV open. Whether it
+ *   misfired depended on stale guard state left over from an earlier NPV
+ *   open, which is why it looked intermittent (broken, then fine after some
+ *   navigating around). isNpvOpen() now also requires the panel's actual
+ *   content to be the Now Playing view (aria-label="Now playing view" or
+ *   .NowPlayingView) before treating it as NPV, so Queue and Devices are no
+ *   longer affected by the guard.
+ * - Also updated some stale comments inside the script to correctly reflect file versioning
  */
 
 
@@ -178,7 +193,7 @@
     // two authorized paths, never via the unreliable native toggle button
     // (unreliable/often absent - see clickNP) or programmatically by anything else.
 
-    // --- Bottom nav / library-overlay-persistence state (v6.8) ---
+    // --- Bottom nav / library-overlay-persistence state (v6.7) ---
     const LIB_OPEN_KEY = 'spf_library_open';  // sessionStorage key, cleared on every fresh page load (see init)
     let lastActiveTab = null;
     let lastBodyClass = '';
@@ -580,7 +595,7 @@
             } else {
                 dbg('switchLs: view manipulated (EXPAND) - header h1 NOT FOUND, icon not updated', 'header>div>div:first-child h1', { source });
             }
-            // v6.8: persist across SPA nav + sync bottom nav's active tab highlight.
+            // v6.7: persist across SPA nav + sync bottom nav's active tab highlight.
             sessionStorage.setItem(LIB_OPEN_KEY, 'true');
             if (typeof updateActiveTab === 'function') updateActiveTab();
         } else {
@@ -617,7 +632,7 @@
                 source,
                 note: 'cleared fullscreen-overlay inline styles (position/width/height/left/top/zIndex) - native collapsed layout shows through underneath (v6.7)'
             });
-            // v6.8: clear persistence + sync bottom nav's active tab highlight.
+            // v6.7: clear persistence + sync bottom nav's active tab highlight.
             sessionStorage.removeItem(LIB_OPEN_KEY);
             if (typeof updateActiveTab === 'function') updateActiveTab();
         }
@@ -656,7 +671,15 @@
     function isNpvOpen() {
         const panelContainer = document.querySelector('#Desktop_PanelContainer_Id');
         if (!panelContainer) return false;
-        return panelContainer.parentNode.parentNode.ariaHidden === 'false';
+        if (panelContainer.parentNode.parentNode.ariaHidden !== 'false') return false;
+        // #Desktop_PanelContainer_Id is shared by NPV, Queue, and Connect to a
+        // Device - all three flip the same ariaHidden flag, so checking that
+        // alone can't tell them apart. Only count it as NPV if the panel's
+        // actual content is the Now Playing View (same marker used by the old
+        // .zjCIcN96KsMfWwRo-based CSS hide: aria-label="Now playing view" or
+        // .NowPlayingView), otherwise the guard below would auto-close Queue/
+        // Devices too, thinking they were an unauthorized NPV open.
+        return !!panelContainer.querySelector('[aria-label="Now playing view"], .NowPlayingView');
     }
 
     /**
@@ -712,7 +735,7 @@
     }, 1000);
 
     // ==========================================================================
-    // v6.8: Bottom nav bar (Home/Search/Library) + supporting layout state.
+    // v6.7: Bottom nav bar (Home/Search/Library) + supporting layout state.
     // Ported from kitbodega/SpotiKit's 7.3.2.fork (open source, see file header).
     // All library open/close still goes through switchLs()/real native clicks
     // above (v6.7) - nothing here reimplements that, it only drives it.
@@ -753,10 +776,10 @@
     }
 
     // Single source of truth for wiring the native "Your Library" toggle
-    // button's click listener. v6.8 bug: this used to be two independent
+    // button's click listener. v6.7 bug: this used to be two independent
     // copies of the same wiring code - one inside addCSSJSHack's
     // setupLibraryButton (v6.7), and a second one duplicated here in
-    // ensureLibButtonWired for the new bottom nav (v6.8) - each with its own
+    // ensureLibButtonWired for the new bottom nav (v6.7) - each with its own
     // local .fuckd guard. Because #Desktop_LeftSidebar_Id is display:none
     // whenever the library is collapsed, the *only* way to reach the Library
     // tab is through the bottom nav, so ensureLibButtonWired's copy always
@@ -772,7 +795,7 @@
     // element they found, so there is only ever one guard and only ever one
     // listener, however either of them gets invoked.
     //
-    // v6.8.3 fix: the shared guard above (checking libBtn.classList.contains
+    // v6.7 fix: the shared guard above (checking libBtn.classList.contains
     // ('fuckd')) still wasn't enough - ensureLibButtonWired() re-queries this
     // exact button every time the bottom nav's Library tab is tapped, and
     // Spotify's own re-render of the button (switching its icon/aria-label
@@ -862,7 +885,7 @@
     // Restores the library to expanded via the same real-click mechanism as
     // Trigger 1/2 (never a direct dataset/CSS write), used by onLocationChange
     // below to restore library-open state after an in-app SPA navigation.
-    // v6.8.2 fix: this used to set dataset.fuckExpanded/CSS/header text
+    // v6.7 fix: this used to set dataset.fuckExpanded/CSS/header text
     // directly, bypassing switchLs() - the one invariant spotifucklog's
     // switchLs() relies on ("we're the only code that ever calls switchLs(),
     // so this can never desync") only holds if nothing else ever writes
@@ -976,7 +999,7 @@
         if (sessionStorage.getItem(LIB_OPEN_KEY) === 'true') {
             const leftSidebar = document.querySelector('#Desktop_LeftSidebar_Id');
             if (leftSidebar && leftSidebar.dataset.fuckExpanded !== 'true') {
-                // v6.8.2 fix: restore via a real click (expandLibraryViaRealClick)
+                // v6.7 fix: restore via a real click (expandLibraryViaRealClick)
                 // instead of writing dataset.fuckExpanded/CSS/header text here
                 // directly - see that function's comment for why the direct
                 // write caused a dataset/native desync (Issue 1).
@@ -1140,7 +1163,7 @@
 
             if (libBtn && !libBtn.classList.contains('fuckd')) {
                 console.log('LibBtnFuckd');
-                // v6.8 fix: delegate to the single shared wireLibraryButton() helper
+                // v6.7 fix: delegate to the single shared wireLibraryButton() helper
                 // (see its definition near ensureLibButtonWired below) instead of
                 // wiring the listener here directly - having two separate copies of
                 // this wiring was the cause of the double-switchLs()-call library bug.
@@ -1235,7 +1258,7 @@
                                 sidebar.style.top = '';
                                 sidebar.style.zIndex = '';
                             }
-                            // v6.8: this collapse path bypasses switchLs() entirely (see comment
+                            // v6.7: this collapse path bypasses switchLs() entirely (see comment
                             // above), so it needs its own persistence-clear + active-tab sync too.
                             sessionStorage.removeItem(LIB_OPEN_KEY);
                             if (typeof updateActiveTab === 'function') updateActiveTab();
@@ -1452,7 +1475,7 @@ aside[data-testid=now-playing-bar]{background:#000!important;box-shadow:none;bor
         `;
         document.head.appendChild(amoled);
 
-        // --- Bottom nav bar + library-overlay layout + header visibility (v6.8) ---
+        // --- Bottom nav bar + library-overlay layout + header visibility (v6.7) ---
         // Kept as its own <style> element (rather than merged into the blocks
         // above) so none of the existing v6.7 CSS above has to be touched.
         const bottomNavLayout = document.createElement('style');
@@ -1578,7 +1601,7 @@ body.sp-search input[data-testid="search-input"]{display:flex!important}
         injectCSS();
         firstFuck();
 
-        // v6.8: bottom nav init - independent of firstFuck's playBtn-gated pass,
+        // v6.7: bottom nav init - independent of firstFuck's playBtn-gated pass,
         // so Home/Search/Library are available as soon as the body exists.
         // Also clears any stale library-open flag from a previous tab/session
         // before onLocationChange can act on it (fresh page load always starts
