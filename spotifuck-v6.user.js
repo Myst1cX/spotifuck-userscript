@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      6.8
+// @version      6.9
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -154,7 +154,8 @@
  * f) Hid the native miniplayer/PiP toggle button (button[data-testid=pip-toggle-button],
  *   via the existing hidden-elements CSS rule.
 
- * Newly added (v6.8) - Fixed Queue / Connect to a Device buttons not opening
+ * Newly added (v6.8) - Attempted fix for Queue / Connect to a Device buttons
+ *   not opening - NOT the actual fix, see v6.9 below
  * - #Desktop_PanelContainer_Id (the right-side panel) is shared by Now
  *   Playing view, Queue, and Connect to a Device - all three flip the same
  *   aria-hidden flag when opened. The (v6.7c) NPV guard's isNpvOpen() only
@@ -163,11 +164,24 @@
  *   after they opened, thinking it was an unauthorized NPV open. Whether it
  *   misfired depended on stale guard state left over from an earlier NPV
  *   open, which is why it looked intermittent (broken, then fine after some
- *   navigating around). isNpvOpen() now also requires the panel's actual
- *   content to be the Now Playing view (aria-label="Now playing view" or
- *   .NowPlayingView) before treating it as NPV, so Queue and Devices are no
- *   longer affected by the guard.
- * - Also updated some stale comments inside the script to correctly reflect file versioning
+ *   navigating around). This attempt tried to fix it by checking for
+ *   panelContainer.querySelector('[aria-label="Now playing view"], .NowPlayingView')
+ *   inside the panel - but that marker turned out to be on the panel
+ *   container itself, not a descendant, so querySelector never matched.
+ *   Net effect: isNpvOpen() always returned false and the guard stopped
+ *   doing anything at all, letting NPV pop open unguarded. Superseded by
+ *   v6.9.
+ *
+ * Newly added (v6.9) - Actual fix for the v6.8 regression above
+ * - Checked the real live markup: #Desktop_PanelContainer_Id (the <aside>
+ *   itself) carries aria-label="Now playing view" plus a .NowPlayingView
+ *   class when showing NPV; aria-label="Queue" for Queue; and
+ *   aria-label="Connect to a device" for the device picker - all three as
+ *   attributes/classes on the container element itself, not on any child.
+ *   isNpvOpen() now checks panelContainer.getAttribute('aria-label') and
+ *   panelContainer.classList directly instead of querySelector-ing into it,
+ *   so it correctly identifies NPV vs Queue vs Devices and the guard only
+ *   ever acts on genuine unauthorized NPV opens.
  */
 
 
@@ -672,14 +686,17 @@
         const panelContainer = document.querySelector('#Desktop_PanelContainer_Id');
         if (!panelContainer) return false;
         if (panelContainer.parentNode.parentNode.ariaHidden !== 'false') return false;
-        // #Desktop_PanelContainer_Id is shared by NPV, Queue, and Connect to a
-        // Device - all three flip the same ariaHidden flag, so checking that
-        // alone can't tell them apart. Only count it as NPV if the panel's
-        // actual content is the Now Playing View (same marker used by the old
-        // .zjCIcN96KsMfWwRo-based CSS hide: aria-label="Now playing view" or
-        // .NowPlayingView), otherwise the guard below would auto-close Queue/
-        // Devices too, thinking they were an unauthorized NPV open.
-        return !!panelContainer.querySelector('[aria-label="Now playing view"], .NowPlayingView');
+        // #Desktop_PanelContainer_Id is shared by NPV, Queue, and (possibly)
+        // Connect to a Device - all three flip the same ariaHidden flag, so
+        // checking that alone can't tell them apart. Confirmed against live
+        // markup: the <aside id="Desktop_PanelContainer_Id"> element ITSELF
+        // carries aria-label="Now playing view" + class "NowPlayingView" when
+        // showing NPV, vs aria-label="Queue" (no NowPlayingView class) for
+        // Queue - it's an attribute/class on the container, not a descendant,
+        // so we check panelContainer directly rather than querySelector-ing
+        // into it.
+        return panelContainer.getAttribute('aria-label') === 'Now playing view'
+            || panelContainer.classList.contains('NowPlayingView');
     }
 
     /**
