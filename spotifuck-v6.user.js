@@ -1389,41 +1389,25 @@
         };
 
         // NPV guard: the player-bar album art (div[data-testid=now-playing-widget]
-        // >div:first-child) natively TOGGLES the Now Playing view on click - this is
+        // >div:first-child) natively opens the Now Playing view on click - this is
         // a real, reliable Spotify affordance, separate from the unreliable native
         // toggle button npBtn above works around. Without this, npvGuardObserver
         // (which only trusts opens that went through clickNP()) would see the
         // native open and immediately undo it, making the click appear to do
-        // nothing. A capture-phase listener sets userOpenedNPV to match what this
-        // click is about to do - open or close, computed from isNpvOpen() same as
-        // clickNP() - strictly before Spotify's own bubble-phase handler runs, so
-        // by the time npvGuardObserver's mutation microtask fires, userOpenedNPV
-        // already reflects the correct state. This must mirror both directions
-        // (not just set true): since it's a native toggle, the closing click never
-        // goes through our closeNowPlay() (which is the only other place that
-        // resets the flag), so an unconditional `true` here would leave the flag
-        // stuck true after a close and cause the guard to wrongly trust the next
-        // unrelated native open. Nothing is clicked synthetically here (unlike
-        // clickNP()), so there's no risk of a second, self-inflicted toggle undoing
-        // Spotify's own native one.
+        // nothing. A capture-phase listener sets userOpenedNPV=true the instant
+        // the click lands - strictly before Spotify's own bubble-phase handler
+        // runs - so by the time npvGuardObserver's mutation microtask fires,
+        // userOpenedNPV is already true and the guard leaves it alone. Nothing is
+        // clicked synthetically here (unlike clickNP()), so there's no risk of a
+        // second, self-inflicted toggle undoing Spotify's own native one.
         const setupNpvWidgetTrigger = () => {
             const artEl = document.querySelector('div[data-testid="now-playing-widget"]>div:first-child:not(.fuckd-npv-art)');
             if (!artEl) return;
             artEl.classList.add('fuckd-npv-art');
             artEl.addEventListener('click', () => {
-                // Album art is a native toggle - a click can either open OR close NPV
-                // depending on current state, unlike npBtn where clickNP() computes this
-                // itself. Must mirror that here: if we unconditionally set true, the
-                // *closing* click (native, closeNowPlay() never runs for this path) leaves
-                // userOpenedNPV stuck true, so the guard wrongly trusts the next unrelated
-                // native open (e.g. playlist play button auto-opening NPV).
-                const willOpen = !isNpvOpen();
-                userOpenedNPV = willOpen;
+                userOpenedNPV = true;
                 dbg('npvWidget: album art clicked', 'div[data-testid="now-playing-widget"]>div:first-child', {
-                    willOpen,
-                    note: willOpen
-                        ? 'userOpenedNPV set true before Spotify\'s own click handling runs, so npvGuardObserver allows this open'
-                        : 'panel was open - this click closes it natively (closeNowPlay() never runs for this path), so userOpenedNPV reset to false here to keep guard state in sync'
+                    note: 'userOpenedNPV set true before Spotify\'s own click handling runs, so npvGuardObserver allows this open'
                 });
             }, { capture: true });
             dbg('setupNpvWidgetTrigger: listener attached', 'div[data-testid="now-playing-widget"]>div:first-child', {});
