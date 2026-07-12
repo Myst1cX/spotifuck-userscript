@@ -132,6 +132,17 @@
  *   - The native top header (home icon, bell, upgrade button, profile
  *     menu, search input) is hidden by default and only shown while the
  *     bottom nav's Search tab is active.
+ * c) Added a custom Now Playing view button (next to the lyrics button in
+ *   the player bar, styled to match Spotify's own button classes) since
+ *   Spotify's native NPV toggle is unreliable/often missing. Only this
+ *   button is allowed to open the Now Playing view - a MutationObserver
+ *   auto-closes it any other time it becomes visible (Spotify itself,
+ *   another script, or already open on page load), so it can't pop open
+ *   on its own.
+ * d) The internal SPFDBG console logging used throughout this script is now
+ *   gated behind its own "Debug Logging (console)" userscript-manager menu
+ *   toggle (off by default), instead of always printing, so an ordinary
+ *   user's console doesn't fill up with click-by-click state logs.
  */
 
 
@@ -172,7 +183,23 @@
     // script then did to the view" in sequence.
     // Filter your console by "SPFDBG" to isolate just this script's click activity.
     function dbg(event, selector, details) {
+        if (!debugLoggingEnabled()) return;
         console.log(`%c[SPFDBG] ${event}`, 'color:#1ed760;font-weight:bold;', 'selector:', selector, details || '');
+    }
+
+    // --- Debug logging toggle (off by default; console.log spam would
+    // otherwise fire on every click for every ordinary user) ---
+    const DEBUG_KEY = 'spotifuck_debugLog';
+    function debugLoggingEnabled() {
+        try { return typeof GM_getValue === 'function' ? GM_getValue(DEBUG_KEY, false) : false; }
+        catch (e) { return false; }
+    }
+
+    if (typeof GM_registerMenuCommand === 'function') {
+        GM_registerMenuCommand(
+            (debugLoggingEnabled() ? '✅' : '❌') + ' Debug Logging (console)',
+            () => { setFlag(DEBUG_KEY, !debugLoggingEnabled()); location.reload(); }
+        );
     }
 
     // --- Per-site visual premium spoof toggles (v6.6) ---
@@ -789,7 +816,12 @@
     // tapped while the library overlay is open.
     function collapseLibraryViaRealClick(source) {
         const sidebar = document.querySelector('#Desktop_LeftSidebar_Id');
-        if (!sidebar || sidebar.dataset.fuckExpanded !== 'true') return;
+        if (!sidebar || sidebar.dataset.fuckExpanded !== 'true') {
+            dbg('collapseLibraryViaRealClick: no-op - already collapsed or sidebar not found', '#Desktop_LeftSidebar_Id', {
+                source, found: !!sidebar, fuckExpanded: sidebar ? sidebar.dataset.fuckExpanded : null
+            });
+            return;
+        }
         if (pendingLibCollapse !== null) {
             clearTimeout(pendingLibCollapse);
             pendingLibCollapse = null;
@@ -827,7 +859,12 @@
     // switchLs() is again the only writer of dataset.fuckExpanded.
     function expandLibraryViaRealClick(source) {
         const sidebar = document.querySelector('#Desktop_LeftSidebar_Id');
-        if (!sidebar || sidebar.dataset.fuckExpanded === 'true') return;
+        if (!sidebar || sidebar.dataset.fuckExpanded === 'true') {
+            dbg('expandLibraryViaRealClick: no-op - already expanded or sidebar not found', '#Desktop_LeftSidebar_Id', {
+                source, found: !!sidebar, fuckExpanded: sidebar ? sidebar.dataset.fuckExpanded : null
+            });
+            return;
+        }
         const nativeToggle = ensureLibButtonWired();
         if (nativeToggle && nativeToggle.getAttribute('aria-label') === 'Open Your Library') {
             nativeToggle.click();
@@ -840,6 +877,7 @@
     }
 
     function handleTabClick(name) {
+        dbg('handleTabClick: called', '#sp-bottom-nav button', { name });
         if (name === 'library') {
             // Real click on Spotify's own toggle - fires Spotify's native handler
             // plus our libBtn listener (setTimeout(0) => switchLs()), exactly like
