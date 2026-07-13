@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         Outdated Spotifuck - Link below
+// @name         Outdated Spotifuck - Link below 
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
 // @version      7.0
 // @description  New install link: https://raw.githubusercontent.com/Myst1cX/spotifuck-userscript/main/spotifuck-mobile.user.js
