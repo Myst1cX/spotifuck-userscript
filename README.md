@@ -39,7 +39,11 @@
 > 11. Spotify web player should reload. The interface should now be mobile-friendly.   
 > 12. NOTE: Keep Desktop Mode (browser setting) disabled.   
 
+* * * 
+
 > CREDITS TO u/soujunim/ FOR THE 'QUETTA BROWSER + USER-AGENT SWITCHER AND MANAGER' METHOD.
+
+* * * 
 
 > OLD METHOD ('FIREFOX BROWSER + CHAMELEON EXTENSION'):
 > 1. Download the latest version of Firefox (Original version! - Nightly or other releases might break your userscript manager).
