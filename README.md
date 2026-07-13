@@ -25,7 +25,8 @@
 > (Coming Soon)
 
 ## Installation
-
+> 'QUETTA BROWSER + USER-AGENT SWITCHER AND MANAGER' METHOD
+> CREDITS TO: [u/soujunim/](https://www.reddit.com/r/SpotifyLatestModAPK/comments/1upaed1/mobile_browser_spotifuck_ui_and_adblock/)
 > 1. Download and install the Quetta Browser.    
 > 2. Quetta Browser > Open Spotify Web and login to your account   
 > 3. Press on the three dots next to the search bar's tab counter.   
@@ -38,10 +39,6 @@
 > 10. Open the Spotify web player > Press on the three dots next to the search bar's tab counter > Click on the Extensions tab > Click on the 'User-Agent Switcher and Manager' extension icon > Select the first option (a Chrome Windows 10 user agent) > Click 'Apply (this tab' and then 'Refresh Tab'.   
 > 11. Spotify web player should reload. The interface should now be mobile-friendly.   
 > 12. NOTE: Keep Desktop Mode (browser setting) disabled.   
-
-* * * 
-
-> CREDITS TO u/soujunim/ FOR THE 'QUETTA BROWSER + USER-AGENT SWITCHER AND MANAGER' METHOD.
 
 * * * 
 
