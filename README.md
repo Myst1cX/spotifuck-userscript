@@ -11,9 +11,10 @@
 > Removes unnecessary elements, expands panels, and tweaks layout for maximum usability.
 >
 > **PLAYBACK CONTROL**  
-> Instantly play, pause, skip, seek, and control playback with injected functions.
-> Restores the old Now Playing View button toggle. Auto-closes the Now Playing View (only manual toggle opens it).
-> Exposes global JS functions for automation and integration.
+> Instantly play, pause, skip, seek, and control playback with injected functions.   
+> Restores the old Now Playing View button toggle.   
+> Auto-closes the Now Playing View (only manual toggle opens it).   
+> Exposes global JS functions for automation and integration.   
 >
 > **SIDEBAR & SEARCH FIXES**  
 > Adds improved sidebar toggle, fixes for library/playlist navigation, and better search behavior.
