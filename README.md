@@ -61,10 +61,16 @@ Click [here](https://github.com/Myst1cX/uSpot/blob/main/README.md) for installat
 > 14. The interface should be mobile-friendly > If it ever resets, try redoing the Chameleon extension configuration and refreshing the Spotify page
 > 15. NOTE: Keep Desktop Mode (browser setting) disabled.
 
-* * *
-> **TIP 1:** All UI changes and playback controls apply instantly. No configuration needed!
->
-> **TIP 2:** Add Spotify Web Player to your home screen for a PWA-like experience.  
+* * * 
+
+> **TIP**: Add Spotify Web Player to your home screen for a PWA-like experience. PWA (Priority Web Application) gives you an easy access shortcut to the Spotify player.  
+> **SIDE NOTE**: You can begin playing a song in the web interface and then open the Spotify app - it will let you play music there and control playback without any limitations.  
+
+* * * 
+
+> REMEMBER: PWA's essentially allow running an entire app in your web browser.    
+> A good way of finding progressive web apps is through `store.app`  
+> The degree to which you can block ads varies depending on the app, but it is often times better than using the actual app - a PWA also uses less storage than installing a native app.  
 
 * * *
 
