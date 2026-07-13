@@ -35,7 +35,8 @@
 > 3. Press on the three dots next to the search bar's tab counter.
 > 4. Go to Settings > Appearance > Disable 'Enhance Dark Theme'. Now exit the Settings.
 > 5. Once again press on the three dots next to the search bar's tab counter.
-> 6. Click on the Extensions tab > Manage Extensions > Search Extensions and get the following: 'Violentmonkey', 'User-Agent Switcher and Manager', 'Spotify Ad-Blocker (Blockify)'   
+> 6. Click on the Extensions tab > Manage Extensions > Search Extensions and get the following:   
+> 'Violentmonkey', 'User-Agent Switcher and Manager', 'Spotify Ad-Blocker (Blockify)'    
 > 7. Backup ad-blocking extension: [uSpot - Spotify Ad Blocker](https://github.com/Myst1cX/uSpot/releases)    
 Click [here](https://github.com/Myst1cX/uSpot/blob/main/README.md) for installation steps.   
 > 8. NOTE: Keep only 1 ad-blocking extension enabled at the same time.    
