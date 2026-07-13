@@ -26,7 +26,7 @@
 
 ## Installation
 > 'QUETTA BROWSER + USER-AGENT SWITCHER AND MANAGER' METHOD    
-> CREDITS TO: [u/soujunim/](https://www.reddit.com/r/SpotifyLatestModAPK/comments/1upaed1/mobile_browser_spotifuck_ui_and_adblock/)
+> Credits to: [u/soujunim/](https://www.reddit.com/r/SpotifyLatestModAPK/comments/1upaed1/mobile_browser_spotifuck_ui_and_adblock/)
 > 
 > 1. Download and install the Quetta Browser.    
 > 2. Quetta Browser > Open Spotify Web and login to your account   
