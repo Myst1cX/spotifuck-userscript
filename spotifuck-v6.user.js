@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Outdated - Install Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.1
+// @version      999.0
 // @description  Don't Install - This userscript has moved to Spotifuck Mobile.
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
