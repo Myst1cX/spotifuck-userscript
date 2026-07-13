@@ -25,7 +25,7 @@
 > (Coming Soon)
 
 ## Installation
-> 'QUETTA BROWSER + USER-AGENT SWITCHER AND MANAGER' METHOD:    
+> NEW 'QUETTA BROWSER + USER-AGENT SWITCHER AND MANAGER' METHOD:    
 > Credits to: [u/soujunim/](https://www.reddit.com/r/SpotifyLatestModAPK/comments/1upaed1/mobile_browser_spotifuck_ui_and_adblock/)
 > 
 > 1. Download and install the Quetta Browser.    
@@ -43,7 +43,7 @@
 
 * * * 
 
-> OLD 'FIREFOX BROWSER + CHAMELEON EXTENSION' METHOD (SLOWER, LESS RESPONSIVE):
+> LEGACY 'FIREFOX BROWSER + CHAMELEON EXTENSION' METHOD (SLOWER, LESS RESPONSIVE):
 > 1. Download the latest version of Firefox (Original version! - Nightly or other releases might break your userscript manager).
 > 2. Install [Violentmonkey](https://violentmonkey.github.io/)  
 > 3. Recommended: [Ublock Origin](https://addons.mozilla.org/en-US/firefox/addon/ublock-origin/)
