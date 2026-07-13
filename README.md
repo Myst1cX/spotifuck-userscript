@@ -25,7 +25,7 @@
 > (Coming Soon)
 
 ## Installation
-> 'QUETTA BROWSER + USER-AGENT SWITCHER AND MANAGER' METHOD    
+> 'QUETTA BROWSER + USER-AGENT SWITCHER AND MANAGER' METHOD:    
 > Credits to: [u/soujunim/](https://www.reddit.com/r/SpotifyLatestModAPK/comments/1upaed1/mobile_browser_spotifuck_ui_and_adblock/)
 > 
 > 1. Download and install the Quetta Browser.    
