@@ -39,6 +39,8 @@
 > 11. Spotify web player should reload. The interface should now be mobile-friendly.   
 > 12. NOTE: Keep Desktop Mode (browser setting) disabled.   
 
+CREDITS TO u/soujunim/ FOR THE QUETTA BROWSER METHOD.
+
 * * *
 > **TIP 1:** All UI changes and playback controls apply instantly. No configuration needed!
 >
