@@ -32,7 +32,7 @@
 > 2. Quetta Browser > Open Spotify Web and login to your account   
 > 3. Press on the three dots next to the search bar's tab counter.   
 > 4. Click on the Extensions tab > Manage Extensions > Search Extensions and get the following: 'Violentmonkey', 'User-Agent Switcher and Manager', 'Spotify Ad-Blocker (Blockify)'   
-> 5. Backup ad-blocking extension: uSpot - Spotify Ad Blocker Click [here](https://github.com/Myst1cX/uSpot/blob/main/README.md) for installation steps.   
+> 5. Backup ad-blocking extension: uSpot - Spotify Ad Blocker. Click [here](https://github.com/Myst1cX/uSpot/blob/main/README.md) for installation steps.   
 > 6. NOTE: Keep only 1 ad-blocking extension enabled at the same time.    
 > 7. Optional - for a lyrics translator inside the stock spotify lyrics view: [Cigi Spotify Translator - broken, may fork shortly](https://greasyfork.org/en/scripts/523415-cigi-spotify-translator)   
 > 8. Recommended: [Spotify Lyrics+](https://raw.githubusercontent.com/Myst1cX/spotify-web-lyrics-plus/main/pip-gui-stable.user.js). Click [here](https://github.com/Myst1cX/spotify-web-lyrics-plus/blob/main/README.md) for the setup and feature list.    
