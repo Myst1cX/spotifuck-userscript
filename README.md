@@ -43,7 +43,7 @@
 
 * * * 
 
-> OLD METHOD ('FIREFOX BROWSER + CHAMELEON EXTENSION'):
+> OLD METHOD - SLOWER, LESS RESPONSIVE ('FIREFOX BROWSER + CHAMELEON EXTENSION'):
 > 1. Download the latest version of Firefox (Original version! - Nightly or other releases might break your userscript manager).
 > 2. Install [Violentmonkey](https://violentmonkey.github.io/)  
 > 3. Recommended: [Ublock Origin](https://addons.mozilla.org/en-US/firefox/addon/ublock-origin/)
