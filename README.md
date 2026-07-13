@@ -1,6 +1,6 @@
 ## SPOTIFUCK USERSCRIPT
 
-> Ports the full Spotifuck 1.6.4 UI hack experience directly to the Spotify Web Player for use in the Firefox mobile browser.  
+> Ports the full Spotifuck 1.6.4 UI hack experience directly to the Spotify Web Player for use in the Quetta/Firefox mobile browser.  
 > Provides **UI enhancements** and **injected playback controls** for a more mobile-like Spotify experience.  
 > **Recommended userscript manager:** [Violentmonkey](https://violentmonkey.github.io/)
 
