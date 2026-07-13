@@ -1544,7 +1544,7 @@ form[role=search]{z-index:10;margin-left:48px;max-width:88%}
 div[data-testid=now-playing-widget]>div:last-child>button{transform:scale(1.3)}
 
 /**
-     * Unhides the track-info block on the left side of the player bar (album art which one can click to then display NPV)
+     * Uncomment this line to hide the track-info block on the left side of the player bar (album art which one can click to then display NPV)
      * div[data-testid=now-playing-widget]>div:first-child{display:none!important}
      */
 
