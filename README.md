@@ -33,7 +33,7 @@
 > 5. Backup ad-blocking extension: uSpot - Spotify Ad Blocker Click [here](https://github.com/Myst1cX/uSpot/blob/main/README.md) for installation steps.   
 > 6. NOTE: Keep only 1 ad-blocking extension enabled at the same time.    
 > 7. Optional - for a lyrics translator inside the stock spotify lyrics view: [Cigi Spotify Translator - broken, will fork shortly](https://greasyfork.org/en/scripts/523415-cigi-spotify-translator)   
-> 8. Recommended: [Spotify Lyrics+](https://raw.githubusercontent.com/Myst1cX/spotify-web-lyrics-plus/main/pip-gui-stable.user.js). Click [here](https://github.com/Myst1cX/spotify-web-lyrics-plus/blob/main/README.md) for installation steps.   
+> 8. Recommended: [Spotify Lyrics+](https://raw.githubusercontent.com/Myst1cX/spotify-web-lyrics-plus/main/pip-gui-stable.user.js). Click [here](https://github.com/Myst1cX/spotify-web-lyrics-plus/blob/main/README.md) for the setup and feature list.    
 > 9. Install [Spotifuck](https://raw.githubusercontent.com/Myst1cX/spotifuck-userscript/main/spotifuck-mobile.user.js)   
 > 10. Open the Spotify web player > Press on the three dots next to the search bar's tab counter > Click on the Extensions tab > click on the User-Agent Switcher and Manager extension > Select the first option (a Chrome Windows 10 user agent) > Click 'Apply (this tab)' and then 'Refresh Tab'.   
 > 11. Spotify web player should reload. The interface should now be mobile-friendly.   
