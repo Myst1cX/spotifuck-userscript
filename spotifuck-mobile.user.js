@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.2
+// @version      7.3
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -282,7 +282,9 @@
  *   search, user button, NPV-bar height sync) keep their existing
  *   immediate + single 2s retry - untouched, out of scope here.
  * 
- * Newly added (v7.2):
+ * Newly added (v7.2) - A feature I later scrapped (ignore)
+ *
+ * Newly added (v7.3):
  * - Re-checked every GM_registerMenuCommand callback and click handler
  *   against the v6.9/v7.0 (b) coverage claims. Found two real gaps that
  *   audit missed: "Show everything replaced so far" and "Debug Logging
