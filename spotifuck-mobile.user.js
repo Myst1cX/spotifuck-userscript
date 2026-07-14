@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.0
+// @version      7.1
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -172,7 +172,7 @@
  *   doing anything at all, letting NPV pop open unguarded. Superseded by
  *   v6.9.
  *
- * Newly added (v6.9) - Actual fix for the v6.8 regression above
+ * Newly added (v6.9 and v7.0) - Actual fix for the v6.8 regression above
  * a) Checked the real live markup: #Desktop_PanelContainer_Id (the <aside>
  *   itself) carries aria-label="Now playing view" plus a .NowPlayingView
  *   class when showing NPV; aria-label="Queue" for Queue; and
@@ -192,9 +192,86 @@
  *   used to trace via plain console.log('Spotifuck: ...') instead of
  *   dbg() - refactored those into dbg() so they're gated behind the same
  *   toggle and filterable by "SPFDBG" like everything else.
- * - Moved the "Debug Logging (console)" menu command to the bottom of the
- *   userscript-manager menu (was 1st, now 4th/last, after the two spoof
- *   toggles and "Show everything replaced so far").
+ * 
+ * Newly added (v7.1) - Ported region/English-forcing fixes from SpotiwebJS.js:
+ * a) forceEnglish()'s www.spotify.com redirect was still the old bare-code-only
+ *   check (an ENGLISH_REGIONS allowlist matching /us/, /gb/, etc.) with no
+ *   understanding of Spotify's actual dash-suffixed URLs (/si-sl/, /de-en/,
+ *   /hk-zh/, etc.) - meaning most non-English regions were silently never
+ *   redirected at all. Replaced with SpotiwebJS's verified region data:
+ *   NO_ENGLISH_VARIANT (9 countries with no English storefront at all, dash
+ *   or bare: ad, be, cd, ch, dz, es, lu, ma, tn), ENGLISH_IS_BARE (2
+ *   countries where the BARE code is the English one, not "-en": ba, mk),
+ *   and ENGLISH_BARE_CODES (42 bare-only countries confirmed English) - all
+ *   hand-verified against Spotify's real /select-your-country-region/
+ *   listing (2026-07-14, 184 countries). forceEnglish() now correctly
+ *   redirects any non-English xx-yy URL to its English variant using this
+ *   data instead of a 6-country allowlist.
+ * b) Added getCurrentRegionPrefix(), also ported from SpotiwebJS, so the
+ *   Edit profile / Payment method banner buttons build their
+ *   www.spotify.com/account/... URL from the current region instead of
+ *   hardcoding /us/account/... regardless of the account's actual locale.
+ * c) The www.spotify.com region-path redirect in forceEnglish() now also
+ *   checks premiumSpoofEnabledHere() and no-ops (with a dbg() log) when
+ *   "Visual Premium Spoof (www.spotify.com)" is off, instead of running
+ *   unconditionally regardless of that toggle.
+ * d) forceEnglishAccountSetting() was being called unconditionally at the
+ *   bottom of forceEnglish() - it fired on every matched host, including
+ *   www.spotify.com and payments.spotify.com, where its hidden iframe
+ *   (hardcoded to https://open.spotify.com/preferences) is cross-origin and
+ *   can never succeed, silently wasting an iframe load every page load on
+ *   those two hosts. Now gated behind `if (HOST_IS_OPEN)`, with the skip
+ *   logged via dbg() on the other two hosts.
+ * e) dbg() coverage: the two "Visual Premium Spoof" GM_registerMenuCommand
+ *   toggles (open.spotify.com / www.spotify.com) flipped a persisted flag
+ *   and reloaded but never logged the toggle itself - the one
+ *   user-triggered write in the whole script with zero trace, including on
+ *   www.spotify.com. Added dbg() calls logging from/to state before reload
+ *   for both.
+ * f) add-new-card-button (on the "Add new card"/payment method flow) also
+ *   appears on www.spotify.com's own account pages
+ *   (/account/payment-methods/, aliased to/from
+ *   /account/saved-payment-cards/), entirely separate from
+ *   payments.spotify.com (the actual checkout flow already blocked via the
+ *   payments-page blocker). That blocker is gated to
+ *   window.location.hostname === 'payments.spotify.com', so it never ran on
+ *   www.spotify.com at all. Added a second, narrower blocker scoped to
+ *   HOST_IS_WWW: no overlay (this is account management, not checkout),
+ *   just the same preventDefault/stopPropagation no-op on the button, gated
+ *   behind premiumSpoofEnabledHere() like everything else scoped to that
+ *   host. Also added the same button as an exact-match selector to the
+ *   payments.spotify.com blocker itself (data-testid="add-new-card-button"
+ *   contains neither "pay" nor "checkout", so the existing substring
+ *   selectors never matched it there either).
+ *
+ * Audited every other button/redirect for a similar hardcoded-locale or
+ * missing-toggle-gate issue (this file and SpotiwebJS.user.js) - the two
+ * banner buttons in (b) were the only other hardcoded-region spots found;
+ * everything else either has no locale in its URL (e.g. the bare
+ * https://www.spotify.com/ / https://open.spotify.com/ links, which rely on
+ * Spotify's own geo-redirect) or was already using getCurrentRegionPrefix()/
+ * the toggle correctly.
+ *
+ * g) setupNpvButton/setupNpvWidgetTrigger/setupOtherPanelTriggers were only
+ *   ever called twice total (once immediately, once via a fixed 2s
+ *   setTimeout) inside addCSSJSHack() - which itself only runs once
+ *   (ffDone latches true after the first pBtn found). firstFuck's own
+ *   indefinite pfint polling doesn't cover this gap: it keeps retrying
+ *   forever, but only for the play button, so once that's found these
+ *   three never get another chance. On a slow/cold SPA load where the
+ *   lyrics button or the player-bar album art render later than 2s (the
+ *   same class of delay pfint's own indefinite polling exists to handle
+ *   for the play button), they'd silently never get wired at all. Ported
+ *   SpotiwebJS's npvSetupInterval pattern instead: these three now get
+ *   their own indefinite setInterval(1000) that keeps retrying until both
+ *   .npbtn and .fuckd-npv-art are confirmed present, then stops - matching
+ *   SpotiwebJS exactly, including the same reason their "target not found
+ *   yet" early returns still deliberately don't log through dbg() (a
+ *   genuine continuous 1s poll now exists here too, so logging every
+ *   missed tick would spam the console the whole time these are loading).
+ *   The other six functions in addCSSJSHack (library button/grid, home,
+ *   search, user button, NPV-bar height sync) keep their existing
+ *   immediate + single 2s retry - untouched, out of scope here.
  */
 
 
@@ -287,18 +364,94 @@
     if (typeof GM_registerMenuCommand === 'function') {
         GM_registerMenuCommand(
             (getFlag(SPOOF_OPEN_KEY) ? '✅' : '❌') + ' Visual Premium Spoof (open.spotify.com)',
-            () => { setFlag(SPOOF_OPEN_KEY, !getFlag(SPOOF_OPEN_KEY)); location.reload(); }
+            () => {
+                const next = !getFlag(SPOOF_OPEN_KEY);
+                dbg('menu: Visual Premium Spoof (open.spotify.com) toggled', 'GM_registerMenuCommand', { from: getFlag(SPOOF_OPEN_KEY), to: next, action: 'reloading' });
+                setFlag(SPOOF_OPEN_KEY, next);
+                location.reload();
+            }
         );
         GM_registerMenuCommand(
             (getFlag(SPOOF_WWW_KEY) ? '✅' : '❌') + ' Visual Premium Spoof (www.spotify.com)',
-            () => { setFlag(SPOOF_WWW_KEY, !getFlag(SPOOF_WWW_KEY)); location.reload(); }
+            () => {
+                const next = !getFlag(SPOOF_WWW_KEY);
+                dbg('menu: Visual Premium Spoof (www.spotify.com) toggled', 'GM_registerMenuCommand', { from: getFlag(SPOOF_WWW_KEY), to: next, action: 'reloading' });
+                setFlag(SPOOF_WWW_KEY, next);
+                location.reload();
+            }
         );
+    }
+
+    // Shared between forceEnglish()'s redirect decision and
+    // getCurrentRegionPrefix()'s button-URL decision, so both use the same
+    // facts rather than duplicating/drifting apart.
+    //
+    // NO_ENGLISH_VARIANT / ENGLISH_IS_BARE: verified against Spotify's own
+    // /select-your-country-region/ listing (2026-07-14) - covers countries
+    // that DO have an xx-yy dash variant, where "yy=en" or "append -en"
+    // isn't the right answer.
+    //   - 9 have NO English variant at all, dash or bare: ad, be, cd, ch,
+    //     dz, es, lu, ma, tn.
+    //   - 2 have English as the BARE code, not "-en": ba, mk.
+    const NO_ENGLISH_VARIANT = new Set(['ad', 'be', 'cd', 'ch', 'dz', 'es', 'lu', 'ma', 'tn']);
+    const ENGLISH_IS_BARE = new Set(['ba', 'mk']);
+
+    // ENGLISH_BARE_CODES: countries whose ONLY storefront is a bare code
+    // (no dash variant exists to compare against) that is confirmed
+    // English - either the region page is explicitly labelled "(English)",
+    // or the country's official/majority language is verifiably English
+    // (Commonwealth Caribbean, Anglophone Africa, Anglophone Oceania).
+    // Deliberately excludes bare codes where the language is ambiguous or
+    // unverified from the listing alone (e.g. cy, ge, am, bt, mn, la, uz,
+    // al, mc, li) - those fall through to the /us fallback below rather
+    // than being guessed at.
+    const ENGLISH_BARE_CODES = new Set([
+        'us', 'uk', 'au', 'nz', 'ie', 'mt', 'kh',
+        'ag', 'bb', 'bs', 'dm', 'gd', 'gy', 'jm', 'kn', 'lc', 'tt', 'vc',
+        'bw', 'gh', 'gm', 'lr', 'ls', 'mu', 'mw', 'ng', 'rw', 'sl', 'sz', 'zm', 'zw',
+        'fj', 'fm', 'ki', 'mh', 'nr', 'pg', 'pw', 'sb', 'to', 'tv', 'ws',
+    ]);
+
+    /**
+     * getCurrentRegionPrefix - Returns the region path segment (e.g. "us",
+     * "si-en", "mk", "hk-zh") that should prefix any www.spotify.com/account
+     * link we build ourselves.
+     *
+     * For dash-suffixed URLs (xx-yy), this trusts the current URL as-is,
+     * since forceEnglish() runs at @run-at document-start and will have
+     * already corrected it before this code executes.
+     *
+     * For bare-code URLs (xx, no suffix), forceEnglish() deliberately
+     * leaves those untouched (see its comment), so a bare code in the URL
+     * is NOT proof it's English - e.g. /jp/ or /de/ would reach here
+     * unmodified. So this function checks the bare code against
+     * ENGLISH_BARE_CODES (plain English-only countries) and ENGLISH_IS_BARE
+     * (countries like "ba"/"mk" whose bare code IS the English variant,
+     * distinct from their own dash variant, e.g. "ba" vs "ba-bs") - both
+     * are cases forceEnglish() itself already treats as landing correctly
+     * on English. Everything else (including ambiguous/unverified ones)
+     * falls back to /us so the buttons always land somewhere readable
+     * rather than carrying forward an unconfirmed or non-English locale.
+     */
+    function getCurrentRegionPrefix() {
+        const m = location.pathname.match(/^\/([a-z]{2})(-[a-z]{2})?\//i);
+        if (!m) return 'us';
+        const country = m[1].toLowerCase();
+        if (m[2]) return country + m[2].toLowerCase(); // dash variant, already corrected upstream
+        // Bare path: valid if it's a plain English-only country (ENGLISH_BARE_CODES)
+        // OR a country whose bare code IS the English variant, distinct from its own
+        // dash variant (ENGLISH_IS_BARE, e.g. "ba" English vs "ba-bs" Bosnian) -
+        // forceEnglish() redirects those countries TO their bare form precisely
+        // because it's the English one, so this has to recognize it too or button
+        // URLs built here would wrongly fall back to /us right after that redirect.
+        return (ENGLISH_BARE_CODES.has(country) || ENGLISH_IS_BARE.has(country)) ? country : 'us';
     }
 
     /**
      * forceEnglish - Force the web player to render in English.
      * open.spotify.com localizes via an /intl-xx/ URL prefix.
-     * www.spotify.com localizes via a leading region path segment (e.g. /mx/, /es/).
+     * www.spotify.com localizes via a region-language path segment (e.g.
+     * /si-sl/, /de-en/, /hk-zh/).
      * Runs at document-start, before Spotify's own scripts get a chance to read navigator.language.
      */
     function forceEnglish() {
@@ -308,16 +461,46 @@
             Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'], configurable: true });
         } catch (e) {}
 
-        // www.spotify.com: redirect off any non-English-region path segment so the
-        // marketing/account pages themselves load in English (ported from
-        // SpotiwebJS.js's forceEnglish, v6.6).
         if (location.hostname === 'www.spotify.com') {
-            const ENGLISH_REGIONS = ['us', 'gb', 'ca', 'au', 'ie', 'nz'];
-            const wm = location.pathname.match(/^\/([a-z]{2})(\/.*)?$/i);
-            if (wm && !ENGLISH_REGIONS.includes(wm[1].toLowerCase())) {
-                dbg('forceEnglish: redirecting off non-English region path', location.pathname, { to: '/us' + (wm[2] || '/') });
-                location.replace(location.origin + '/us' + (wm[2] || '/') + location.search + location.hash);
-                return;
+            // Gated behind the same www.spotify.com toggle
+            // (premiumSpoofEnabledHere()) as everything else scoped to this
+            // host, so turning "Visual Premium Spoof (www.spotify.com)" off
+            // also stops this redirect instead of leaving it always-on.
+            if (!premiumSpoofEnabledHere()) {
+                dbg('forceEnglish: skipping region-path redirect', location.pathname, { reason: 'Visual Premium Spoof (www.spotify.com) is off' });
+            } else {
+            // Trust the language suffix when the URL has one (xx-yy, e.g.
+            // /si-sl/, /de-en/, /hk-zh/) - Spotify's own site consistently
+            // uses a 2-letter language code there, so `yy !== 'en'` is a
+            // reliable signal regardless of which country `xx` is.
+            // Bare codes (no suffix, e.g. /jp/, /de/, /us/) are left alone
+            // here: whether a bare code is English-language varies country
+            // by country with no clean pattern, so there's no safe way to
+            // redirect the whole PAGE on those without assuming something
+            // unverified. (getCurrentRegionPrefix() above handles this
+            // differently for button URLs specifically, where landing
+            // somewhere readable matters more than preserving locale.)
+            const wm = location.pathname.match(/^\/([a-z]{2})-([a-z]{2})(\/.*)?$/i);
+            if (wm) {
+                const country = wm[1].toLowerCase();
+                const lang = wm[2].toLowerCase();
+                if (lang !== 'en') {
+                    let target;
+                    if (NO_ENGLISH_VARIANT.has(country)) {
+                        // No English storefront exists for this country at
+                        // all (dash or bare) - fall back to /us rather than
+                        // leaving the user on a non-English page.
+                        target = '/us' + (wm[3] || '/');
+                    } else if (ENGLISH_IS_BARE.has(country)) {
+                        target = '/' + country + (wm[3] || '/');
+                    } else {
+                        target = '/' + country + '-en' + (wm[3] || '/');
+                    }
+                    dbg('forceEnglish: redirecting off non-English language suffix', location.pathname, { to: target });
+                    location.replace(location.origin + target + location.search + location.hash);
+                    return;
+                }
+            }
             }
         }
 
@@ -330,7 +513,11 @@
                      // fresh on the load this redirect produces instead.
         }
 
-        forceEnglishAccountSetting();
+        if (HOST_IS_OPEN) {
+            forceEnglishAccountSetting();
+        } else {
+            dbg('forceEnglish: skipping account-setting flip', 'forceEnglishAccountSetting()', { reason: 'not open.spotify.com - iframe to open.spotify.com/preferences would be cross-origin and always fail here' });
+        }
     }
 
     /**
@@ -1488,10 +1675,31 @@
             setupSearchInput();
             setupUserButton();
             setupNPBarHeightSync();
+        }, 2000);
+
+        // setupNpvButton/setupNpvWidgetTrigger/setupOtherPanelTriggers get their
+        // own indefinite poll instead of the single 2s retry above - firstFuck's
+        // own pfint loop keeps retrying forever, but only for the play button;
+        // once that's found, ffDone latches true and this whole function never
+        // runs again, so a single 2s retry was the only other chance these three
+        // ever got. On a slow/cold SPA load where the lyrics button or the
+        // player-bar album art take longer than 2s to render (the same class of
+        // delay firstFuck's own indefinite polling exists to handle), they'd
+        // silently never get wired at all. Ported SpotiwebJS's npvSetupInterval
+        // pattern instead: poll every second until both are confirmed present,
+        // then stop. Both setup functions already no-op harmlessly once
+        // already-inserted, so repeated calls are safe.
+        setupNpvButton();
+        setupNpvWidgetTrigger();
+        setupOtherPanelTriggers();
+        const npvSetupInterval = setInterval(() => {
             setupNpvButton();
             setupNpvWidgetTrigger();
             setupOtherPanelTriggers();
-        }, 2000);
+            if (document.querySelector('.npbtn') && document.querySelector('.fuckd-npv-art')) {
+                clearInterval(npvSetupInterval);
+            }
+        }, 1000);
     };
 
     /**
@@ -1933,10 +2141,11 @@ body.sp-search input[data-testid="search-input"]{display:flex!important}
             left.appendChild(leftText);
             left.onclick = e => {
                 e.stopPropagation();
+                const profileUrl = `https://www.spotify.com/${getCurrentRegionPrefix()}/account/profile/`;
                 dbg('premiumBanner left (Edit profile): clicked', '.__sp custom div (replaces [data-testid="compact-banner"])', {
-                    action: 'redirecting to https://www.spotify.com/us/account/profile/'
+                    action: 'redirecting to ' + profileUrl
                 });
-                window.location.href = 'https://www.spotify.com/us/account/profile/';
+                window.location.href = profileUrl;
             };
             const right = document.createElement('div');
             right.style.cssText = 'flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;row-gap:var(--encore-spacing-tighter-2);padding:var(--encore-spacing-looser) var(--encore-spacing-tighter-2);cursor:pointer;border-left:1px solid #404040;';
@@ -1954,10 +2163,11 @@ body.sp-search input[data-testid="search-input"]{display:flex!important}
             right.appendChild(rightText);
             right.onclick = e => {
                 e.stopPropagation();
+                const paymentUrl = `https://www.spotify.com/${getCurrentRegionPrefix()}/account/saved-payment-cards/`;
                 dbg('premiumBanner right (Payment method): clicked', '.__sp custom div (replaces [data-testid="compact-banner"])', {
-                    action: 'redirecting to https://www.spotify.com/us/account/saved-payment-cards/'
+                    action: 'redirecting to ' + paymentUrl
                 });
-                window.location.href = 'https://www.spotify.com/us/account/saved-payment-cards/';
+                window.location.href = paymentUrl;
             };
             premiumBanner.innerHTML = '';
             premiumBanner.appendChild(left);
@@ -1989,9 +2199,17 @@ body.sp-search input[data-testid="search-input"]{display:flex!important}
             `;
             main.innerHTML = '';
             main.appendChild(wrapper);
-            document.querySelectorAll('form, button[type="submit"], [data-testid*="pay"], [data-testid*="checkout"]').forEach(el => {
+            // [data-testid*="pay"] and [data-testid*="checkout"] don't catch
+            // everything - e.g. data-testid="add-new-card-button" contains
+            // neither substring. Adding it as an exact match rather than
+            // widening to [data-testid*="card"], since that broader pattern
+            // would also match unrelated things like a "discard-button"
+            // testid (the substring "card-button" sits inside "discard-
+            // button" too).
+            const BLOCK_SELECTOR = 'form, button[type="submit"], [data-testid*="pay"], [data-testid*="checkout"], [data-testid="add-new-card-button"]';
+            document.querySelectorAll(BLOCK_SELECTOR).forEach(el => {
                 el.onclick = e => {
-                    dbg('payments page blocker: clicked', 'form, button[type="submit"], [data-testid*="pay"], [data-testid*="checkout"]', {
+                    dbg('payments page blocker: clicked', BLOCK_SELECTOR, {
                         'element tag': el.tagName, action: 'preventDefault + stopPropagation (click is a no-op)'
                     });
                     e.preventDefault(); e.stopPropagation();
@@ -2092,5 +2310,37 @@ body.sp-search input[data-testid="search-input"]{display:flex!important}
         const adObserver = new MutationObserver(removeAdElements);
         adObserver.observe(document.body, { childList: true, subtree: true });
         window.addEventListener('beforeunload', () => adObserver.disconnect());
+    }
+
+    // add-new-card-button blocker for www.spotify.com's own account pages
+    // (/account/payment-methods/, aliased with /account/saved-payment-cards/ -
+    // same page reachable under either path). Entirely separate from the
+    // payments.spotify.com checkout blocker above (BLOCK_SELECTOR inside
+    // premium spoof handling), which is gated to that different hostname and
+    // so never touches this page. No overlay here (account management, not
+    // checkout) - just the same preventDefault/stopPropagation no-op on the
+    // button, gated behind HOST_IS_WWW + premiumSpoofEnabledHere() (the
+    // www.spotify.com toggle), matching everything else scoped to that host.
+    // Path-matched via location.pathname.includes(...) against both known
+    // paths rather than a hardcoded locale segment, since the region prefix
+    // varies per account (si-en, us, mx-es, etc) and isn't always normalized
+    // to a fixed value.
+    if (HOST_IS_WWW) {
+        const blockWwwAddCardButton = () => {
+            if (!premiumSpoofEnabledHere()) return;
+            if (!location.pathname.includes('/account/payment-methods/') &&
+                !location.pathname.includes('/account/saved-payment-cards/')) return;
+            document.querySelectorAll('[data-testid="add-new-card-button"]:not([data-sp-done])').forEach(el => {
+                el.dataset.spDone = '1';
+                el.onclick = e => {
+                    dbg('www add-new-card-button: clicked', '[data-testid="add-new-card-button"]', { action: 'preventDefault + stopPropagation (click is a no-op)' });
+                    e.preventDefault(); e.stopPropagation();
+                };
+            });
+        };
+        blockWwwAddCardButton();
+        const wwwCardObserver = new MutationObserver(blockWwwAddCardButton);
+        wwwCardObserver.observe(document.body, { childList: true, subtree: true });
+        window.addEventListener('beforeunload', () => wwwCardObserver.disconnect());
     }
 })();
