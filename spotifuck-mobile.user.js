@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.2 - making amoled toggle but discarding. need proper original UI theme codes. 
+// @version      7.1.revert
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -281,52 +281,6 @@
  *   The other six functions in addCSSJSHack (library button/grid, home,
  *   search, user button, NPV-bar height sync) keep their existing
  *   immediate + single 2s retry - untouched, out of scope here.
- *
- * Newly added (v7.2):
- * a) AMOLED pure black mode is no longer unconditional. It's been in this
- *   script since the original APK port (r0/e.java line 207) with no toggle
- *   at all - always forcing pure black on every load. Added a new
- *   "Enable AMOLED theme" userscript-manager menu toggle
- *   (GM_registerMenuCommand + GM_setValue/GM_getValue, same ✅/❌
- *   checkmark/cross style as the two "Visual Premium Spoof" toggles and
- *   "Debug Logging"), off by default, GM-storage-backed via a new
- *   AMOLED_KEY/amoledEnabled() pair declared next to
- *   DEBUG_KEY/debugLoggingEnabled(). The style block inside injectCSS()
- *   (search: 'AMOLED pure black mode (from r0/e.java)') is now wrapped in
- *   `if (amoledEnabled())` - this toggle is the ONLY thing that invokes
- *   AMOLED mode now. Toggling reloads the page, same as every other flag
- *   here.
- * b) Registered as the FIRST userscript-manager menu command (previously
- *   the two Visual Premium Spoof toggles were first) - order is now:
- *   Enable AMOLED theme, Visual Premium Spoof (open.spotify.com),
- *   Visual Premium Spoof (www.spotify.com), Show everything replaced so
- *   far, Debug Logging (console).
- * c) dbg() coverage audit for this change and one gap found in passing:
- *   - The new AMOLED toggle logs from/to state before reload, same shape
- *     as the two Visual Premium Spoof toggles.
- *   - The AMOLED style block itself now logs through dbg() on both
- *     branches (style injected / style skipped), matching the pattern
- *     forceEnglish() already used for its own HOST_IS_OPEN skip.
- *   - Re-checked every GM_registerMenuCommand callback and click handler
- *     against the v6.9/v7.0 (b) coverage claims. Found two real gaps that
- *     audit missed: "Show everything replaced so far" and "Debug Logging
- *     (console)" themselves - the very act of printing the replacement
- *     log or flipping the debug flag was never logged, the same "one
- *     user-triggered action with zero trace" problem v7.1 (e) already
- *     fixed for the two Visual Premium Spoof toggles. Both now log via
- *     dbg() (Debug Logging's own toggle logs via a raw console.log
- *     matching dbg()'s exact output shape instead of dbg() itself, since
- *     dbg() is gated behind debugLoggingEnabled() and would otherwise
- *     never print the one line that announces logging just turned on).
- *   - Everything else - every remaining click handler, state-change
- *     function, and menu command - was already covered as of v6.9/v7.0
- *     (b)/v7.1 (e). The setupNpvButton/setupNpvWidgetTrigger/
- *     setupOtherPanelTriggers "target not found yet" early-return
- *     exception (g above) still stands unchanged: those three still run
- *     on a 1-second polling loop while the page loads, so logging every
- *     failed poll would still spam the console every second until the
- *     player bar renders. Left unlogged on purpose, same as before - not
- *     a missed spot.
  */
 
 
@@ -397,17 +351,6 @@
         catch (e) { return false; }
     }
 
-    // --- AMOLED pure black mode toggle (off by default) ---
-    // This GM-storage-backed flag is now the ONLY thing that gates the AMOLED
-    // CSS block inside injectCSS() further down (search: 'AMOLED pure black
-    // mode (from r0/e.java)') - previously that block injected unconditionally
-    // with no toggle at all.
-    const AMOLED_KEY = 'spotifuck_amoledMode';
-    function amoledEnabled() {
-        try { return typeof GM_getValue === 'function' ? GM_getValue(AMOLED_KEY, false) : false; }
-        catch (e) { return false; }
-    }
-
     // --- Per-site visual premium spoof toggles (v6.6) ---
     const SPOOF_OPEN_KEY = 'spotifuck_premSpoofOpen';
     const SPOOF_WWW_KEY = 'spotifuck_premSpoofWWW';
@@ -428,15 +371,6 @@
     }
 
     if (typeof GM_registerMenuCommand === 'function') {
-        GM_registerMenuCommand(
-            (amoledEnabled() ? '✅' : '❌') + ' Enable AMOLED theme',
-            () => {
-                const next = !amoledEnabled();
-                dbg('menu: Enable AMOLED theme toggled', 'GM_registerMenuCommand', { from: amoledEnabled(), to: next, action: 'reloading' });
-                setFlag(AMOLED_KEY, next);
-                location.reload();
-            }
-        );
         GM_registerMenuCommand(
             (getFlag(SPOOF_OPEN_KEY) ? '✅' : '❌') + ' Visual Premium Spoof (open.spotify.com)',
             () => {
@@ -1863,23 +1797,12 @@ div[data-testid=hover-or-focus-tooltip],#Desktop_LeftSidebar_Id header>div>div:l
         // below (confirmed sufficient on its own, no per-element rules
         // needed, when this exact scenario hit SpotiwebJS/desktop, which
         // has no equivalent of the YourLibraryX pin).
-        // Gated behind the "Enable AMOLED theme" userscript-manager menu
-        // toggle (off by default, GM-storage-backed via
-        // AMOLED_KEY/amoledEnabled() - declared near the top of this IIFE
-        // next to DEBUG_KEY/debugLoggingEnabled()). Previously this block ran
-        // unconditionally with no way to turn it off; the toggle is now the
-        // ONLY way this style gets injected.
-        if (amoledEnabled()) {
-            const amoled = document.createElement('style');
-            amoled.textContent = `
+        const amoled = document.createElement('style');
+        amoled.textContent = `
 .encore-dark-theme{--background-base:#000;--background-highlight:#000;--background-elevated-base:#000;--background-elevated-highlight:#000;--background-elevated-press:#000;--background-tinted-base:#000}
 aside[data-testid=now-playing-bar]{background:#000!important;box-shadow:none;border-top:1px solid #666}
-            `;
-            document.head.appendChild(amoled);
-            dbg('AMOLED: pure black mode style injected', 'style (dynamic, injectCSS)', {});
-        } else {
-            dbg('AMOLED: pure black mode disabled, skipping style injection', 'style (dynamic, injectCSS)', {});
-        }
+        `;
+        document.head.appendChild(amoled);
 
         // --- Bottom nav bar + library-overlay layout + header visibility (v6.7) ---
         // Kept as its own <style> element (rather than merged into the blocks
@@ -2381,7 +2304,6 @@ body.sp-search input[data-testid="search-input"]{display:flex!important}
 
     if (typeof GM_registerMenuCommand === 'function') {
         GM_registerMenuCommand('\ud83d\udccb Show everything replaced so far (console)', () => {
-            dbg('menu: Show everything replaced so far triggered', 'GM_registerMenuCommand', { action: 'printReplacementLog()' });
             printReplacementLog();
             alert('Current text replacements have been logged to the console. Open DevTools (Press F12 or Right click and Inspect), then select the Logs tab under Console to view it.');
         });
@@ -2390,17 +2312,7 @@ body.sp-search input[data-testid="search-input"]{display:flex!important}
     if (typeof GM_registerMenuCommand === 'function') {
         GM_registerMenuCommand(
             (debugLoggingEnabled() ? '✅' : '❌') + ' Debug Logging (console)',
-            () => {
-                const next = !debugLoggingEnabled();
-                // Logged BEFORE the flag flips (not gated behind
-                // debugLoggingEnabled() like every other dbg() call) so turning
-                // debug logging ON always has this toggle itself as the first
-                // line in the console - otherwise the very act of enabling it
-                // would be the one action with zero trace.
-                console.log('%c[SPFDBG] menu: Debug Logging (console) toggled', 'color:#1ed760;font-weight:bold;', 'selector:', 'GM_registerMenuCommand', { from: debugLoggingEnabled(), to: next, action: 'reloading' });
-                setFlag(DEBUG_KEY, next);
-                location.reload();
-            }
+            () => { setFlag(DEBUG_KEY, !debugLoggingEnabled()); location.reload(); }
         );
     }
 
