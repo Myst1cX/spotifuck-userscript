@@ -29,6 +29,15 @@
  * Features from APK:
  * - Library button toggle (expand 100%×100% / collapse 48×48px)
  * - Pure black AMOLED mode for playback controls
+ *   Note: currently works without needing !important on the
+ *   .encore-dark-theme custom properties, because `.YourLibraryX{
+ *   background:var(--background-elevated-base)!important}` in the
+ *   bottom-nav/library-overlay block (Sixth big change) independently pins
+ *   the library/sidebar surface. If AMOLED ever starts showing grey again
+ *   (e.g. that rule/class gets removed or renamed in a future change, or
+ *   Spotify adds a new panel that redeclares these vars closer to its own
+ *   root than .encore-dark-theme sits), see the comment at the AMOLED
+ *   style block (find it by searching: 'AMOLED pure black mode (from r0/e.java)')
  * - Auto-close library on playlist selection (and load the playlist)
  * - UI improvements (sidebar, search bar, playback controls)
  * - CSS hacks for better mobile experience
@@ -1769,6 +1778,25 @@ div[data-testid=hover-or-focus-tooltip],#Desktop_LeftSidebar_Id header>div>div:l
         document.head.appendChild(style);
 
         // AMOLED pure black mode (from r0/e.java line 207)
+        // If this ever starts showing grey instead of black (main view,
+        // sidebar, library, or any other themed surface - not the player
+        // bar below, which has its own !important and is independent of
+        // this): the six custom properties above currently lack
+        // !important, which is normally required because CSS custom
+        // properties resolve from the NEAREST ancestor that declares them,
+        // not by selector specificity - if Spotify redeclares one of these
+        // vars closer to a panel's own root than this top-level
+        // .encore-dark-theme rule sits, a plain declaration loses that
+        // proximity race. This currently isn't a problem here because
+        // `.YourLibraryX{background:var(--background-elevated-base)
+        // !important}` in the bottom-nav/library-overlay block (Sixth big
+        // change, search this file for YourLibraryX) independently pins
+        // the one surface that would otherwise lose that race. If that
+        // rule/class ever changes or a newly affected surface appears, the
+        // fix is simply adding !important to each of the six properties
+        // below (confirmed sufficient on its own, no per-element rules
+        // needed, when this exact scenario hit SpotiwebJS/desktop, which
+        // has no equivalent of the YourLibraryX pin).
         const amoled = document.createElement('style');
         amoled.textContent = `
 .encore-dark-theme{--background-base:#000;--background-highlight:#000;--background-elevated-base:#000;--background-elevated-highlight:#000;--background-elevated-press:#000;--background-tinted-base:#000}
