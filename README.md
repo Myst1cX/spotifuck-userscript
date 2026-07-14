@@ -40,7 +40,7 @@
 > 7. Backup ad-blocking extension: [uSpot - Spotify Ad Blocker](https://github.com/Myst1cX/uSpot/releases)    
 Click [here](https://github.com/Myst1cX/uSpot/blob/main/README.md) for installation steps.   
 > 8. NOTE: Keep only 1 ad-blocking extension enabled at the same time.    
-> 9. Optional - for a lyrics translator inside the stock spotify lyrics view: [Cigi Spotify Translator - broken, may fork shortly](https://greasyfork.org/en/scripts/523415-cigi-spotify-translator)   
+> 9. Optional - for a lyrics translator inside the stock spotify lyrics view: [Cigi Spotify Translator (fork)](https://raw.githubusercontent.com/Myst1cX/cigi-spotify-translator-fork/main/cigi-spotify-translator-fork.user.js). Click [here](https://github.com/Myst1cX/cigi-spotify-translator-fork/blob/main/README.md) for the setup and feature list.    
 > 10. Recommended: [Spotify Lyrics+](https://raw.githubusercontent.com/Myst1cX/spotify-web-lyrics-plus/main/pip-gui-stable.user.js). Click [here](https://github.com/Myst1cX/spotify-web-lyrics-plus/blob/main/README.md) for the setup and feature list.    
 > 11. Install [Spotifuck](https://raw.githubusercontent.com/Myst1cX/spotifuck-userscript/main/spotifuck-mobile.user.js)   
 > 12. Open the Spotify web player > Press on the three dots next to the search bar's tab counter > Click on the Extensions tab > Click on the 'User-Agent Switcher and Manager' extension icon > Select the first option (a Chrome Windows 10 user agent) > Click 'Apply (this tab' and then 'Refresh Tab'.   
