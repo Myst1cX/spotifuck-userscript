@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.1.revert
+// @version      7.2
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -281,6 +281,19 @@
  *   The other six functions in addCSSJSHack (library button/grid, home,
  *   search, user button, NPV-bar height sync) keep their existing
  *   immediate + single 2s retry - untouched, out of scope here.
+ * 
+ * Newly added (v7.2):
+ * - Re-checked every GM_registerMenuCommand callback and click handler
+ *   against the v6.9/v7.0 (b) coverage claims. Found two real gaps that
+ *   audit missed: "Show everything replaced so far" and "Debug Logging
+ *   (console)" themselves - the very act of printing the replacement
+ *   log or flipping the debug flag was never logged, the same "one
+ *   user-triggered action with zero trace" problem v7.1 (e) already
+ *   fixed for the two Visual Premium Spoof toggles. Both now log via
+ *   dbg() (Debug Logging's own toggle logs via a raw console.log
+ *   matching dbg()'s exact output shape instead of dbg() itself, since
+ *   dbg() is gated behind debugLoggingEnabled() and would otherwise
+ *   never print the one line that announces logging just turned on).
  */
 
 
@@ -2304,6 +2317,7 @@ body.sp-search input[data-testid="search-input"]{display:flex!important}
 
     if (typeof GM_registerMenuCommand === 'function') {
         GM_registerMenuCommand('\ud83d\udccb Show everything replaced so far (console)', () => {
+            dbg('menu: Show everything replaced so far (console) clicked', 'GM_registerMenuCommand', {});
             printReplacementLog();
             alert('Current text replacements have been logged to the console. Open DevTools (Press F12 or Right click and Inspect), then select the Logs tab under Console to view it.');
         });
@@ -2312,7 +2326,16 @@ body.sp-search input[data-testid="search-input"]{display:flex!important}
     if (typeof GM_registerMenuCommand === 'function') {
         GM_registerMenuCommand(
             (debugLoggingEnabled() ? '✅' : '❌') + ' Debug Logging (console)',
-            () => { setFlag(DEBUG_KEY, !debugLoggingEnabled()); location.reload(); }
+            () => {
+                const next = !debugLoggingEnabled();
+                // Not dbg() - dbg() is gated behind debugLoggingEnabled(), which is
+                // still false at the moment logging gets turned on, so it would
+                // swallow the one line that announces logging just turned on.
+                // Raw console.log matching dbg()'s exact output shape instead.
+                console.log('%c[SPFDBG] menu: Debug Logging (console) toggled', 'color:#1ed760;font-weight:bold;', 'selector:', 'GM_registerMenuCommand', { from: debugLoggingEnabled(), to: next, action: 'reloading' });
+                setFlag(DEBUG_KEY, next);
+                location.reload();
+            }
         );
     }
 
