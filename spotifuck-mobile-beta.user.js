@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile Beta
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.9.beta
+// @version      8.0.maybe
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
