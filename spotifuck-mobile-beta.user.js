@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile Beta
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.6.beta
+// @version      7.7.beta
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -28,7 +28,7 @@
 
 * Based on r0/e.java from classes1.dex
 
-* 
+*
 
 * Features from APK:
 
@@ -61,7 +61,7 @@
 * - CSS hacks for better mobile experience
 
 * Fixed from APK:
-  
+
   * - Library folder navigation (original behavior auto-closed library on any item selection, including folders.
 
 * Newly added (v6.3):
@@ -322,7 +322,7 @@
 
 * v6.9.
 
-* 
+*
 
 * Newly added (v6.9 and v7.0) - Actual fix for the v6.8 regression above
 
@@ -364,7 +364,7 @@
 
 * toggle and filterable by "SPFDBG" like everything else.
 
-* 
+*
 
 * Newly added (v7.1) - Ported region/English-forcing fixes from SpotiwebJS.js:
 
@@ -466,7 +466,7 @@
 
 * selectors never matched it there either).
 
-* 
+*
 
 * Audited every other button/redirect for a similar hardcoded-locale or
 
@@ -482,7 +482,7 @@
 
 * the toggle correctly.
 
-* 
+*
 
 * g) setupNpvButton/setupNpvWidgetTrigger/setupOtherPanelTriggers were only
 
@@ -524,11 +524,11 @@
 
 * immediate + single 2s retry - untouched, out of scope here.
 
-* 
+*
 
 * Newly added (v7.2) - A feature I later scrapped (ignore)
 
-* 
+*
 
 * Newly added (v7.3):
 
@@ -554,7 +554,7 @@
 
 * never print the one line that announces logging just turned on).
 
-* 
+*
 
 * Newly added (v7.4):
 *
@@ -586,7 +586,7 @@
 * hash changes on a future Spotify deploy.
 * - See setupCompactToggle() in addCSSJSHack().
 
-* 
+*
 *
 * Newly added (v7.5):
 *
@@ -2474,10 +2474,17 @@ body.sp-search input[data-testid="search-input"]{display:flex!important}
         compactPlayer.textContent = `
 
 aside[data-testid=now-playing-bar].spf-compact{
-  height:64px!important;
-  min-height:64px!important;
-  max-height:64px!important;
-  overflow:hidden!important;
+  /* No height/max-height cap here anymore (v7.5.1) - that was locking the
+     aside's TOTAL height to exactly 64px, which included the "Playing on
+     X device" connect banner whenever it's present, squashing it into
+     that fixed space instead of letting it sit above the compact row like
+     it already does in full-player mode. The aside has no height cap
+     there either (see the base position:fixed;bottom:56px rule below,
+     max-height:40vh is just a safety ceiling) - it's simply
+     position:fixed with a bottom offset, so it naturally grows upward as
+     its content (compact row + banner, when present) grows taller.
+     Capping just the compact ROW below (div:first-child) to 64px instead
+     reproduces the same compact look without fighting that mechanism. */
   padding:0!important
 }
 aside[data-testid=now-playing-bar].spf-compact [data-testid=playback-position],
@@ -2549,7 +2556,13 @@ aside[data-testid=now-playing-bar].spf-compact>div:first-child{
   display:flex!important;
   flex-direction:row!important;
   align-items:center!important;
-  height:100%!important;
+  /* Explicit 64px, not height:100% - the aside itself no longer has a
+     fixed height to inherit a percentage from (see above), so this row is
+     now what actually defines the compact row's height. */
+  height:64px!important;
+  min-height:64px!important;
+  max-height:64px!important;
+  overflow:hidden!important;
   position:relative!important;
   /* Only two buttons now (Play/Pause + Add-to-playlist, right:8/44 below)
      instead of the old five (which needed 256px) - this was the actual
