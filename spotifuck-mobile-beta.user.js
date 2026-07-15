@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile Beta
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.3.beta
+// @version      7.3.beta (reduced to lrc btn, npv brn, play/pause btn)
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -201,7 +201,7 @@
  *   used to trace via plain console.log('Spotifuck: ...') instead of
  *   dbg() - refactored those into dbg() so they're gated behind the same
  *   toggle and filterable by "SPFDBG" like everything else.
- *
+ * 
  * Newly added (v7.1) - Ported region/English-forcing fixes from SpotiwebJS.js:
  * a) forceEnglish()'s www.spotify.com redirect was still the old bare-code-only
  *   check (an ENGLISH_REGIONS allowlist matching /us/, /gb/, etc.) with no
@@ -281,7 +281,7 @@
  *   The other six functions in addCSSJSHack (library button/grid, home,
  *   search, user button, NPV-bar height sync) keep their existing
  *   immediate + single 2s retry - untouched, out of scope here.
- *
+ * 
  * Newly added (v7.2) - A feature I later scrapped (ignore)
  *
  * Newly added (v7.3):
@@ -309,8 +309,8 @@
  *   five small proxy buttons instead - each clones its source button's icon
  *   and forwards clicks to it (the same pattern setupNpvButton already uses
  *   for npBtn) - real buttons/listeners/guards are untouched, just hidden.
- *   Right-to-left: play/pause, connect to a device, queue, lyrics, Now
- *   Playing view (reuses .npbtn/clickNP() directly for the last one).
+ *   Right-to-left: play/pause, lyrics, Now Playing view (reuses
+ *   .npbtn/clickNP() directly for the last one).
  * - Position/z-index/AMOLED background needed no changes - same aside
  *   element, .compact just adds sizing/content rules that out-specify the
  *   base rules via the extra class, so no global !important override was
@@ -1747,13 +1747,11 @@
             if (!row || row.querySelector('.sp-compact-row')) return;
 
             const playBtn = document.querySelector('aside button[data-testid=control-button-playpause]');
-            const connectBtn = document.querySelector('button[aria-label="Connect to a device"]');
-            const queueBtn = document.querySelector('button[data-testid="control-button-queue"]');
             const lyBtn = document.querySelector('button[data-testid="lyrics-button"]');
             const npBtn = document.querySelector('.npbtn');
             // Wait until every source button exists - a proxy built before its
             // source is ready would have no icon and nothing to forward to.
-            if (!playBtn || !connectBtn || !queueBtn || !lyBtn || !npBtn) return;
+            if (!playBtn || !lyBtn || !npBtn) return;
 
             function makeProxy(sourceBtn, extraClass, label, onClick) {
                 const b = document.createElement('button');
@@ -1765,13 +1763,10 @@
                 return b;
             }
 
-            // DOM order left-to-right = now-playing, lyrics, queue, connect,
-            // play/pause - i.e. right-to-left: play/pause, connect, queue,
-            // lyrics, now-playing (as requested).
+            // DOM order left-to-right = now-playing, lyrics, play/pause -
+            // i.e. right-to-left: play/pause, lyrics, now-playing (as requested).
             const npProxy = makeProxy(npBtn, 'sp-compact-np', 'Now Playing view', () => clickNP('compact-row-npBtn'));
             const lyProxy = makeProxy(lyBtn, 'sp-compact-lyrics', 'Lyrics', () => lyBtn.click());
-            const queueProxy = makeProxy(queueBtn, 'sp-compact-queue', 'Queue', () => queueBtn.click());
-            const connectProxy = makeProxy(connectBtn, 'sp-compact-connect', 'Connect to a device', () => connectBtn.click());
             const playProxy = makeProxy(playBtn, 'sp-compact-play', 'Play/Pause', () => {
                 const p = document.querySelector('aside button[data-testid=control-button-playpause]');
                 if (p) p.click();
@@ -1779,7 +1774,7 @@
 
             const wrap = document.createElement('div');
             wrap.className = 'sp-compact-row';
-            [npProxy, lyProxy, queueProxy, connectProxy, playProxy].forEach(b => wrap.appendChild(b));
+            [npProxy, lyProxy, playProxy].forEach(b => wrap.appendChild(b));
             row.appendChild(wrap);
 
             // Play/pause is the only one of the five whose icon changes with
@@ -2136,9 +2131,8 @@ aside[data-testid=now-playing-bar].compact div[data-testid=now-playing-widget]>d
 }
 
 /* Button row - only visible once .compact is on the player. Order matches
-   the DOM order built in setupCompactRow: now-playing, lyrics, queue,
-   connect, play/pause (left-to-right = right-to-left: play/pause, connect,
-   queue, lyrics, now-playing). */
+   the DOM order built in setupCompactRow: now-playing, lyrics, play/pause
+   (left-to-right = right-to-left: play/pause, lyrics, now-playing). */
 .sp-compact-row{
   display:none;
 }
