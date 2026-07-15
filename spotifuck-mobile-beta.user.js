@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile Beta
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      8.0.maybe
+// @version      8.1.wohoo
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -2611,11 +2611,20 @@ aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widge
   max-width:none!important;
   overflow:hidden!important
 }
-aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:nth-child(2) *{
+aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:nth-child(2)>div{
   white-space:nowrap!important;
   overflow:hidden!important;
-  text-overflow:ellipsis!important;
   max-width:100%!important
+}
+/* The music-video "Switch to video" row (+ its bullet separator) is a third
+   sibling row alongside title/artist inside nth-child(2) whenever a track
+   has an associated video - the 64px compact row was only ever budgeted
+   for two rows (title, artist), so this pushes both into less vertical
+   space than they need. Targeted via the stable aria-label rather than the
+   hashed wrapper class, since that's the only part of this row guaranteed
+   not to change across Spotify builds. Full player is untouched. */
+aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:nth-child(2)>div:has([aria-label="Switch to video"]){
+  display:none!important
 }
 
 /* Toggle strip - thin bar pinned to the top of the player bar in both full
