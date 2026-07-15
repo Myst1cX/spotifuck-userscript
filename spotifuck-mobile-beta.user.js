@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile Beta
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.5.beta (ignore, look at previous)
+// @version      7.6.beta
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -23,329 +23,599 @@
 // ==/UserScript==
 
 /*
- * Spotifuck v6 - Accurate port from reverse-engineered v1.6.4 APK
- * Based on r0/e.java from classes1.dex
- *
- * Features from APK:
- * - Library button toggle (expand 100%×100% / collapse 48×48px)
- * - Pure black AMOLED mode for playback controls
- *   Note: currently works without needing !important on the
- *   .encore-dark-theme custom properties, because `.YourLibraryX{
- *   background:var(--background-elevated-base)!important}` in the
- *   bottom-nav/library-overlay block (Sixth big change) independently pins
- *   the library/sidebar surface. If AMOLED ever starts showing grey again
- *   (e.g. that rule/class gets removed or renamed in a future change, or
- *   Spotify adds a new panel that redeclares these vars closer to its own
- *   root than .encore-dark-theme sits), see the comment at the AMOLED
- *   style block (find it by searching: 'AMOLED pure black mode (from r0/e.java)')
- * - Auto-close library on playlist selection (and load the playlist)
- * - UI improvements (sidebar, search bar, playback controls)
- * - CSS hacks for better mobile experience
 
- * Fixed from APK:
+* Spotifuck v6 - Accurate port from reverse-engineered v1.6.4 APK
+
+* Based on r0/e.java from classes1.dex
+
+* 
+
+* Features from APK:
+
+* - Library button toggle (expand 100%×100% / collapse 48×48px)
+
+* - Pure black AMOLED mode for playback controls
+
+* Note: currently works without needing !important on the
+
+* .encore-dark-theme custom properties, because `.YourLibraryX{
+
+* background:var(--background-elevated-base)!important}` in the
+
+* bottom-nav/library-overlay block (Sixth big change) independently pins
+
+* the library/sidebar surface. If AMOLED ever starts showing grey again
+
+* (e.g. that rule/class gets removed or renamed in a future change, or
+
+* Spotify adds a new panel that redeclares these vars closer to its own
+
+* root than .encore-dark-theme sits), see the comment at the AMOLED
+
+* style block (find it by searching: 'AMOLED pure black mode (from r0/e.java)')
+
+* - Auto-close library on playlist selection (and load the playlist)
+
+* - UI improvements (sidebar, search bar, playback controls)
+
+* - CSS hacks for better mobile experience
+
+* Fixed from APK:
+  
   * - Library folder navigation (original behavior auto-closed library on any item selection, including folders.
 
- * Newly added (v6.3):
- * - Browser-side equivalent of Spotifuck's ForceEn that forces Android app locale to English before loading its WebView
- * - (Forces English on open.spotify.com: overrides navigator.language/languages,
- *   and strips a non-English /intl-xx/ locale prefix from the URL if present.)
- * - The feature is a functional dependency because of the following buttons hardcoded to English aria-label text:
- * const libBtn = document.querySelector('#Desktop_LeftSidebar_Id header button[aria-label*="Your Library"]:not(.fuckd)');
- * if (libBtn.getAttribute('aria-label') === 'Collapse Your Library') {
+* Newly added (v6.3):
 
- * Newly added (v6.4) - Fixed "Force English" (v6.3 was not working at all)
- * - forceEnglish() actually forces English now. The v6.3 version only overrode
- *   navigator.language and stripped the /intl-xx/ URL prefix, both of which only
- *   affect a single page load - the aria-labels Spotify actually renders (e.g.
- *   "Open Your Library") are driven by the account-level language preference at
- *   open.spotify.com/preferences, which is saved server-side. forceEnglish() now
- *   also flips that setting to "en" once, via a hidden iframe so it doesn't
- *   disrupt whatever the user is looking at, then reloads the page so the change
- *   actually takes effect. A localStorage flag means this only runs once ever, and skips the reload
- *   entirely if the account was already set to English.
+* - Browser-side equivalent of Spotifuck's ForceEn that forces Android app locale to English before loading its WebView
 
- * Newly added (v6.4.fix) - Fixed "Force English" again (v6.4 had some bug cases)
- * - Fixed a case where, if a user landed directly on /preferences (rather than
- *   via the hidden iframe), the code that watches for the language <select> to
- *   appear never actually started watching - it silently did nothing and timed
- *   out. Now it waits for the page to finish loading first if needed.
- * - Removed the old "only ever run once" localStorage flag. It assumed the
- *   account language setting only ever changes via this script, so once set,
- *   it stopped checking forever - meaning if the user manually changed the
- *   account language afterward, the script would never notice or fix it again.
- *   It now re-checks the actual setting on every real page load instead.
- * - The dispatched change event is no longer trusted as proof the setting
- *   actually saved. It's now verified on the next load before being treated as
- *   done, with a capped number of retries if it didn't stick.
+* - (Forces English on open.spotify.com: overrides navigator.language/languages,
 
- * Newly added (v6.5) - Fixed "Force English" again (:D)
- * - Fixed a race where the hidden iframe's "did it finish loading" check and
- *   its 15-second give-up timer could both fire for the same attempt if the
- *   timing landed close together, causing the same logic to run twice. Now
- *   whichever one happens first is the only one that's acted on.
- * - Fixed a race where redirecting away from a non-English /intl-xx/ URL
- *   didn't stop the rest of forceEnglish() from also running against that
- *   same (already-leaving) page. It now stops immediately after triggering
- *   that redirect instead.
+* and strips a non-English /intl-xx/ locale prefix from the URL if present.)
 
- * Newly added (v6.6):
- * a) Improved forceEnglish() to now also redirect www.spotify.com off non-English region path segments (e.g. /mx/ -> /us/)
- * b) Ported the visual premium spoof & payment-page blockers from Spotikit/SpotiwebJS.user.js (v7.0.fork)
- * - CREDITS TO: kitbodega for the code logic - kitbodega/SpotiKit/SpotiwebJS(obsolete).user.js
- * - Added the PINK/GREEN constants, REPLACE text-swap map, and runPremium()) from SpotiwebJS
- * - Fork's expansion: the scan/replace pass is now MutationObserver-driven (only re-scans changed
- *   nodes) instead of a full document.body walk on a timer, and every swap is logged (selector, before/after, times applied);
- *   viewable via a new "Show everything replaced so far" userscript menu command.
- * - Added the @match lines for www.spotify.com/*account,premium,duo,student,family/*
- *   and payments.spotify.com/* so the spoof/blockers actually have pages to run on.
- * - Added two independent userscript-manager menu toggles (via
- *   GM_registerMenuCommand + GM_setValue/GM_getValue), since the spoof
- *   behaves differently depending on which site it's touching:
- *   1. "Visual Premium Spoof (open.spotify.com)" - the in-player text/badge
- *       relabeling and the account widgets that render inside the web player.
- *   HOW DOES IT WORK: Ad-slot removal MutationObserver (ordinary ad-banner DOM removal, same idea as a standard ad-blocker filter;
- *   can't touch anything server-enforced), scoped to open.spotify.com)
- *   2. "Visual Premium Spoof (www.spotify.com)" - the account site
- *       (spotify.com /premium, /duo, /student, /family, purchase pages) and the payments.spotify.com blockers/redirects
- *   HOW DOES IT WORK: Text nodes are taken over by overlays that affirm you do not need Premium.
- *   Each toggle is independent, persists via GM storage, and reloads the page to apply. Both toggles are enabled by default.
+* - The feature is a functional dependency because of the following buttons hardcoded to English aria-label text:
 
- * Newly added (v6.7):
- * a) Rewrote AutoCloseLibrary: closing the library (whether by clicking a
- *   playlist while it's open, or via the toggle itself) now does a real
- *   click on Spotify's own open/close button instead of forcing 48x48 CSS
- *   onto the sidebar. Spotify collapses its own layout properly as a
- *   result, instead of the old glitched, overlapping cluster of header
- *   icons squashed into a tiny box. All button wiring (manual clicks, the
- *   auto-close-on-playlist trigger, and the new bottom nav's Library tab
- *   below) is centralized through one shared function with a guard that
- *   survives Spotify re-rendering the button, so the toggle can't end up
- *   with duplicate click listeners double-firing on a single tap.
- * b) Added a fixed Home/Search/Library bottom nav bar (#sp-bottom-nav),
- *   ported from kitbodega/SpotiKit's mobile layout:
- *   - Home/Search tabs navigate via history.pushState; Library performs
- *     the same real click as (a) on Spotify's native toggle.
- *   - The now-playing player sits fixed just above the nav (bottom:56px);
- *     AMOLED colors and control layout/scaling are unchanged. #main-view
- *     is clipped into a flex column whose height tracks the player's
- *     live-measured height via ResizeObserver, so scrollable content
- *     never runs behind the player or nav.
- *   - The native sidebar (#Desktop_LeftSidebar_Id) is hidden by default
- *     and only appears - as the same fullscreen overlay switchLs() already
- *     builds - while the library is open. A one-time invisible prewarm
- *     expand/collapse cycle on load keeps its virtualized list from
- *     measuring itself as zero-size on first real open.
- *   - Library-open state persists across in-app navigation for the
- *     current page load (cleared on a fresh load), and auto-closes if you
- *     switch to Home/Search while it's open.
- *   - The native top header (home icon, bell, upgrade button, profile
- *     menu, search input) is hidden by default and only shown while the
- *     bottom nav's Search tab is active.
- * c) Added a custom Now Playing view button (next to the lyrics button in
- *   the player bar, styled to match Spotify's own button classes) since
- *   Spotify's native NPV toggle is unreliable/often missing. Only clicks
- *   through this button, or the player-bar album art (see (e) below), are
- *   allowed to open the Now Playing view - a MutationObserver auto-closes
- *   it any other time it becomes visible (Spotify itself, another script,
- *   or already open on page load), so it can't pop open on its own.
- * d) The internal SPFDBG console logging used throughout this script is now
- *   gated behind its own "Debug Logging (console)" userscript-manager menu
- *   toggle (off by default), instead of always printing, so an ordinary
- *   user's console doesn't fill up with click-by-click state logs.
- * e) Fixed the player-bar album art click (Spotify's own native way to open
- *   the Now Playing view) getting immediately undone by the (c) guard,
- *   which only trusted opens made through npBtn - so clicking the album art
- *   looked like it did nothing. It's now a second authorized opener: a
- *   listener on the album art marks the click as authorized right as it
- *   happens, before Spotify's own click handling runs, so the guard leaves
- *   it alone and the album art opens/closes the Now Playing view natively,
- *   as instantly as npBtn.
- * f) Hid the native miniplayer/PiP toggle button (button[data-testid=pip-toggle-button],
- *   via the existing hidden-elements CSS rule.
+* const libBtn = document.querySelector('#Desktop_LeftSidebar_Id header button[aria-label*="Your Library"]:not(.fuckd)');
 
- * Newly added (v6.8) - Attempted fix for Queue / Connect to a Device buttons
- *   not opening - NOT the actual fix, see v6.9 below
- * - #Desktop_PanelContainer_Id (the right-side panel) is shared by Now
- *   Playing view, Queue, and Connect to a Device - all three flip the same
- *   aria-hidden flag when opened. The (v6.7c) NPV guard's isNpvOpen() only
- *   checked that shared flag, so it couldn't tell NPV apart from Queue/
- *   Devices - meaning it would sometimes auto-close Queue or Devices right
- *   after they opened, thinking it was an unauthorized NPV open. Whether it
- *   misfired depended on stale guard state left over from an earlier NPV
- *   open, which is why it looked intermittent (broken, then fine after some
- *   navigating around). This attempt tried to fix it by checking for
- *   panelContainer.querySelector('[aria-label="Now playing view"], .NowPlayingView')
- *   inside the panel - but that marker turned out to be on the panel
- *   container itself, not a descendant, so querySelector never matched.
- *   Net effect: isNpvOpen() always returned false and the guard stopped
- *   doing anything at all, letting NPV pop open unguarded. Superseded by
- *   v6.9.
- *
- * Newly added (v6.9 and v7.0) - Actual fix for the v6.8 regression above
- * a) Checked the real live markup: #Desktop_PanelContainer_Id (the <aside>
- *   itself) carries aria-label="Now playing view" plus a .NowPlayingView
- *   class when showing NPV; aria-label="Queue" for Queue; and
- *   aria-label="Connect to a device" for the device picker - all three as
- *   attributes/classes on the container element itself, not on any child.
- *   isNpvOpen() now checks panelContainer.getAttribute('aria-label') and
- *   panelContainer.classList directly instead of querySelector-ing into it,
- *   so it correctly identifies NPV vs Queue vs Devices and the guard only
- *   ever acts on genuine unauthorized NPV opens.
- * b) Debug logging coverage completed
- * - Added dbg() calls to the functions that didn't have them yet:
- *   logChange, applyReplacements, scanText, runPremium's DOM-scanning pass,
- *   handlePremiumMutations/startPremiumObserver (the debounce),
- *   forceEnglish, forceEnglishAccountSetting, applyEnglishToLanguageSelect,
- *   and the ad-slot-removal observer.
- * - forceEnglish/forceEnglishAccountSetting/applyEnglishToLanguageSelect
- *   used to trace via plain console.log('Spotifuck: ...') instead of
- *   dbg() - refactored those into dbg() so they're gated behind the same
- *   toggle and filterable by "SPFDBG" like everything else.
- *
- * Newly added (v7.1) - Ported region/English-forcing fixes from SpotiwebJS.js:
- * a) forceEnglish()'s www.spotify.com redirect was still the old bare-code-only
- *   check (an ENGLISH_REGIONS allowlist matching /us/, /gb/, etc.) with no
- *   understanding of Spotify's actual dash-suffixed URLs (/si-sl/, /de-en/,
- *   /hk-zh/, etc.) - meaning most non-English regions were silently never
- *   redirected at all. Replaced with SpotiwebJS's verified region data:
- *   NO_ENGLISH_VARIANT (9 countries with no English storefront at all, dash
- *   or bare: ad, be, cd, ch, dz, es, lu, ma, tn), ENGLISH_IS_BARE (2
- *   countries where the BARE code is the English one, not "-en": ba, mk),
- *   and ENGLISH_BARE_CODES (42 bare-only countries confirmed English) - all
- *   hand-verified against Spotify's real /select-your-country-region/
- *   listing (2026-07-14, 184 countries). forceEnglish() now correctly
- *   redirects any non-English xx-yy URL to its English variant using this
- *   data instead of a 6-country allowlist.
- * b) Added getCurrentRegionPrefix(), also ported from SpotiwebJS, so the
- *   Edit profile / Payment method banner buttons build their
- *   www.spotify.com/account/... URL from the current region instead of
- *   hardcoding /us/account/... regardless of the account's actual locale.
- * c) The www.spotify.com region-path redirect in forceEnglish() now also
- *   checks premiumSpoofEnabledHere() and no-ops (with a dbg() log) when
- *   "Visual Premium Spoof (www.spotify.com)" is off, instead of running
- *   unconditionally regardless of that toggle.
- * d) forceEnglishAccountSetting() was being called unconditionally at the
- *   bottom of forceEnglish() - it fired on every matched host, including
- *   www.spotify.com and payments.spotify.com, where its hidden iframe
- *   (hardcoded to https://open.spotify.com/preferences) is cross-origin and
- *   can never succeed, silently wasting an iframe load every page load on
- *   those two hosts. Now gated behind `if (HOST_IS_OPEN)`, with the skip
- *   logged via dbg() on the other two hosts.
- * e) dbg() coverage: the two "Visual Premium Spoof" GM_registerMenuCommand
- *   toggles (open.spotify.com / www.spotify.com) flipped a persisted flag
- *   and reloaded but never logged the toggle itself - the one
- *   user-triggered write in the whole script with zero trace, including on
- *   www.spotify.com. Added dbg() calls logging from/to state before reload
- *   for both.
- * f) add-new-card-button (on the "Add new card"/payment method flow) also
- *   appears on www.spotify.com's own account pages
- *   (/account/payment-methods/, aliased to/from
- *   /account/saved-payment-cards/), entirely separate from
- *   payments.spotify.com (the actual checkout flow already blocked via the
- *   payments-page blocker). That blocker is gated to
- *   window.location.hostname === 'payments.spotify.com', so it never ran on
- *   www.spotify.com at all. Added a second, narrower blocker scoped to
- *   HOST_IS_WWW: no overlay (this is account management, not checkout),
- *   just the same preventDefault/stopPropagation no-op on the button, gated
- *   behind premiumSpoofEnabledHere() like everything else scoped to that
- *   host. Also added the same button as an exact-match selector to the
- *   payments.spotify.com blocker itself (data-testid="add-new-card-button"
- *   contains neither "pay" nor "checkout", so the existing substring
- *   selectors never matched it there either).
- *
- * Audited every other button/redirect for a similar hardcoded-locale or
- * missing-toggle-gate issue (this file and SpotiwebJS.user.js) - the two
- * banner buttons in (b) were the only other hardcoded-region spots found;
- * everything else either has no locale in its URL (e.g. the bare
- * https://www.spotify.com/ / https://open.spotify.com/ links, which rely on
- * Spotify's own geo-redirect) or was already using getCurrentRegionPrefix()/
- * the toggle correctly.
- *
- * g) setupNpvButton/setupNpvWidgetTrigger/setupOtherPanelTriggers were only
- *   ever called twice total (once immediately, once via a fixed 2s
- *   setTimeout) inside addCSSJSHack() - which itself only runs once
- *   (ffDone latches true after the first pBtn found). firstFuck's own
- *   indefinite pfint polling doesn't cover this gap: it keeps retrying
- *   forever, but only for the play button, so once that's found these
- *   three never get another chance. On a slow/cold SPA load where the
- *   lyrics button or the player-bar album art render later than 2s (the
- *   same class of delay pfint's own indefinite polling exists to handle
- *   for the play button), they'd silently never get wired at all. Ported
- *   SpotiwebJS's npvSetupInterval pattern instead: these three now get
- *   their own indefinite setInterval(1000) that keeps retrying until both
- *   .npbtn and .fuckd-npv-art are confirmed present, then stops - matching
- *   SpotiwebJS exactly, including the same reason their "target not found
- *   yet" early returns still deliberately don't log through dbg() (a
- *   genuine continuous 1s poll now exists here too, so logging every
- *   missed tick would spam the console the whole time these are loading).
- *   The other six functions in addCSSJSHack (library button/grid, home,
- *   search, user button, NPV-bar height sync) keep their existing
- *   immediate + single 2s retry - untouched, out of scope here.
- *
- * Newly added (v7.2) - A feature I later scrapped (ignore)
- *
- * Newly added (v7.3):
- * - Re-checked every GM_registerMenuCommand callback and click handler
- *   against the v6.9/v7.0 (b) coverage claims. Found two real gaps that
- *   audit missed: "Show everything replaced so far" and "Debug Logging
- *   (console)" themselves - the very act of printing the replacement
- *   log or flipping the debug flag was never logged, the same "one
- *   user-triggered action with zero trace" problem v7.1 (e) already
- *   fixed for the two Visual Premium Spoof toggles. Both now log via
- *   dbg() (Debug Logging's own toggle logs via a raw console.log
- *   matching dbg()'s exact output shape instead of dbg() itself, since
- *   dbg() is gated behind debugLoggingEnabled() and would otherwise
- *   never print the one line that announces logging just turned on).
- *
- * Newly added (v7.4):
- * - Compact player mode, ported from kitbodega/SpotiKit 7.3.2.fork's
- *   #sp-player-toggle/.minimized feature: a thin strip pinned to the top
- *   of the player bar toggles a collapsed view (artwork + title/artist
- *   only) with three proxy buttons, right to left: Play/Pause, Queue,
- *   Lyrics. Adapted to this file's fixed full-width bottom bar layout
- *   (SpotiKit's own version targets a floating rounded card instead).
- *   Each proxy relays to the same real controls/guarded paths used
- *   elsewhere in this file (window.pBtn, the real Queue button,
- *   clickNP()) rather than reimplementing them - the native lyrics-button
- *   itself is deliberately not used, since it isn't on npvGuardObserver's
- *   allow-list and would get auto-closed. State persists across reloads
- *   via GM_setValue (COMPACT_KEY), unlike SpotiKit's original
- *   sessionStorage-backed version. See setupCompactToggle() in
- *   addCSSJSHack() and the dedicated compactPlayer <style> block in
- *   injectCSS().
- *
- * Newly added (v7.5) - Compact player rework, replacing v7.4's approach:
- * - v7.4 built three synthetic proxy buttons (hand-drawn SVGs, own click
- *   handlers relaying to clickNP()/window.pBtn/the real Queue button).
- *   Scrapped after real-DOM inspection showed avoidable drift: the queue
- *   icon didn't match Spotify's own, and the "Lyrics" proxy was really
- *   just a second NPV toggle wearing an NPV icon, confusing since it
- *   wasn't actually the same element as npbtn.
- * - v7.5 instead physically moves (reparents, not clones) the three real
- *   full-player buttons - npbtn, the real Queue button, the real
- *   Play/Pause button (window.pBtn) - into the compact strip on entry, and
- *   moves them back to their exact original DOM position (same parent,
- *   same next-sibling) on exit. Same click listeners, same icons, same
- *   aria state as everywhere else in this file, because it's the same
- *   element - nothing new to keep in sync. See setupCompactToggle() in
- *   addCSSJSHack().
- * - Also fixed a v7.4 CSS bug caught during review: the real player DOM
- *   has three sibling wrapper divs in the player bar's first row (one
- *   wrapping now-playing-widget, one wrapping player-controls, one
- *   wrapping a secondary-controls row - Lyrics+, npbtn, the disabled
- *   native lyrics-button, Queue, Connect, volume, PiP, Fullscreen), not
- *   two as SpotiKit's original CSS (and v7.4's port of it) assumed. The
- *   third wrapper carries only a build-hashed CSS-module class, no
- *   testid - v7.4 never hid it, so all of that row's controls stayed
- *   visible, uncollapsed, in compact mode. Fixed with a :has() anchor on
- *   the stable now-playing-widget testid instead of hard-coding the
- *   hash.
- */
+* if (libBtn.getAttribute('aria-label') === 'Collapse Your Library') {
 
+* Newly added (v6.4) - Fixed "Force English" (v6.3 was not working at all)
+
+* - forceEnglish() actually forces English now. The v6.3 version only overrode
+
+* navigator.language and stripped the /intl-xx/ URL prefix, both of which only
+
+* affect a single page load - the aria-labels Spotify actually renders (e.g.
+
+* "Open Your Library") are driven by the account-level language preference at
+
+* open.spotify.com/preferences, which is saved server-side. forceEnglish() now
+
+* also flips that setting to "en" once, via a hidden iframe so it doesn't
+
+* disrupt whatever the user is looking at, then reloads the page so the change
+
+* actually takes effect. A localStorage flag means this only runs once ever, and skips the reload
+
+* entirely if the account was already set to English.
+
+* Newly added (v6.4.fix) - Fixed "Force English" again (v6.4 had some bug cases)
+
+* - Fixed a case where, if a user landed directly on /preferences (rather than
+
+* via the hidden iframe), the code that watches for the language <select> to
+
+* appear never actually started watching - it silently did nothing and timed
+
+* out. Now it waits for the page to finish loading first if needed.
+
+* - Removed the old "only ever run once" localStorage flag. It assumed the
+
+* account language setting only ever changes via this script, so once set,
+
+* it stopped checking forever - meaning if the user manually changed the
+
+* account language afterward, the script would never notice or fix it again.
+
+* It now re-checks the actual setting on every real page load instead.
+
+* - The dispatched change event is no longer trusted as proof the setting
+
+* actually saved. It's now verified on the next load before being treated as
+
+* done, with a capped number of retries if it didn't stick.
+
+* Newly added (v6.5) - Fixed "Force English" again (:D)
+
+* - Fixed a race where the hidden iframe's "did it finish loading" check and
+
+* its 15-second give-up timer could both fire for the same attempt if the
+
+* timing landed close together, causing the same logic to run twice. Now
+
+* whichever one happens first is the only one that's acted on.
+
+* - Fixed a race where redirecting away from a non-English /intl-xx/ URL
+
+* didn't stop the rest of forceEnglish() from also running against that
+
+* same (already-leaving) page. It now stops immediately after triggering
+
+* that redirect instead.
+
+* Newly added (v6.6):
+
+* a) Improved forceEnglish() to now also redirect www.spotify.com off non-English region path segments (e.g. /mx/ -> /us/)
+
+* b) Ported the visual premium spoof & payment-page blockers from Spotikit/SpotiwebJS.user.js (v7.0.fork)
+
+* - CREDITS TO: kitbodega for the code logic - kitbodega/SpotiKit/SpotiwebJS(obsolete).user.js
+
+* - Added the PINK/GREEN constants, REPLACE text-swap map, and runPremium()) from SpotiwebJS
+
+* - Fork's expansion: the scan/replace pass is now MutationObserver-driven (only re-scans changed
+
+* nodes) instead of a full document.body walk on a timer, and every swap is logged (selector, before/after, times applied);
+
+* viewable via a new "Show everything replaced so far" userscript menu command.
+
+* - Added the @match lines for www.spotify.com/*account,premium,duo,student,family/*
+
+* and payments.spotify.com/* so the spoof/blockers actually have pages to run on.
+
+* - Added two independent userscript-manager menu toggles (via
+
+* GM_registerMenuCommand + GM_setValue/GM_getValue), since the spoof
+
+* behaves differently depending on which site it's touching:
+
+* 1. "Visual Premium Spoof (open.spotify.com)" - the in-player text/badge
+
+*    relabeling and the account widgets that render inside the web player.
+
+* HOW DOES IT WORK: Ad-slot removal MutationObserver (ordinary ad-banner DOM removal, same idea as a standard ad-blocker filter;
+
+* can't touch anything server-enforced), scoped to open.spotify.com)
+
+* 2. "Visual Premium Spoof (www.spotify.com)" - the account site
+
+*    (spotify.com /premium, /duo, /student, /family, purchase pages) and the payments.spotify.com blockers/redirects
+
+* HOW DOES IT WORK: Text nodes are taken over by overlays that affirm you do not need Premium.
+
+* Each toggle is independent, persists via GM storage, and reloads the page to apply. Both toggles are enabled by default.
+
+* Newly added (v6.7):
+
+* a) Rewrote AutoCloseLibrary: closing the library (whether by clicking a
+
+* playlist while it's open, or via the toggle itself) now does a real
+
+* click on Spotify's own open/close button instead of forcing 48x48 CSS
+
+* onto the sidebar. Spotify collapses its own layout properly as a
+
+* result, instead of the old glitched, overlapping cluster of header
+
+* icons squashed into a tiny box. All button wiring (manual clicks, the
+
+* auto-close-on-playlist trigger, and the new bottom nav's Library tab
+
+* below) is centralized through one shared function with a guard that
+
+* survives Spotify re-rendering the button, so the toggle can't end up
+
+* with duplicate click listeners double-firing on a single tap.
+
+* b) Added a fixed Home/Search/Library bottom nav bar (#sp-bottom-nav),
+
+* ported from kitbodega/SpotiKit's mobile layout:
+
+* - Home/Search tabs navigate via history.pushState; Library performs
+
+*  the same real click as (a) on Spotify's native toggle.
+
+* - The now-playing player sits fixed just above the nav (bottom:56px);
+
+*  AMOLED colors and control layout/scaling are unchanged. #main-view
+
+*  is clipped into a flex column whose height tracks the player's
+
+*  live-measured height via ResizeObserver, so scrollable content
+
+*  never runs behind the player or nav.
+
+* - The native sidebar (#Desktop_LeftSidebar_Id) is hidden by default
+
+*  and only appears - as the same fullscreen overlay switchLs() already
+
+*  builds - while the library is open. A one-time invisible prewarm
+
+*  expand/collapse cycle on load keeps its virtualized list from
+
+*  measuring itself as zero-size on first real open.
+
+* - Library-open state persists across in-app navigation for the
+
+*  current page load (cleared on a fresh load), and auto-closes if you
+
+*  switch to Home/Search while it's open.
+
+* - The native top header (home icon, bell, upgrade button, profile
+
+*  menu, search input) is hidden by default and only shown while the
+
+*  bottom nav's Search tab is active.
+
+* c) Added a custom Now Playing view button (next to the lyrics button in
+
+* the player bar, styled to match Spotify's own button classes) since
+
+* Spotify's native NPV toggle is unreliable/often missing. Only clicks
+
+* through this button, or the player-bar album art (see (e) below), are
+
+* allowed to open the Now Playing view - a MutationObserver auto-closes
+
+* it any other time it becomes visible (Spotify itself, another script,
+
+* or already open on page load), so it can't pop open on its own.
+
+* d) The internal SPFDBG console logging used throughout this script is now
+
+* gated behind its own "Debug Logging (console)" userscript-manager menu
+
+* toggle (off by default), instead of always printing, so an ordinary
+
+* user's console doesn't fill up with click-by-click state logs.
+
+* e) Fixed the player-bar album art click (Spotify's own native way to open
+
+* the Now Playing view) getting immediately undone by the (c) guard,
+
+* which only trusted opens made through npBtn - so clicking the album art
+
+* looked like it did nothing. It's now a second authorized opener: a
+
+* listener on the album art marks the click as authorized right as it
+
+* happens, before Spotify's own click handling runs, so the guard leaves
+
+* it alone and the album art opens/closes the Now Playing view natively,
+
+* as instantly as npBtn.
+
+* f) Hid the native miniplayer/PiP toggle button (button[data-testid=pip-toggle-button],
+
+* via the existing hidden-elements CSS rule.
+
+* Newly added (v6.8) - Attempted fix for Queue / Connect to a Device buttons
+
+* not opening - NOT the actual fix, see v6.9 below
+
+* - #Desktop_PanelContainer_Id (the right-side panel) is shared by Now
+
+* Playing view, Queue, and Connect to a Device - all three flip the same
+
+* aria-hidden flag when opened. The (v6.7c) NPV guard's isNpvOpen() only
+
+* checked that shared flag, so it couldn't tell NPV apart from Queue/
+
+* Devices - meaning it would sometimes auto-close Queue or Devices right
+
+* after they opened, thinking it was an unauthorized NPV open. Whether it
+
+* misfired depended on stale guard state left over from an earlier NPV
+
+* open, which is why it looked intermittent (broken, then fine after some
+
+* navigating around). This attempt tried to fix it by checking for
+
+* panelContainer.querySelector('[aria-label="Now playing view"], .NowPlayingView')
+
+* inside the panel - but that marker turned out to be on the panel
+
+* container itself, not a descendant, so querySelector never matched.
+
+* Net effect: isNpvOpen() always returned false and the guard stopped
+
+* doing anything at all, letting NPV pop open unguarded. Superseded by
+
+* v6.9.
+
+* 
+
+* Newly added (v6.9 and v7.0) - Actual fix for the v6.8 regression above
+
+* a) Checked the real live markup: #Desktop_PanelContainer_Id (the <aside>
+
+* itself) carries aria-label="Now playing view" plus a .NowPlayingView
+
+* class when showing NPV; aria-label="Queue" for Queue; and
+
+* aria-label="Connect to a device" for the device picker - all three as
+
+* attributes/classes on the container element itself, not on any child.
+
+* isNpvOpen() now checks panelContainer.getAttribute('aria-label') and
+
+* panelContainer.classList directly instead of querySelector-ing into it,
+
+* so it correctly identifies NPV vs Queue vs Devices and the guard only
+
+* ever acts on genuine unauthorized NPV opens.
+
+* b) Debug logging coverage completed
+
+* - Added dbg() calls to the functions that didn't have them yet:
+
+* logChange, applyReplacements, scanText, runPremium's DOM-scanning pass,
+
+* handlePremiumMutations/startPremiumObserver (the debounce),
+
+* forceEnglish, forceEnglishAccountSetting, applyEnglishToLanguageSelect,
+
+* and the ad-slot-removal observer.
+
+* - forceEnglish/forceEnglishAccountSetting/applyEnglishToLanguageSelect
+
+* used to trace via plain console.log('Spotifuck: ...') instead of
+
+* dbg() - refactored those into dbg() so they're gated behind the same
+
+* toggle and filterable by "SPFDBG" like everything else.
+
+* 
+
+* Newly added (v7.1) - Ported region/English-forcing fixes from SpotiwebJS.js:
+
+* a) forceEnglish()'s www.spotify.com redirect was still the old bare-code-only
+
+* check (an ENGLISH_REGIONS allowlist matching /us/, /gb/, etc.) with no
+
+* understanding of Spotify's actual dash-suffixed URLs (/si-sl/, /de-en/,
+
+* /hk-zh/, etc.) - meaning most non-English regions were silently never
+
+* redirected at all. Replaced with SpotiwebJS's verified region data:
+
+* NO_ENGLISH_VARIANT (9 countries with no English storefront at all, dash
+
+* or bare: ad, be, cd, ch, dz, es, lu, ma, tn), ENGLISH_IS_BARE (2
+
+* countries where the BARE code is the English one, not "-en": ba, mk),
+
+* and ENGLISH_BARE_CODES (42 bare-only countries confirmed English) - all
+
+* hand-verified against Spotify's real /select-your-country-region/
+
+* listing (2026-07-14, 184 countries). forceEnglish() now correctly
+
+* redirects any non-English xx-yy URL to its English variant using this
+
+* data instead of a 6-country allowlist.
+
+* b) Added getCurrentRegionPrefix(), also ported from SpotiwebJS, so the
+
+* Edit profile / Payment method banner buttons build their
+
+* www.spotify.com/account/... URL from the current region instead of
+
+* hardcoding /us/account/... regardless of the account's actual locale.
+
+* c) The www.spotify.com region-path redirect in forceEnglish() now also
+
+* checks premiumSpoofEnabledHere() and no-ops (with a dbg() log) when
+
+* "Visual Premium Spoof (www.spotify.com)" is off, instead of running
+
+* unconditionally regardless of that toggle.
+
+* d) forceEnglishAccountSetting() was being called unconditionally at the
+
+* bottom of forceEnglish() - it fired on every matched host, including
+
+* www.spotify.com and payments.spotify.com, where its hidden iframe
+
+* (hardcoded to https://open.spotify.com/preferences) is cross-origin and
+
+* can never succeed, silently wasting an iframe load every page load on
+
+* those two hosts. Now gated behind `if (HOST_IS_OPEN)`, with the skip
+
+* logged via dbg() on the other two hosts.
+
+* e) dbg() coverage: the two "Visual Premium Spoof" GM_registerMenuCommand
+
+* toggles (open.spotify.com / www.spotify.com) flipped a persisted flag
+
+* and reloaded but never logged the toggle itself - the one
+
+* user-triggered write in the whole script with zero trace, including on
+
+* www.spotify.com. Added dbg() calls logging from/to state before reload
+
+* for both.
+
+* f) add-new-card-button (on the "Add new card"/payment method flow) also
+
+* appears on www.spotify.com's own account pages
+
+* (/account/payment-methods/, aliased to/from
+
+* /account/saved-payment-cards/), entirely separate from
+
+* payments.spotify.com (the actual checkout flow already blocked via the
+
+* payments-page blocker). That blocker is gated to
+
+* window.location.hostname === 'payments.spotify.com', so it never ran on
+
+* www.spotify.com at all. Added a second, narrower blocker scoped to
+
+* HOST_IS_WWW: no overlay (this is account management, not checkout),
+
+* just the same preventDefault/stopPropagation no-op on the button, gated
+
+* behind premiumSpoofEnabledHere() like everything else scoped to that
+
+* host. Also added the same button as an exact-match selector to the
+
+* payments.spotify.com blocker itself (data-testid="add-new-card-button"
+
+* contains neither "pay" nor "checkout", so the existing substring
+
+* selectors never matched it there either).
+
+* 
+
+* Audited every other button/redirect for a similar hardcoded-locale or
+
+* missing-toggle-gate issue (this file and SpotiwebJS.user.js) - the two
+
+* banner buttons in (b) were the only other hardcoded-region spots found;
+
+* everything else either has no locale in its URL (e.g. the bare
+
+* https://www.spotify.com/ / https://open.spotify.com/ links, which rely on
+
+* Spotify's own geo-redirect) or was already using getCurrentRegionPrefix()/
+
+* the toggle correctly.
+
+* 
+
+* g) setupNpvButton/setupNpvWidgetTrigger/setupOtherPanelTriggers were only
+
+* ever called twice total (once immediately, once via a fixed 2s
+
+* setTimeout) inside addCSSJSHack() - which itself only runs once
+
+* (ffDone latches true after the first pBtn found). firstFuck's own
+
+* indefinite pfint polling doesn't cover this gap: it keeps retrying
+
+* forever, but only for the play button, so once that's found these
+
+* three never get another chance. On a slow/cold SPA load where the
+
+* lyrics button or the player-bar album art render later than 2s (the
+
+* same class of delay pfint's own indefinite polling exists to handle
+
+* for the play button), they'd silently never get wired at all. Ported
+
+* SpotiwebJS's npvSetupInterval pattern instead: these three now get
+
+* their own indefinite setInterval(1000) that keeps retrying until both
+
+* .npbtn and .fuckd-npv-art are confirmed present, then stops - matching
+
+* SpotiwebJS exactly, including the same reason their "target not found
+
+* yet" early returns still deliberately don't log through dbg() (a
+
+* genuine continuous 1s poll now exists here too, so logging every
+
+* missed tick would spam the console the whole time these are loading).
+
+* The other six functions in addCSSJSHack (library button/grid, home,
+
+* search, user button, NPV-bar height sync) keep their existing
+
+* immediate + single 2s retry - untouched, out of scope here.
+
+* 
+
+* Newly added (v7.2) - A feature I later scrapped (ignore)
+
+* 
+
+* Newly added (v7.3):
+
+* - Re-checked every GM_registerMenuCommand callback and click handler
+
+* against the v6.9/v7.0 (b) coverage claims. Found two real gaps that
+
+* audit missed: "Show everything replaced so far" and "Debug Logging
+
+* (console)" themselves - the very act of printing the replacement
+
+* log or flipping the debug flag was never logged, the same "one
+
+* user-triggered action with zero trace" problem v7.1 (e) already
+
+* fixed for the two Visual Premium Spoof toggles. Both now log via
+
+* dbg() (Debug Logging's own toggle logs via a raw console.log
+
+* matching dbg()'s exact output shape instead of dbg() itself, since
+
+* dbg() is gated behind debugLoggingEnabled() and would otherwise
+
+* never print the one line that announces logging just turned on).
+
+* 
+
+* Newly added (v7.4):
+*
+* - Compact player mode, ported from kitbodega/SpotiKit 7.3.2.fork's
+* #sp-player-toggle/.minimized feature: a thin strip pinned to the top
+* of the player bar toggles a collapsed view (artwork + title/artist
+* only). Adapted to this file's fixed full-width bottom bar layout
+* (SpotiKit's own version targets a floating rounded card instead).
+* Entering compact mode physically moves (reparents, not clones) the
+* three real full-player buttons - npbtn (Now Playing view/lyrics), the
+* real Queue button, and the real Play/Pause button (window.pBtn) -
+* into the compact strip, then moves them back to their exact original
+* DOM position (same parent, same next-sibling) on exit. Because these
+* are the actual elements rather than new proxy buttons, they keep
+* their existing click listeners, icons, and aria state automatically -
+* nothing extra to build or keep in sync. State persists across
+* reloads via GM_setValue (COMPACT_KEY), unlike SpotiKit's original
+* sessionStorage-backed version.
+* - The dedicated compactPlayer <style> block in injectCSS() hides the
+* rest of the player-bar chrome while compact mode is on. The real
+* player DOM has three sibling wrapper divs in the player bar's first
+* row (one wrapping now-playing-widget, one wrapping player-controls,
+* one wrapping a secondary-controls row - Lyrics+, npbtn, the disabled
+* native lyrics-button, Queue, Connect, volume, PiP, Fullscreen) - so
+* the hide rule is anchored on the stable now-playing-widget testid via
+* a :has() selector that picks out its wrapper and hides everything
+* after it, rather than hard-coding each wrapper's own build-hashed
+* CSS-module class, which would silently stop matching the moment that
+* hash changes on a future Spotify deploy.
+* - See setupCompactToggle() in addCSSJSHack().
+
+* 
+*
+* Newly added (v7.5):
+*
+* - Compact mode reworked: only Play/Pause and Add-to-playlist remain in the
+* strip. NPV (npbtn), the real Queue button, the native Lyrics button, and
+* Lyrics+ no longer move into compact mode - Queue/Lyrics/Lyrics+ stay
+* hidden with the rest of the secondary-controls row same as before, npbtn
+* simply isn't pulled out anymore. Add-to-playlist can't be reparented the
+* same trivial way Play/Pause is (it's a React-owned node whose icon
+* changes with library state), so it gets the same synthetic-proxy
+* treatment the old native-Lyrics proxy used to - except this proxy is kept
+* live via a MutationObserver on now-playing-widget instead of a one-time
+* clone, since (unlike Lyrics) its icon can go stale.
+* - Freeing up 3 of the 5 old compact-strip slots also let the widget row's
+* reserved right-side padding shrink drastically, which was the actual
+* cause of the artist/album marquee text collapsing to near-zero width on
+* narrow mobile viewports (not a mobile-specific bug - just not enough
+* room left once padding was accounted for).
+* - Compact mode also grew a thin, still-draggable scrubber pinned to the
+* very bottom edge of the 64px strip: the real progress-bar/playback-
+* progressbar elements are unhidden and restyled instead of moved, same
+* "leave the real interactive DOM alone, just recolor around it" approach
+* as everything else in compact mode - only the elapsed/remaining time
+* labels and the general-controls (shuffle/prev/next/repeat/translate) row
+* stay hidden.
+  */
 
 (function() {
     'use strict';
-
     console.log('🎵 Spotifuck v6 - APK v1.6.4 Port');
 
     // Global state variables
@@ -1473,7 +1743,7 @@
      * From r0/e.java line 200: window.addCSSJSHack=function(){...}
      */
     window.addCSSJSHack = function() {
-        // Compact player restore-on-load retry hook (v7.5) - setupCompactToggle
+        // Compact player restore-on-load retry hook (v7.4) - setupCompactToggle
         // assigns this to its own enterCompact() the first time it runs. The
         // real npbtn it needs to move might not exist yet on a slow/cold load
         // (setupNpvButton runs first in the same pass, but can itself still be
@@ -1751,24 +2021,18 @@
             }
         };
 
-        // Compact player toggle (v7.5) - ported from kitbodega/SpotiKit
+        // Compact player toggle (v7.4) - ported from kitbodega/SpotiKit
         // 7.3.2.fork's #sp-player-toggle/.minimized feature. A thin strip
         // pinned to the top of the player bar; clicking it toggles compact
         // mode, which physically MOVES the three real full-player buttons
         // (npbtn - Now Playing view/lyrics, the real Queue button, the real
         // Play/Pause button) into the compact strip, then moves them back
-        // to their exact original spot on exit.
-        //
-        // v7.4 built synthetic proxy buttons instead (hand-drawn SVGs that
-        // relayed clicks to the real controls). Scrapped - real DOM
-        // inspection showed it caused avoidable drift: the queue icon
-        // didn't match Spotify's own, and "Lyrics" was really just a second
-        // NPV icon/handler pretending to be a distinct button. Moving the
-        // actual nodes means there's nothing to keep in sync - same click
-        // listeners (guard capture-phase listener on Queue, clickNP() on
-        // npbtn, the unlock-flag handler on Play/Pause via window.pBtn),
-        // same icons, same aria state, because it's literally the same
-        // element, just reparented.
+        // to their exact original spot on exit. Because these are the same
+        // nodes rather than new proxy buttons, there's nothing to keep in
+        // sync - same click listeners (guard capture-phase listener on
+        // Queue, clickNP() on npbtn, the unlock-flag handler on Play/Pause
+        // via window.pBtn), same icons, same aria state, because it's
+        // literally the same element, just reparented.
         const setupCompactToggle = () => {
             const player = document.querySelector('aside[data-testid=now-playing-bar]:not(.spf-compact-ready)');
             if (!player) return;
@@ -1821,49 +2085,60 @@
                 }
             };
 
-            // NOTE: unlike npbtn/queue/play/lyrics-plus-btn above, the real button[data-testid=
-            // "lyrics-button"] is never physically moved. It's a React-owned node - moveOut()'s
-            // appendChild() would reparent it outside the subtree React's virtual DOM still thinks
-            // it lives in, and the next time Spotify re-renders that area (which this exact
-            // button's own click triggers, since it toggles its own standalone Lyrics view - a
-            // separate feature from NPV, tracked via this button's own aria-pressed/data-active,
-            // not via #Desktop_PanelContainer_Id's aria-hidden) React throws trying to reconcile a
-            // child that isn't where it expects, surfacing as "Something went wrong" and forcing a
-            // reload.
-            // Fix: leave the real button exactly where it is (still hidden inside the
-            // secondary-controls row compact mode's CSS collapses), and instead build a plain
-            // synthetic proxy button - cloned appearance only, no shared listeners - that lives in
-            // the compact strip and, on click, calls .click() on the real element in place. A
-            // programmatic .click() on a DOM node dispatches a normal trusted click event that
-            // bubbles exactly like a real user click, so React's own delegated listener on the
-            // real button still fires correctly - nothing about the real button's DOM position or
-            // React's ownership of it is touched.
-            const ensureLyricsProxy = () => {
-                let proxy = document.getElementById('spf-compact-lyricsbtn');
-                if (proxy) return proxy;
-                const lyBtn = document.querySelector('button[data-testid="lyrics-button"]');
-                if (!lyBtn) return null;
+            // Add-to-playlist button (v7.5): same "never physically move it" reasoning as the
+            // old Lyrics proxy this replaces (it's a React-owned node inside now-playing-widget's
+            // last child, which the compact CSS keeps hidden) - build a synthetic proxy in the
+            // compact strip that forwards clicks to the real button in place.
+            // Unlike Lyrics, this button's icon actually changes (add vs. already-added state),
+            // and that state can change from elsewhere (e.g. the full Now Playing view, or
+            // another instance of this button), so a one-time clone would go stale. Instead a
+            // MutationObserver watches now-playing-widget itself (childList+subtree, so it also
+            // survives the real button's node being replaced outright on track change, not just
+            // attribute flips) and re-syncs the proxy's class/aria-checked/icon every time.
+            let addToPlaylistObserver = null;
+            const findAddToPlaylistBtn = () =>
+                document.querySelector('[data-testid="now-playing-widget"] button[aria-label="Add to playlist"]');
+            const syncAddToPlaylistProxy = (proxy, realBtn) => {
+                proxy.className = realBtn.className;
+                proxy.setAttribute('aria-checked', realBtn.getAttribute('aria-checked') || 'false');
+                proxy.setAttribute('aria-label', realBtn.getAttribute('aria-label') || 'Add to playlist');
+                proxy.innerHTML = realBtn.innerHTML;
+            };
+            const ensureAddToPlaylistProxy = () => {
+                let proxy = document.getElementById('spf-compact-addtoplaylist');
+                const realBtn = findAddToPlaylistBtn();
+                if (proxy) {
+                    if (realBtn) syncAddToPlaylistProxy(proxy, realBtn);
+                    return proxy;
+                }
+                if (!realBtn) return null;
                 proxy = document.createElement('button');
-                proxy.id = 'spf-compact-lyricsbtn';
-                // Clone Encore's own classes so it matches every other player-bar button's
-                // size/padding/hover, same trick setupNpvButton() uses for npBtn.
-                proxy.className = lyBtn.className;
-                proxy.setAttribute('aria-label', lyBtn.getAttribute('aria-label') || 'Lyrics');
-                proxy.title = 'Lyrics';
-                // Cloning just the icon markup (SVG, no listeners) is safe - it's display only.
-                proxy.innerHTML = lyBtn.innerHTML;
+                proxy.id = 'spf-compact-addtoplaylist';
+                proxy.title = 'Add to playlist';
+                syncAddToPlaylistProxy(proxy, realBtn);
                 proxy.addEventListener('click', () => {
-                    // Plain forward - no NPV guard interaction needed. This button tracks its
-                    // own state via aria-pressed/data-active and doesn't touch
-                    // #Desktop_PanelContainer_Id's aria-hidden, so npvGuardObserver never sees
-                    // this click and there's nothing to authorize.
-                    document.querySelector('button[data-testid="lyrics-button"]')?.click();
+                    // Re-query rather than close over realBtn - the node may have been
+                    // replaced by a track change since this listener was attached.
+                    findAddToPlaylistBtn()?.click();
                 });
                 player.appendChild(proxy);
+                const widgetEl = document.querySelector('[data-testid="now-playing-widget"]');
+                if (widgetEl) {
+                    addToPlaylistObserver = new MutationObserver(() => {
+                        const btn = findAddToPlaylistBtn();
+                        const p = document.getElementById('spf-compact-addtoplaylist');
+                        if (btn && p) syncAddToPlaylistProxy(p, btn);
+                    });
+                    addToPlaylistObserver.observe(widgetEl, {
+                        childList: true, subtree: true, attributes: true,
+                        attributeFilter: ['class', 'aria-checked']
+                    });
+                }
                 return proxy;
             };
-            const removeLyricsProxy = () => {
-                document.getElementById('spf-compact-lyricsbtn')?.remove();
+            const removeAddToPlaylistProxy = () => {
+                if (addToPlaylistObserver) { addToPlaylistObserver.disconnect(); addToPlaylistObserver = null; }
+                document.getElementById('spf-compact-addtoplaylist')?.remove();
             };
 
             // Belt-and-suspenders sweep for the same failure mode moveBack()'s
@@ -1883,22 +2158,20 @@
             };
 
             const enterCompact = () => {
-                moveOut(document.querySelector('.npbtn'), 'spf-compact-npv');
-                moveOut(document.querySelector('button[data-testid="control-button-queue"]'), 'spf-compact-queue');
+                // v7.5: compact mode now only surfaces Play/Pause and Add-to-playlist -
+                // NPV, Queue, native Lyrics, and Lyrics+ no longer move into the strip. Fewer
+                // buttons also means less right-side padding needs reserving on the widget
+                // row (see injectCSS), which was crowding the artist/album marquee text down
+                // to near-zero width on narrow mobile viewports.
                 moveOut(window.pBtn || document.querySelector('button[data-testid="control-button-playpause"]'), 'spf-compact-play');
-                ensureLyricsProxy();
-                // #lyrics-plus-btn is added by a separate, optional userscript (Spotify Lyrics+),
-                // not by this file - moveOut() already no-ops silently (no query result, no log)
-                // when the element isn't in the DOM, so this is a harmless no-op if that script
-                // isn't installed, and picks the button up automatically if it is.
-                moveOut(document.getElementById('lyrics-plus-btn'), 'spf-compact-lyricsplus');
+                ensureAddToPlaylistProxy();
                 player.classList.add('spf-compact');
                 setCompactMode(true);
                 dbg('compactToggle: entered compact', '#spf-compact-toggle', { movedCount: movedOut.length });
             };
             const exitCompact = () => {
                 moveBack();
-                removeLyricsProxy();
+                removeAddToPlaylistProxy();
                 player.classList.remove('spf-compact');
                 setCompactMode(false);
                 dbg('compactToggle: exited compact', '#spf-compact-toggle', {});
@@ -1973,7 +2246,7 @@
             setupCompactToggle();
             tryRestoreCompact();
             cleanupOrphans();
-            const compactRestoreDone = !compactModeEnabled() || document.getElementById('spf-compact-lyricsbtn');
+            const compactRestoreDone = !compactModeEnabled() || document.getElementById('spf-compact-addtoplaylist');
             if (document.querySelector('.npbtn') && document.querySelector('.fuckd-npv-art') && document.querySelector('.spf-compact-ready') && compactRestoreDone) {
                 clearInterval(npvSetupInterval);
             }
@@ -1988,6 +2261,7 @@
         const style = document.createElement('style');
         // CSS content from r0/e.java (line 204)
         style.textContent = `
+
 body{min-width:100%!important;min-height:100%!important}
 .os-scrollbar{--os-size:6px!important}
 .contentSpacing{padding:0}
@@ -2045,7 +2319,6 @@ div[data-testid=hover-or-focus-tooltip],#Desktop_LeftSidebar_Id header>div>div:l
 .YourLibraryX header{padding:14px}
         `;
         document.head.appendChild(style);
-
         // AMOLED pure black mode (from r0/e.java line 207)
         // If this ever starts showing grey instead of black (main view,
         // sidebar, library, or any other themed surface - not the player
@@ -2068,16 +2341,17 @@ div[data-testid=hover-or-focus-tooltip],#Desktop_LeftSidebar_Id header>div>div:l
         // has no equivalent of the YourLibraryX pin).
         const amoled = document.createElement('style');
         amoled.textContent = `
+
 .encore-dark-theme{--background-base:#000;--background-highlight:#000;--background-elevated-base:#000;--background-elevated-highlight:#000;--background-elevated-press:#000;--background-tinted-base:#000}
 aside[data-testid=now-playing-bar]{background:#000!important;box-shadow:none;border-top:1px solid #666}
         `;
         document.head.appendChild(amoled);
-
         // --- Bottom nav bar + library-overlay layout + header visibility (v6.7) ---
         // Kept as its own <style> element (rather than merged into the blocks
         // above) so none of the existing v6.7 CSS above has to be touched.
         const bottomNavLayout = document.createElement('style');
         bottomNavLayout.textContent = `
+
 /* Sidebar now reached only through the bottom nav's Library tab - hidden by
    default, full-screen overlay (unchanged from v6.7) once switchLs() sets
    dataset.fuckExpanded="true". */
@@ -2190,7 +2464,6 @@ input[data-testid="search-input"]{display:none!important}
 body.sp-search input[data-testid="search-input"]{display:flex!important}
         `;
         document.head.appendChild(bottomNavLayout);
-
         // --- Compact player mode (v7.4) - ported from kitbodega/SpotiKit
         // 7.3.2.fork's .minimized feature, adapted to this file's fixed
         // full-width bottom bar (SpotiKit's own version targets a floating
@@ -2199,6 +2472,7 @@ body.sp-search input[data-testid="search-input"]{display:flex!important}
         // the existing CSS above has to be touched. ---
         const compactPlayer = document.createElement('style');
         compactPlayer.textContent = `
+
 aside[data-testid=now-playing-bar].spf-compact{
   height:64px!important;
   min-height:64px!important;
@@ -2206,30 +2480,64 @@ aside[data-testid=now-playing-bar].spf-compact{
   overflow:hidden!important;
   padding:0!important
 }
-aside[data-testid=now-playing-bar].spf-compact [data-testid=progress-bar],
-aside[data-testid=now-playing-bar].spf-compact [role=progressbar],
 aside[data-testid=now-playing-bar].spf-compact [data-testid=playback-position],
 aside[data-testid=now-playing-bar].spf-compact [data-testid=playback-duration],
-aside[data-testid=now-playing-bar].spf-compact [data-testid=playback-progressbar],
 aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:last-child{
   display:none!important
 }
-/* Catches BOTH player-controls (transport buttons/scrubber) and the
-   secondary-controls row (Lyrics+, npbtn, native lyrics/queue/connect/
-   volume/pip/fullscreen) in one rule, anchored on the stable
-   now-playing-widget testid - rather than hard-coding each button/
-   container's own selector, several of which sit inside wrapper divs that
-   only carry a build-hashed CSS-module class, no testid of their own, and
-   would silently stop being hidden the moment that hash changes on a
-   future Spotify deploy.
-   now-playing-widget is nested one level deeper than its sibling control
-   rows (aside>div:first-child> [wrapper>now-playing-widget, wrapper>
-   player-controls, wrapper>secondary-controls] - three wrapper divs, not
-   now-playing-widget directly), so the anchor is the wrapper that
-   CONTAINS now-playing-widget, found via :has(), with its own following
-   siblings hidden - not now-playing-widget's own (nonexistent) siblings. */
-aside[data-testid=now-playing-bar].spf-compact>div:first-child>div:has(div[data-testid=now-playing-widget]) ~ div{
+/* Hide just the secondary-controls wrapper (Lyrics+, npbtn, native lyrics/
+   queue/connect/volume/pip/fullscreen) - none of which appear in compact
+   mode anymore (v7.5). Anchored on the native lyrics-button testid (always
+   present, unlike lyrics-plus-btn which only exists if that separate
+   userscript is installed) rather than that wrapper's own build-hashed
+   CSS-module class, which would silently stop matching the moment that
+   hash changes on a future Spotify deploy.
+   IMPORTANT: this must NOT be a blanket "~ div" rule catching every
+   sibling after the now-playing-widget wrapper - that was the previous
+   (buggy) approach, and it also caught the player-controls wrapper, which
+   needs to stay visible for the scrubber below. A second rule then tried
+   to re-show player-controls, but since both rules use !important,
+   specificity (not source order) decides the winner - and the blanket
+   hide rule was, non-obviously, MORE specific (its :has() argument had an
+   extra type selector), so the scrubber stayed hidden no matter what the
+   second rule said. Targeting the secondary-controls wrapper directly
+   sidesteps that fight entirely - there's nothing left it needs to be
+   un-hidden from. */
+aside[data-testid=now-playing-bar].spf-compact>div:first-child>div:has([data-testid="lyrics-button"]){
   display:none!important
+}
+/* The player-controls wrapper is never hidden in the first place (see
+   above) - just restyled directly into a thin scrubber pinned to the very
+   bottom edge of the compact strip. */
+aside[data-testid=now-playing-bar].spf-compact>div:first-child>div:has([data-testid="player-controls"]){
+  display:flex!important;
+  position:absolute!important;
+  left:0!important;
+  right:0!important;
+  bottom:0!important;
+  height:6px!important;
+  padding:0!important;
+  margin:0!important;
+  overflow:visible!important;
+  z-index:5
+}
+/* Hide the transport buttons (shuffle/prev/next/repeat/translate) - Play/
+   Pause itself is pulled out separately into #spf-compact-play, so nothing
+   in this row is needed in compact mode. Force the position/scrubber/
+   duration row and the scrubber itself to fill the now 6px-tall wrapper -
+   :has() again rather than that row's own hashed class. */
+aside[data-testid=now-playing-bar].spf-compact [data-testid="general-controls"]{
+  display:none!important
+}
+aside[data-testid=now-playing-bar].spf-compact [data-testid="player-controls"],
+aside[data-testid=now-playing-bar].spf-compact [data-testid="player-controls"] div:has([data-testid="playback-progressbar"]),
+aside[data-testid=now-playing-bar].spf-compact [data-testid="playback-progressbar"]{
+  display:flex!important;
+  width:100%!important;
+  height:100%!important;
+  align-items:center!important;
+  margin:0!important;
+  padding:0!important
 }
 aside[data-testid=now-playing-bar].spf-compact>div:first-child>div:has(div[data-testid=now-playing-widget]){
   display:flex!important;
@@ -2242,7 +2550,12 @@ aside[data-testid=now-playing-bar].spf-compact>div:first-child{
   flex-direction:row!important;
   align-items:center!important;
   height:100%!important;
-  padding:0 256px 0 8px!important
+  position:relative!important;
+  /* Only two buttons now (Play/Pause + Add-to-playlist, right:8/44 below)
+     instead of the old five (which needed 256px) - this was the actual
+     cause of the artist/album marquee text collapsing to near-zero width
+     on narrow viewports; bottom:6px keeps it clear of the new scrubber. */
+  padding:0 96px 6px 8px!important
 }
 aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]{
   flex:1!important;
@@ -2305,30 +2618,33 @@ aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widge
 }
 #spf-compact-toggle:hover{background:rgba(255,255,255,0.4);width:50px}
 
-/* Compact-mode slots for the real Play/Pause, Queue, and Lyrics/NPV
-   buttons (right to left) once setupCompactToggle() moves them here -
-   positioning only. No size/color/icon rules: these are the actual full-
-   player buttons (real Encore classes, real SVGs), not synthetic copies,
-   so they already look and behave exactly as they do everywhere else in
-   this file - only their position changes. These ids only exist on an
-   element while it's actually inside the compact strip (assigned by
-   moveOut(), cleared by moveBack() - see setupCompactToggle), so no
+/* Compact-mode slots for Play/Pause (real element, moved) and Add-to-
+   playlist (synthetic proxy, see ensureAddToPlaylistProxy) - positioning
+   only. Play/Pause keeps its real Encore classes/SVG/aria state since it's
+   the actual full-player button, just reparented; the proxy clones
+   whatever the real button currently looks like. These ids only exist on
+   an element while it's actually inside the compact strip (assigned by
+   moveOut()/ensureAddToPlaylistProxy(), cleared by moveBack()/
+   removeAddToPlaylistProxy() - see setupCompactToggle), so no
    :not(.spf-compact) guard is needed here. */
-#spf-compact-play,#spf-compact-queue,#spf-compact-npv,#spf-compact-lyricsbtn,#spf-compact-lyricsplus{
+#spf-compact-play,#spf-compact-addtoplaylist{
   position:absolute!important;
   top:50%!important;
-  transform:translateY(-50%)!important;
   margin:0!important;
   z-index:10
 }
-#spf-compact-play{right:8px}
-#spf-compact-queue{right:44px}
-#spf-compact-npv{right:80px}
-#spf-compact-lyricsbtn{right:116px}
-#spf-compact-lyricsplus{right:152px}
+/* Add-to-playlist is naturally a small tertiary/condensed button (that's
+   its real class list, unchanged) - in the normal mobile full-player layout
+   it's visually scaled up 1.3x by the div[data-testid=now-playing-widget]>
+   div:last-child>button rule above, but that rule only matches buttons at
+   that exact DOM path, and this proxy lives elsewhere (appended to the
+   strip), so it never got that scale-up. Matching it here so it doesn't
+   look undersized next to Play/Pause (a real, unscaled Primary button,
+   inherently bigger regardless). */
+#spf-compact-play{right:8px;transform:translateY(-50%)!important}
+#spf-compact-addtoplaylist{right:44px;transform:translateY(-50%) scale(1.3)!important}
         `;
         document.head.appendChild(compactPlayer);
-
         console.log('#CSS Injected');
     }
 
@@ -2788,4 +3104,5 @@ aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widge
         wwwCardObserver.observe(document.body, { childList: true, subtree: true });
         window.addEventListener('beforeunload', () => wwwCardObserver.disconnect());
     }
+
 })();
