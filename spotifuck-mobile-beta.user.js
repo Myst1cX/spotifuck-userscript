@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile Beta
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.8.beta
+// @version      7.9.beta
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -2085,60 +2085,66 @@
                 }
             };
 
-            // Add-to-playlist button (v7.5): same "never physically move it" reasoning as the
+            // Library-action button (v7.6): same "never physically move it" reasoning as the
             // old Lyrics proxy this replaces (it's a React-owned node inside now-playing-widget's
             // last child, which the compact CSS keeps hidden) - build a synthetic proxy in the
             // compact strip that forwards clicks to the real button in place.
-            // Unlike Lyrics, this button's icon actually changes (add vs. already-added state),
-            // and that state can change from elsewhere (e.g. the full Now Playing view, or
-            // another instance of this button), so a one-time clone would go stale. Instead a
-            // MutationObserver watches now-playing-widget itself (childList+subtree, so it also
-            // survives the real button's node being replaced outright on track change, not just
-            // attribute flips) and re-syncs the proxy's class/aria-checked/icon every time.
-            let addToPlaylistObserver = null;
-            const findAddToPlaylistBtn = () =>
-                document.querySelector('[data-testid="now-playing-widget"] button[aria-label="Add to playlist"]');
-            const syncAddToPlaylistProxy = (proxy, realBtn) => {
+            // This slot is actually two different real buttons depending on liked state - "Add to
+            // Liked Songs" (heart, subdued color) when the track isn't liked, which morphs into
+            // "Add to playlist" (checkmark, bright-accent color) once it is - so the proxy has to
+            // track whichever one is currently rendered, not just one fixed aria-label.
+            // The icon/color/label can also change from elsewhere (e.g. the full Now Playing
+            // view, or another instance of this button), so a one-time clone would go stale.
+            // Instead a MutationObserver watches now-playing-widget itself (childList+subtree, so
+            // it also survives the real button's node being replaced outright on track change or
+            // liked-state morph, not just attribute flips) and re-syncs the proxy's
+            // class/aria-checked/aria-label/title/icon every time.
+            let libActionObserver = null;
+            const findLibActionBtn = () =>
+                document.querySelector('[data-testid="now-playing-widget"] button[aria-label="Add to playlist"], [data-testid="now-playing-widget"] button[aria-label="Add to Liked Songs"]');
+            const syncLibActionProxy = (proxy, realBtn) => {
                 proxy.className = realBtn.className;
                 proxy.setAttribute('aria-checked', realBtn.getAttribute('aria-checked') || 'false');
-                proxy.setAttribute('aria-label', realBtn.getAttribute('aria-label') || 'Add to playlist');
+                const label = realBtn.getAttribute('aria-label') || 'Add to playlist';
+                proxy.setAttribute('aria-label', label);
+                proxy.title = label;
                 proxy.innerHTML = realBtn.innerHTML;
             };
-            const ensureAddToPlaylistProxy = () => {
-                let proxy = document.getElementById('spf-compact-addtoplaylist');
-                const realBtn = findAddToPlaylistBtn();
+            const ensureLibActionProxy = () => {
+                let proxy = document.getElementById('spf-compact-libaction');
+                const realBtn = findLibActionBtn();
                 if (proxy) {
-                    if (realBtn) syncAddToPlaylistProxy(proxy, realBtn);
+                    if (realBtn) syncLibActionProxy(proxy, realBtn);
                     return proxy;
                 }
                 if (!realBtn) return null;
                 proxy = document.createElement('button');
-                proxy.id = 'spf-compact-addtoplaylist';
-                proxy.title = 'Add to playlist';
-                syncAddToPlaylistProxy(proxy, realBtn);
+                proxy.id = 'spf-compact-libaction';
+                syncLibActionProxy(proxy, realBtn);
                 proxy.addEventListener('click', () => {
                     // Re-query rather than close over realBtn - the node may have been
-                    // replaced by a track change since this listener was attached.
-                    findAddToPlaylistBtn()?.click();
+                    // replaced by a track change or liked-state morph since this listener
+                    // was attached.
+                    findLibActionBtn()?.click();
                 });
                 player.appendChild(proxy);
                 const widgetEl = document.querySelector('[data-testid="now-playing-widget"]');
                 if (widgetEl) {
-                    addToPlaylistObserver = new MutationObserver(() => {
-                        const btn = findAddToPlaylistBtn();
-                        const p = document.getElementById('spf-compact-addtoplaylist');
-                        if (btn && p) syncAddToPlaylistProxy(p, btn);
+                    libActionObserver = new MutationObserver(() => {
+                        const btn = findLibActionBtn();
+                        const p = document.getElementById('spf-compact-libaction');
+                        if (btn && p) syncLibActionProxy(p, btn);
                     });
-                    addToPlaylistObserver.observe(widgetEl, {
+                    libActionObserver.observe(widgetEl, {
                         childList: true, subtree: true, attributes: true,
                         attributeFilter: ['class', 'aria-checked']
                     });
                 }
                 return proxy;
             };
-            const removeAddToPlaylistProxy = () => {
-                if (addToPlaylistObserver) { addToPlaylistObserver.disconnect(); addToPlaylistObserver = null; }
-                document.getElementById('spf-compact-addtoplaylist')?.remove();
+            const removeLibActionProxy = () => {
+                if (libActionObserver) { libActionObserver.disconnect(); libActionObserver = null; }
+                document.getElementById('spf-compact-libaction')?.remove();
             };
 
             // Belt-and-suspenders sweep for the same failure mode moveBack()'s
@@ -2158,20 +2164,21 @@
             };
 
             const enterCompact = () => {
-                // v7.5: compact mode now only surfaces Play/Pause and Add-to-playlist -
-                // NPV, Queue, native Lyrics, and Lyrics+ no longer move into the strip. Fewer
-                // buttons also means less right-side padding needs reserving on the widget
-                // row (see injectCSS), which was crowding the artist/album marquee text down
-                // to near-zero width on narrow mobile viewports.
+                // v7.5: compact mode now only surfaces Play/Pause and the library-action button
+                // (Add to playlist / Add to Liked Songs) - NPV, Queue, native Lyrics, and
+                // Lyrics+ no longer move into the strip. Fewer buttons also means less
+                // right-side padding needs reserving on the widget row (see injectCSS), which
+                // was crowding the artist/album marquee text down to near-zero width on narrow
+                // mobile viewports.
                 moveOut(window.pBtn || document.querySelector('button[data-testid="control-button-playpause"]'), 'spf-compact-play');
-                ensureAddToPlaylistProxy();
+                ensureLibActionProxy();
                 player.classList.add('spf-compact');
                 setCompactMode(true);
                 dbg('compactToggle: entered compact', '#spf-compact-toggle', { movedCount: movedOut.length });
             };
             const exitCompact = () => {
                 moveBack();
-                removeAddToPlaylistProxy();
+                removeLibActionProxy();
                 player.classList.remove('spf-compact');
                 setCompactMode(false);
                 dbg('compactToggle: exited compact', '#spf-compact-toggle', {});
@@ -2246,7 +2253,7 @@
             setupCompactToggle();
             tryRestoreCompact();
             cleanupOrphans();
-            const compactRestoreDone = !compactModeEnabled() || document.getElementById('spf-compact-addtoplaylist');
+            const compactRestoreDone = !compactModeEnabled() || document.getElementById('spf-compact-libaction');
             if (document.querySelector('.npbtn') && document.querySelector('.fuckd-npv-art') && document.querySelector('.spf-compact-ready') && compactRestoreDone) {
                 clearInterval(npvSetupInterval);
             }
@@ -2631,14 +2638,15 @@ aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widge
 }
 #spf-compact-toggle:hover{background:rgba(255,255,255,0.4);width:50px}
 
-/* Compact-mode slots for Play/Pause (real element, moved) and Add-to-
-   playlist (synthetic proxy, see ensureAddToPlaylistProxy) - positioning
-   only. Play/Pause keeps its real Encore classes/SVG/aria state since it's
-   the actual full-player button, just reparented; the proxy clones
-   whatever the real button currently looks like. These ids only exist on
-   an element while it's actually inside the compact strip (assigned by
-   moveOut()/ensureAddToPlaylistProxy(), cleared by moveBack()/
-   removeAddToPlaylistProxy() - see setupCompactToggle), so no
+/* Compact-mode slots for Play/Pause (real element, moved) and the
+   library-action button - Add to playlist / Add to Liked Songs, whichever
+   is currently rendered (synthetic proxy, see ensureLibActionProxy) -
+   positioning only. Play/Pause keeps its real Encore classes/SVG/aria
+   state since it's the actual full-player button, just reparented; the
+   proxy clones whatever the real button currently looks like. These ids
+   only exist on an element while it's actually inside the compact strip
+   (assigned by moveOut()/ensureLibActionProxy(), cleared by moveBack()/
+   removeLibActionProxy() - see setupCompactToggle), so no
    :not(.spf-compact) guard is needed here.
    top:32px (not top:50%!) - both buttons are appended directly to the
    aside, not to the 64px compact row itself, and the aside's own height is
@@ -2654,7 +2662,7 @@ aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widge
    whether the banner is occupying space below it, so a fixed 32px from
    the top (half of the row's own fixed 64px height) reliably lands on the
    row's center either way. */
-#spf-compact-play,#spf-compact-addtoplaylist{
+#spf-compact-play,#spf-compact-libaction{
   position:absolute!important;
   top:32px!important;
   transform:translateY(-50%)!important;
@@ -2662,18 +2670,18 @@ aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widge
   z-index:10
 }
 #spf-compact-play{right:8px}
-#spf-compact-addtoplaylist{right:44px}
+#spf-compact-libaction{right:44px}
 
 /* Play/Pause is a real Encore Primary button - filled white circle, icon
    colored dark via its own encore-inverted-light-set inner span - which
    made it look like a different, bigger control than the plain icon-only
-   Add-to-playlist proxy sitting right next to it. Stripped down here to a
+   library-action proxy sitting right next to it. Stripped down here to a
    bare white icon instead. Once the circle/padding chrome is gone, the two
    already match in size on their own - both icons use the same
    --encore-graphic-size-decorative-smaller sizing token in their native
    markup - so no explicit width/height override or scale() hack is needed
-   (the previous scale(1.3) on Add-to-playlist is removed; it was only
-   there to compensate for Play/Pause's oversized circle). */
+   (the previous scale(1.3) on the library-action button is removed; it
+   was only there to compensate for Play/Pause's oversized circle). */
 #spf-compact-play{
   background:transparent!important;
   box-shadow:none!important;
