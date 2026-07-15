@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile Beta
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.7.beta
+// @version      7.8.beta
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -28,7 +28,7 @@
 
 * Based on r0/e.java from classes1.dex
 
-*
+* 
 
 * Features from APK:
 
@@ -61,7 +61,7 @@
 * - CSS hacks for better mobile experience
 
 * Fixed from APK:
-
+  
   * - Library folder navigation (original behavior auto-closed library on any item selection, including folders.
 
 * Newly added (v6.3):
@@ -322,7 +322,7 @@
 
 * v6.9.
 
-*
+* 
 
 * Newly added (v6.9 and v7.0) - Actual fix for the v6.8 regression above
 
@@ -364,7 +364,7 @@
 
 * toggle and filterable by "SPFDBG" like everything else.
 
-*
+* 
 
 * Newly added (v7.1) - Ported region/English-forcing fixes from SpotiwebJS.js:
 
@@ -466,7 +466,7 @@
 
 * selectors never matched it there either).
 
-*
+* 
 
 * Audited every other button/redirect for a similar hardcoded-locale or
 
@@ -482,7 +482,7 @@
 
 * the toggle correctly.
 
-*
+* 
 
 * g) setupNpvButton/setupNpvWidgetTrigger/setupOtherPanelTriggers were only
 
@@ -524,11 +524,11 @@
 
 * immediate + single 2s retry - untouched, out of scope here.
 
-*
+* 
 
 * Newly added (v7.2) - A feature I later scrapped (ignore)
 
-*
+* 
 
 * Newly added (v7.3):
 
@@ -554,7 +554,7 @@
 
 * never print the one line that announces logging just turned on).
 
-*
+* 
 
 * Newly added (v7.4):
 *
@@ -586,7 +586,7 @@
 * hash changes on a future Spotify deploy.
 * - See setupCompactToggle() in addCSSJSHack().
 
-*
+* 
 *
 * Newly added (v7.5):
 *
@@ -2568,7 +2568,7 @@ aside[data-testid=now-playing-bar].spf-compact>div:first-child{
      instead of the old five (which needed 256px) - this was the actual
      cause of the artist/album marquee text collapsing to near-zero width
      on narrow viewports; bottom:6px keeps it clear of the new scrubber. */
-  padding:0 96px 6px 8px!important
+  padding:0 84px 6px 8px!important
 }
 aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]{
   flex:1!important;
@@ -2639,23 +2639,57 @@ aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widge
    an element while it's actually inside the compact strip (assigned by
    moveOut()/ensureAddToPlaylistProxy(), cleared by moveBack()/
    removeAddToPlaylistProxy() - see setupCompactToggle), so no
-   :not(.spf-compact) guard is needed here. */
+   :not(.spf-compact) guard is needed here.
+   top:32px (not top:50%!) - both buttons are appended directly to the
+   aside, not to the 64px compact row itself, and the aside's own height is
+   no longer fixed (see the aside-level .spf-compact rule above - that's
+   what lets the green "Playing on X device" banner get its own space
+   instead of being squashed). 50% would center against whatever the
+   aside's CURRENT total height happens to be (64px content row alone, or
+   64px + the banner's height on top of it), which is exactly why they sat
+   low whenever the banner was present - and also slightly low even
+   without it, since 50% of the aside's real rendered height was never
+   quite exactly 32px once box-shadow/border are accounted for. The
+   compact row is always flush with the aside's own TOP edge regardless of
+   whether the banner is occupying space below it, so a fixed 32px from
+   the top (half of the row's own fixed 64px height) reliably lands on the
+   row's center either way. */
 #spf-compact-play,#spf-compact-addtoplaylist{
   position:absolute!important;
-  top:50%!important;
+  top:32px!important;
+  transform:translateY(-50%)!important;
   margin:0!important;
   z-index:10
 }
-/* Add-to-playlist is naturally a small tertiary/condensed button (that's
-   its real class list, unchanged) - in the normal mobile full-player layout
-   it's visually scaled up 1.3x by the div[data-testid=now-playing-widget]>
-   div:last-child>button rule above, but that rule only matches buttons at
-   that exact DOM path, and this proxy lives elsewhere (appended to the
-   strip), so it never got that scale-up. Matching it here so it doesn't
-   look undersized next to Play/Pause (a real, unscaled Primary button,
-   inherently bigger regardless). */
-#spf-compact-play{right:8px;transform:translateY(-50%)!important}
-#spf-compact-addtoplaylist{right:44px;transform:translateY(-50%) scale(1.3)!important}
+#spf-compact-play{right:8px}
+#spf-compact-addtoplaylist{right:44px}
+
+/* Play/Pause is a real Encore Primary button - filled white circle, icon
+   colored dark via its own encore-inverted-light-set inner span - which
+   made it look like a different, bigger control than the plain icon-only
+   Add-to-playlist proxy sitting right next to it. Stripped down here to a
+   bare white icon instead. Once the circle/padding chrome is gone, the two
+   already match in size on their own - both icons use the same
+   --encore-graphic-size-decorative-smaller sizing token in their native
+   markup - so no explicit width/height override or scale() hack is needed
+   (the previous scale(1.3) on Add-to-playlist is removed; it was only
+   there to compensate for Play/Pause's oversized circle). */
+#spf-compact-play{
+  background:transparent!important;
+  box-shadow:none!important;
+  padding:0!important;
+  width:auto!important;
+  height:auto!important;
+  min-width:0!important;
+  color:#fff!important
+}
+#spf-compact-play .e-10451-button-primary__inner{
+  background:transparent!important
+}
+#spf-compact-play svg,
+#spf-compact-play svg path{
+  fill:#fff!important
+}
         `;
         document.head.appendChild(compactPlayer);
         console.log('#CSS Injected');
