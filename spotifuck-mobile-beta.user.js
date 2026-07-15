@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile Beta
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      8.1.wohoo
+// @version      8.2.wohoo
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -28,7 +28,7 @@
 
 * Based on r0/e.java from classes1.dex
 
-* 
+*
 
 * Features from APK:
 
@@ -61,7 +61,7 @@
 * - CSS hacks for better mobile experience
 
 * Fixed from APK:
-  
+
   * - Library folder navigation (original behavior auto-closed library on any item selection, including folders.
 
 * Newly added (v6.3):
@@ -322,7 +322,7 @@
 
 * v6.9.
 
-* 
+*
 
 * Newly added (v6.9 and v7.0) - Actual fix for the v6.8 regression above
 
@@ -364,7 +364,7 @@
 
 * toggle and filterable by "SPFDBG" like everything else.
 
-* 
+*
 
 * Newly added (v7.1) - Ported region/English-forcing fixes from SpotiwebJS.js:
 
@@ -466,7 +466,7 @@
 
 * selectors never matched it there either).
 
-* 
+*
 
 * Audited every other button/redirect for a similar hardcoded-locale or
 
@@ -482,7 +482,7 @@
 
 * the toggle correctly.
 
-* 
+*
 
 * g) setupNpvButton/setupNpvWidgetTrigger/setupOtherPanelTriggers were only
 
@@ -524,11 +524,11 @@
 
 * immediate + single 2s retry - untouched, out of scope here.
 
-* 
+*
 
 * Newly added (v7.2) - A feature I later scrapped (ignore)
 
-* 
+*
 
 * Newly added (v7.3):
 
@@ -554,7 +554,7 @@
 
 * never print the one line that announces logging just turned on).
 
-* 
+*
 
 * Newly added (v7.4):
 *
@@ -586,7 +586,7 @@
 * hash changes on a future Spotify deploy.
 * - See setupCompactToggle() in addCSSJSHack().
 
-* 
+*
 *
 * Newly added (v7.5):
 *
@@ -2521,14 +2521,18 @@ aside[data-testid=now-playing-bar].spf-compact>div:first-child>div:has([data-tes
   display:none!important
 }
 /* The player-controls wrapper is never hidden in the first place (see
-   above) - just restyled directly into a thin scrubber pinned to the very
-   bottom edge of the compact strip. */
+   above) - just restyled directly into a thin scrubber pinned near the
+   bottom edge of the compact strip. bottom:4px (not 0) - the row above
+   has overflow:hidden, and the seek-position thumb grows larger on
+   hover/highlight than the 6px track itself, so flush against the very
+   bottom edge let the enlarged thumb get clipped. This buffer keeps it
+   fully visible when highlighted. */
 aside[data-testid=now-playing-bar].spf-compact>div:first-child>div:has([data-testid="player-controls"]){
   display:flex!important;
   position:absolute!important;
   left:0!important;
   right:0!important;
-  bottom:0!important;
+  bottom:4px!important;
   height:6px!important;
   padding:0!important;
   margin:0!important;
