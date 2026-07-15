@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Spotifuck Mobile Beta 
+// @name         Spotifuck Mobile Beta
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.5.beta (should fix 7.4.beta)
+// @version      7.6.beta (should fix 7.5.beta urrrgh)
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -2068,12 +2068,14 @@ aside[data-testid=now-playing-bar].compact{
   overflow:hidden!important;
   padding:0!important;
 }
+/* Only ever hide specific known native buttons by their own selector - never
+   a parent container. A parent-based hide (e.g. >div>div:last-child) is
+   fragile here: .sp-compact-row gets appended into this same wrapper, so it
+   would itself become the new last-child and get caught by that rule too. */
 aside[data-testid=now-playing-bar].compact [data-testid=progress-bar],
 aside[data-testid=now-playing-bar].compact [role=progressbar],
 aside[data-testid=now-playing-bar].compact div[data-testid=player-controls],
 aside[data-testid=now-playing-bar].compact div[data-testid=general-controls],
-aside[data-testid=now-playing-bar].compact>div>div:last-child,
-aside[data-testid=now-playing-bar].compact div[data-testid=now-playing-widget]>div:last-child,
 aside[data-testid=now-playing-bar].compact button[data-testid="control-button-queue"],
 aside[data-testid=now-playing-bar].compact button[aria-label="Connect to a device"],
 aside[data-testid=now-playing-bar].compact button[aria-label*="Conectar"],
@@ -2082,28 +2084,30 @@ aside[data-testid=now-playing-bar].compact button[aria-label*="device"],
 aside[data-testid=now-playing-bar].compact [data-testid="volume-bar"],
 aside[data-testid=now-playing-bar].compact button[data-testid="pip-toggle-button"],
 aside[data-testid=now-playing-bar].compact button[data-testid="fullscreen-mode-button"],
-aside[data-testid=now-playing-bar].compact button[data-testid="lyrics-button"]{
+aside[data-testid=now-playing-bar].compact button[data-testid="lyrics-button"],
+aside[data-testid=now-playing-bar].compact div[data-testid=now-playing-widget]>div:last-child{
   display:none!important;
 }
-aside[data-testid=now-playing-bar].compact>div:first-child{
-  display:flex!important;
-  flex-direction:row!important;
-  align-items:center!important;
-  gap:8px!important;
-  height:100%!important;
-  padding:0 10px!important;
-  margin:0!important;
-}
+/* The shared wrapper (aside>div:first-child) is deliberately left untouched -
+   no flex-direction override, no padding/margin override - so anything else
+   Spotify renders in it (e.g. the Connect "Playing on ..." banner) keeps its
+   normal full-player layout/position instead of getting dragged into our
+   row. Album art + title and the button row are pulled out of flow instead,
+   as absolute overlays anchored to the aside itself (already position:fixed
+   from the bottomNavLayout block above, so this positions relative to the
+   player bar's own box, not the page). */
 aside[data-testid=now-playing-bar].compact div[data-testid=now-playing-widget]{
-  flex:1!important;
-  min-width:0!important;
+  position:absolute!important;
+  left:10px!important;
+  top:0!important;
+  right:96px!important;
+  height:64px!important;
   display:flex!important;
   flex-direction:row!important;
   align-items:center!important;
-  justify-content:flex-start!important;
   gap:8px!important;
-  height:100%!important;
   overflow:hidden!important;
+  margin:0!important;
 }
 aside[data-testid=now-playing-bar].compact div[data-testid=now-playing-widget]>div:first-child{
   width:40px!important;
@@ -2147,11 +2151,13 @@ aside[data-testid=now-playing-bar].compact div[data-testid=now-playing-widget]>d
 }
 aside[data-testid=now-playing-bar].compact .sp-compact-row{
   display:flex!important;
+  position:absolute!important;
+  right:10px!important;
+  top:0!important;
   flex-direction:row!important;
   align-items:center!important;
   gap:2px!important;
-  flex:none!important;
-  height:100%!important;
+  height:64px!important;
 }
 .sp-compact-btn{
   display:flex!important;
