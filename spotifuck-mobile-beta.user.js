@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Spotifuck Mobile Beta
+// @name         Spotifuck Mobile Beta 
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.4.beta (reduced to lrc btn, npv brn, play/pause btn)
+// @version      7.5.beta (should fix 7.4.beta)
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -2073,7 +2073,16 @@ aside[data-testid=now-playing-bar].compact [role=progressbar],
 aside[data-testid=now-playing-bar].compact div[data-testid=player-controls],
 aside[data-testid=now-playing-bar].compact div[data-testid=general-controls],
 aside[data-testid=now-playing-bar].compact>div>div:last-child,
-aside[data-testid=now-playing-bar].compact div[data-testid=now-playing-widget]>div:last-child{
+aside[data-testid=now-playing-bar].compact div[data-testid=now-playing-widget]>div:last-child,
+aside[data-testid=now-playing-bar].compact button[data-testid="control-button-queue"],
+aside[data-testid=now-playing-bar].compact button[aria-label="Connect to a device"],
+aside[data-testid=now-playing-bar].compact button[aria-label*="Conectar"],
+aside[data-testid=now-playing-bar].compact button[aria-label*="conectar"],
+aside[data-testid=now-playing-bar].compact button[aria-label*="device"],
+aside[data-testid=now-playing-bar].compact [data-testid="volume-bar"],
+aside[data-testid=now-playing-bar].compact button[data-testid="pip-toggle-button"],
+aside[data-testid=now-playing-bar].compact button[data-testid="fullscreen-mode-button"],
+aside[data-testid=now-playing-bar].compact button[data-testid="lyrics-button"]{
   display:none!important;
 }
 aside[data-testid=now-playing-bar].compact>div:first-child{
