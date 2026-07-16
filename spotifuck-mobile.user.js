@@ -1,16 +1,12 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.7
+// @version      7.8
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
-// @match        https://www.spotify.com/*/account/*
-// @match        https://www.spotify.com/*/premium/*
-// @match        https://www.spotify.com/*/duo/*
-// @match        https://www.spotify.com/*/student/*
-// @match        https://www.spotify.com/*/family/*
-// @match        https://payments.spotify.com/*
+// @match        *://www.spotify.com/*
+// @match        *://payments.spotify.com/*
 // @grant        GM_addStyle
 // @grant        GM_registerMenuCommand
 // @grant        GM_setValue
@@ -401,6 +397,21 @@
 * a moment), <head> normally appears within a millisecond or two of the
 * page starting to load, so this doesn't introduce any visible delay or
 * flash of unstyled Spotify UI before the script's CSS kicks in.
+*
+* Fixed (v7.8):
+* - www.spotify.com was only matched on five narrow paths (*/account/*,
+* */premium/*, */duo/*, */student/*, */family/*). Since www.spotify.com routes
+* client-side (pushState, no full reload), landing anywhere else first (e.g.
+* the homepage) meant the script never got injected at all, even after
+* navigating into a matched path. Fixed by matching the whole www.spotify.com
+* origin. payments.spotify.com already matched its whole origin and is only
+* ever reached via a real (non-SPA) navigation, so it didn't have this bug -
+* left as-is aside from the @match style pass below.
+* - Side effect: the premium-spoof text/badge replacements and forceEnglish()'s
+* region redirect now also run on other www.spotify.com pages, not just the
+* original five.
+* - All three @match lines now use *:// instead of a mix of *:// and https://,
+* purely cosmetic (Spotify enforces HTTPS on all three anyway).
   */
 
 (function() {
