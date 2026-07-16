@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.5
+// @version      7.6
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -23,541 +23,279 @@
 // ==/UserScript==
 
 /*
-
 * Spotifuck v6 - Accurate port from reverse-engineered v1.6.4 APK
-
 * Based on r0/e.java from classes1.dex
-
 *
-
 * Features from APK:
-
 * - Library button toggle (expand 100%×100% / collapse 48×48px)
-
 * - Pure black AMOLED mode for playback controls
-
-* Note: currently works without needing !important on the
-
+* NOTE: currently works without needing !important on the
 * .encore-dark-theme custom properties, because `.YourLibraryX{
-
 * background:var(--background-elevated-base)!important}` in the
-
 * bottom-nav/library-overlay block (Sixth big change) independently pins
-
 * the library/sidebar surface. If AMOLED ever starts showing grey again
-
 * (e.g. that rule/class gets removed or renamed in a future change, or
-
 * Spotify adds a new panel that redeclares these vars closer to its own
-
 * root than .encore-dark-theme sits), see the comment at the AMOLED
-
 * style block (find it by searching: 'AMOLED pure black mode (from r0/e.java)')
-
 * - Auto-close library on playlist selection (and load the playlist)
-
 * - UI improvements (sidebar, search bar, playback controls)
-
 * - CSS hacks for better mobile experience
-
+*
 * Fixed from APK:
-
-  * - Library folder navigation (original behavior auto-closed library on any item selection, including folders.
-
+* - Library folder navigation (original behavior auto-closed library on any item selection, including folders.
+*
 * Newly added (v6.3):
-
 * - Browser-side equivalent of Spotifuck's ForceEn that forces Android app locale to English before loading its WebView
-
 * - (Forces English on open.spotify.com: overrides navigator.language/languages,
-
 * and strips a non-English /intl-xx/ locale prefix from the URL if present.)
-
 * - The feature is a functional dependency because of the following buttons hardcoded to English aria-label text:
-
 * const libBtn = document.querySelector('#Desktop_LeftSidebar_Id header button[aria-label*="Your Library"]:not(.fuckd)');
-
 * if (libBtn.getAttribute('aria-label') === 'Collapse Your Library') {
-
 * Newly added (v6.4) - Fixed "Force English" (v6.3 was not working at all)
-
 * - forceEnglish() actually forces English now. The v6.3 version only overrode
-
 * navigator.language and stripped the /intl-xx/ URL prefix, both of which only
-
 * affect a single page load - the aria-labels Spotify actually renders (e.g.
-
 * "Open Your Library") are driven by the account-level language preference at
-
 * open.spotify.com/preferences, which is saved server-side. forceEnglish() now
-
 * also flips that setting to "en" once, via a hidden iframe so it doesn't
-
 * disrupt whatever the user is looking at, then reloads the page so the change
-
 * actually takes effect. A localStorage flag means this only runs once ever, and skips the reload
-
 * entirely if the account was already set to English.
-
+*
 * Newly added (v6.4.fix) - Fixed "Force English" again (v6.4 had some bug cases)
-
 * - Fixed a case where, if a user landed directly on /preferences (rather than
-
 * via the hidden iframe), the code that watches for the language <select> to
-
 * appear never actually started watching - it silently did nothing and timed
-
 * out. Now it waits for the page to finish loading first if needed.
-
 * - Removed the old "only ever run once" localStorage flag. It assumed the
-
 * account language setting only ever changes via this script, so once set,
-
 * it stopped checking forever - meaning if the user manually changed the
-
 * account language afterward, the script would never notice or fix it again.
-
 * It now re-checks the actual setting on every real page load instead.
-
 * - The dispatched change event is no longer trusted as proof the setting
-
 * actually saved. It's now verified on the next load before being treated as
-
 * done, with a capped number of retries if it didn't stick.
-
+*
 * Newly added (v6.5) - Fixed "Force English" again (:D)
-
 * - Fixed a race where the hidden iframe's "did it finish loading" check and
-
 * its 15-second give-up timer could both fire for the same attempt if the
-
 * timing landed close together, causing the same logic to run twice. Now
-
 * whichever one happens first is the only one that's acted on.
-
 * - Fixed a race where redirecting away from a non-English /intl-xx/ URL
-
 * didn't stop the rest of forceEnglish() from also running against that
-
 * same (already-leaving) page. It now stops immediately after triggering
-
 * that redirect instead.
-
+*
 * Newly added (v6.6):
-
 * a) Improved forceEnglish() to now also redirect www.spotify.com off non-English region path segments (e.g. /mx/ -> /us/)
-
 * b) Ported the visual premium spoof & payment-page blockers from Spotikit/SpotiwebJS.user.js (v7.0.fork)
-
 * - CREDITS TO: kitbodega for the code logic - kitbodega/SpotiKit/SpotiwebJS(obsolete).user.js
-
 * - Added the PINK/GREEN constants, REPLACE text-swap map, and runPremium()) from SpotiwebJS
-
 * - Fork's expansion: the scan/replace pass is now MutationObserver-driven (only re-scans changed
-
 * nodes) instead of a full document.body walk on a timer, and every swap is logged (selector, before/after, times applied);
-
 * viewable via a new "Show everything replaced so far" userscript menu command.
-
 * - Added the @match lines for www.spotify.com/*account,premium,duo,student,family/*
-
 * and payments.spotify.com/* so the spoof/blockers actually have pages to run on.
-
 * - Added two independent userscript-manager menu toggles (via
-
 * GM_registerMenuCommand + GM_setValue/GM_getValue), since the spoof
-
 * behaves differently depending on which site it's touching:
-
 * 1. "Visual Premium Spoof (open.spotify.com)" - the in-player text/badge
-
 *    relabeling and the account widgets that render inside the web player.
-
 * HOW DOES IT WORK: Ad-slot removal MutationObserver (ordinary ad-banner DOM removal, same idea as a standard ad-blocker filter;
-
 * can't touch anything server-enforced), scoped to open.spotify.com)
-
 * 2. "Visual Premium Spoof (www.spotify.com)" - the account site
-
 *    (spotify.com /premium, /duo, /student, /family, purchase pages) and the payments.spotify.com blockers/redirects
-
 * HOW DOES IT WORK: Text nodes are taken over by overlays that affirm you do not need Premium.
-
 * Each toggle is independent, persists via GM storage, and reloads the page to apply. Both toggles are enabled by default.
-
+*
 * Newly added (v6.7):
-
 * a) Rewrote AutoCloseLibrary: closing the library (whether by clicking a
-
 * playlist while it's open, or via the toggle itself) now does a real
-
 * click on Spotify's own open/close button instead of forcing 48x48 CSS
-
 * onto the sidebar. Spotify collapses its own layout properly as a
-
 * result, instead of the old glitched, overlapping cluster of header
-
 * icons squashed into a tiny box. All button wiring (manual clicks, the
-
 * auto-close-on-playlist trigger, and the new bottom nav's Library tab
-
 * below) is centralized through one shared function with a guard that
-
 * survives Spotify re-rendering the button, so the toggle can't end up
-
 * with duplicate click listeners double-firing on a single tap.
-
 * b) Added a fixed Home/Search/Library bottom nav bar (#sp-bottom-nav),
-
 * ported from kitbodega/SpotiKit's mobile layout:
-
 * - Home/Search tabs navigate via history.pushState; Library performs
-
 *  the same real click as (a) on Spotify's native toggle.
-
 * - The now-playing player sits fixed just above the nav (bottom:56px);
-
 *  AMOLED colors and control layout/scaling are unchanged. #main-view
-
 *  is clipped into a flex column whose height tracks the player's
-
 *  live-measured height via ResizeObserver, so scrollable content
-
 *  never runs behind the player or nav.
-
 * - The native sidebar (#Desktop_LeftSidebar_Id) is hidden by default
-
 *  and only appears - as the same fullscreen overlay switchLs() already
-
 *  builds - while the library is open. A one-time invisible prewarm
-
 *  expand/collapse cycle on load keeps its virtualized list from
-
 *  measuring itself as zero-size on first real open.
-
 * - Library-open state persists across in-app navigation for the
-
 *  current page load (cleared on a fresh load), and auto-closes if you
-
 *  switch to Home/Search while it's open.
-
 * - The native top header (home icon, bell, upgrade button, profile
-
 *  menu, search input) is hidden by default and only shown while the
-
 *  bottom nav's Search tab is active.
-
 * c) Added a custom Now Playing view button (next to the lyrics button in
-
 * the player bar, styled to match Spotify's own button classes) since
-
 * Spotify's native NPV toggle is unreliable/often missing. Only clicks
-
 * through this button, or the player-bar album art (see (e) below), are
-
 * allowed to open the Now Playing view - a MutationObserver auto-closes
-
 * it any other time it becomes visible (Spotify itself, another script,
-
 * or already open on page load), so it can't pop open on its own.
-
 * d) The internal SPFDBG console logging used throughout this script is now
-
 * gated behind its own "Debug Logging (console)" userscript-manager menu
-
 * toggle (off by default), instead of always printing, so an ordinary
-
 * user's console doesn't fill up with click-by-click state logs.
-
 * e) Fixed the player-bar album art click (Spotify's own native way to open
-
 * the Now Playing view) getting immediately undone by the (c) guard,
-
 * which only trusted opens made through npBtn - so clicking the album art
-
 * looked like it did nothing. It's now a second authorized opener: a
-
 * listener on the album art marks the click as authorized right as it
-
 * happens, before Spotify's own click handling runs, so the guard leaves
-
 * it alone and the album art opens/closes the Now Playing view natively,
-
 * as instantly as npBtn.
-
 * f) Hid the native miniplayer/PiP toggle button (button[data-testid=pip-toggle-button],
-
 * via the existing hidden-elements CSS rule.
-
+*
 * Newly added (v6.8) - Attempted fix for Queue / Connect to a Device buttons
-
 * not opening - NOT the actual fix, see v6.9 below
-
 * - #Desktop_PanelContainer_Id (the right-side panel) is shared by Now
-
 * Playing view, Queue, and Connect to a Device - all three flip the same
-
 * aria-hidden flag when opened. The (v6.7c) NPV guard's isNpvOpen() only
-
 * checked that shared flag, so it couldn't tell NPV apart from Queue/
-
 * Devices - meaning it would sometimes auto-close Queue or Devices right
-
 * after they opened, thinking it was an unauthorized NPV open. Whether it
-
 * misfired depended on stale guard state left over from an earlier NPV
-
 * open, which is why it looked intermittent (broken, then fine after some
-
 * navigating around). This attempt tried to fix it by checking for
-
 * panelContainer.querySelector('[aria-label="Now playing view"], .NowPlayingView')
-
 * inside the panel - but that marker turned out to be on the panel
-
 * container itself, not a descendant, so querySelector never matched.
-
 * Net effect: isNpvOpen() always returned false and the guard stopped
-
 * doing anything at all, letting NPV pop open unguarded. Superseded by
-
 * v6.9.
-
 *
-
 * Newly added (v6.9 and v7.0) - Actual fix for the v6.8 regression above
-
 * a) Checked the real live markup: #Desktop_PanelContainer_Id (the <aside>
-
 * itself) carries aria-label="Now playing view" plus a .NowPlayingView
-
 * class when showing NPV; aria-label="Queue" for Queue; and
-
 * aria-label="Connect to a device" for the device picker - all three as
-
 * attributes/classes on the container element itself, not on any child.
-
 * isNpvOpen() now checks panelContainer.getAttribute('aria-label') and
-
 * panelContainer.classList directly instead of querySelector-ing into it,
-
 * so it correctly identifies NPV vs Queue vs Devices and the guard only
-
 * ever acts on genuine unauthorized NPV opens.
-
 * b) Debug logging coverage completed
-
 * - Added dbg() calls to the functions that didn't have them yet:
-
 * logChange, applyReplacements, scanText, runPremium's DOM-scanning pass,
-
 * handlePremiumMutations/startPremiumObserver (the debounce),
-
 * forceEnglish, forceEnglishAccountSetting, applyEnglishToLanguageSelect,
-
 * and the ad-slot-removal observer.
-
 * - forceEnglish/forceEnglishAccountSetting/applyEnglishToLanguageSelect
-
 * used to trace via plain console.log('Spotifuck: ...') instead of
-
 * dbg() - refactored those into dbg() so they're gated behind the same
-
 * toggle and filterable by "SPFDBG" like everything else.
-
 *
-
 * Newly added (v7.1) - Ported region/English-forcing fixes from SpotiwebJS.js:
-
 * a) forceEnglish()'s www.spotify.com redirect was still the old bare-code-only
-
 * check (an ENGLISH_REGIONS allowlist matching /us/, /gb/, etc.) with no
-
 * understanding of Spotify's actual dash-suffixed URLs (/si-sl/, /de-en/,
-
 * /hk-zh/, etc.) - meaning most non-English regions were silently never
-
 * redirected at all. Replaced with SpotiwebJS's verified region data:
-
 * NO_ENGLISH_VARIANT (9 countries with no English storefront at all, dash
-
 * or bare: ad, be, cd, ch, dz, es, lu, ma, tn), ENGLISH_IS_BARE (2
-
 * countries where the BARE code is the English one, not "-en": ba, mk),
-
 * and ENGLISH_BARE_CODES (42 bare-only countries confirmed English) - all
-
 * hand-verified against Spotify's real /select-your-country-region/
-
 * listing (2026-07-14, 184 countries). forceEnglish() now correctly
-
 * redirects any non-English xx-yy URL to its English variant using this
-
 * data instead of a 6-country allowlist.
-
 * b) Added getCurrentRegionPrefix(), also ported from SpotiwebJS, so the
-
 * Edit profile / Payment method banner buttons build their
-
 * www.spotify.com/account/... URL from the current region instead of
-
 * hardcoding /us/account/... regardless of the account's actual locale.
-
 * c) The www.spotify.com region-path redirect in forceEnglish() now also
-
 * checks premiumSpoofEnabledHere() and no-ops (with a dbg() log) when
-
 * "Visual Premium Spoof (www.spotify.com)" is off, instead of running
-
 * unconditionally regardless of that toggle.
-
 * d) forceEnglishAccountSetting() was being called unconditionally at the
-
 * bottom of forceEnglish() - it fired on every matched host, including
-
 * www.spotify.com and payments.spotify.com, where its hidden iframe
-
 * (hardcoded to https://open.spotify.com/preferences) is cross-origin and
-
 * can never succeed, silently wasting an iframe load every page load on
-
 * those two hosts. Now gated behind `if (HOST_IS_OPEN)`, with the skip
-
 * logged via dbg() on the other two hosts.
-
 * e) dbg() coverage: the two "Visual Premium Spoof" GM_registerMenuCommand
-
 * toggles (open.spotify.com / www.spotify.com) flipped a persisted flag
-
 * and reloaded but never logged the toggle itself - the one
-
 * user-triggered write in the whole script with zero trace, including on
-
 * www.spotify.com. Added dbg() calls logging from/to state before reload
-
 * for both.
-
 * f) add-new-card-button (on the "Add new card"/payment method flow) also
-
 * appears on www.spotify.com's own account pages
-
 * (/account/payment-methods/, aliased to/from
-
 * /account/saved-payment-cards/), entirely separate from
-
 * payments.spotify.com (the actual checkout flow already blocked via the
-
 * payments-page blocker). That blocker is gated to
-
 * window.location.hostname === 'payments.spotify.com', so it never ran on
-
 * www.spotify.com at all. Added a second, narrower blocker scoped to
-
 * HOST_IS_WWW: no overlay (this is account management, not checkout),
-
 * just the same preventDefault/stopPropagation no-op on the button, gated
-
 * behind premiumSpoofEnabledHere() like everything else scoped to that
-
 * host. Also added the same button as an exact-match selector to the
-
 * payments.spotify.com blocker itself (data-testid="add-new-card-button"
-
 * contains neither "pay" nor "checkout", so the existing substring
-
 * selectors never matched it there either).
-
-*
-
-* Audited every other button/redirect for a similar hardcoded-locale or
-
-* missing-toggle-gate issue (this file and SpotiwebJS.user.js) - the two
-
-* banner buttons in (b) were the only other hardcoded-region spots found;
-
-* everything else either has no locale in its URL (e.g. the bare
-
-* https://www.spotify.com/ / https://open.spotify.com/ links, which rely on
-
-* Spotify's own geo-redirect) or was already using getCurrentRegionPrefix()/
-
-* the toggle correctly.
-
-*
-
 * g) setupNpvButton/setupNpvWidgetTrigger/setupOtherPanelTriggers were only
-
 * ever called twice total (once immediately, once via a fixed 2s
-
 * setTimeout) inside addCSSJSHack() - which itself only runs once
-
 * (ffDone latches true after the first pBtn found). firstFuck's own
-
 * indefinite pfint polling doesn't cover this gap: it keeps retrying
-
 * forever, but only for the play button, so once that's found these
-
 * three never get another chance. On a slow/cold SPA load where the
-
 * lyrics button or the player-bar album art render later than 2s (the
-
 * same class of delay pfint's own indefinite polling exists to handle
-
 * for the play button), they'd silently never get wired at all. Ported
-
 * SpotiwebJS's npvSetupInterval pattern instead: these three now get
-
 * their own indefinite setInterval(1000) that keeps retrying until both
-
 * .npbtn and .fuckd-npv-art are confirmed present, then stops - matching
-
 * SpotiwebJS exactly, including the same reason their "target not found
-
 * yet" early returns still deliberately don't log through dbg() (a
-
 * genuine continuous 1s poll now exists here too, so logging every
-
 * missed tick would spam the console the whole time these are loading).
-
 * The other six functions in addCSSJSHack (library button/grid, home,
-
 * search, user button, NPV-bar height sync) keep their existing
-
 * immediate + single 2s retry - untouched, out of scope here.
-
 *
-
+* Audited every other button/redirect for a similar hardcoded-locale or
+* missing-toggle-gate issue (this file and SpotiwebJS.user.js) - the two
+* banner buttons in (b) were the only other hardcoded-region spots found;
+* everything else either has no locale in its URL (e.g. the bare
+* https://www.spotify.com/ / https://open.spotify.com/ links, which rely on
+* Spotify's own geo-redirect) or was already using getCurrentRegionPrefix()/
+* the toggle correctly.
+*
 * Newly added (v7.2) - A feature I later scrapped (ignore)
-
 *
-
 * Newly added (v7.3):
-
 * - Re-checked every GM_registerMenuCommand callback and click handler
-
 * against the v6.9/v7.0 (b) coverage claims. Found two real gaps that
-
 * audit missed: "Show everything replaced so far" and "Debug Logging
-
 * (console)" themselves - the very act of printing the replacement
-
 * log or flipping the debug flag was never logged, the same "one
-
 * user-triggered action with zero trace" problem v7.1 (e) already
-
 * fixed for the two Visual Premium Spoof toggles. Both now log via
-
 * dbg() (Debug Logging's own toggle logs via a raw console.log
-
 * matching dbg()'s exact output shape instead of dbg() itself, since
-
 * dbg() is gated behind debugLoggingEnabled() and would otherwise
-
 * never print the one line that announces logging just turned on).
-
 *
-
 * Newly added (v7.4 - 7.5):
-*
 * - Compact player mode: a thin toggle strip pinned to the top of the
 * player bar collapses it down to artwork + title/artist only, ported
 * from kitbodega/SpotiKit 7.3.2.fork's #sp-player-toggle/.minimized
@@ -630,6 +368,23 @@
 * node, syncing the proxy's attributes, etc.) weren't given their own
 * dbg() calls, consistent with how sub-helpers elsewhere in the file
 * (e.g. inside applyEnglishToLanguageSelect) are handled.
+*
+* Fixed (v7.6):
+* - Script was breaking completely for anyone who turned on Violentmonkey's
+* "allow user scripts" permission (Chrome/Quetta requires this now). That
+* setting makes the script run at the true start of the page load, before
+* Spotify has even created the <body> element yet. One of the very first
+* things the script does is start watching <body> for changes (the Now
+* Playing view guard), and watching something that doesn't exist yet threw
+* an error - which, because of how the script is structured, silently
+* stopped everything else below it from running too. That's why only the
+* two "Visual Premium Spoof" menu items kept showing up (they're registered
+* near the top, before the crash) while "Show everything replaced" and
+* "Debug Logging" disappeared from the menu entirely (they're registered
+* near the bottom, after it). Fixed by making the script wait for <body>
+* to actually exist before it tries to watch it, instead of assuming it's
+* already there. No effect on setups where this wasn't happening - it only
+* adds a quick check before doing what it already did.
   */
 
 (function() {
@@ -688,6 +443,25 @@
     function dbg(event, selector, details) {
         if (!debugLoggingEnabled()) return;
         console.log(`%c[SPFDBG] ${event}`, 'color:#1ed760;font-weight:bold;', 'selector:', selector, details || '');
+    }
+
+    // --- document-start safety: with Violentmonkey's "allow user scripts"
+    // permission enabled, @run-at document-start now genuinely fires before
+    // <body> is parsed (previously it didn't, so every MutationObserver.observe(
+    // document.body, ...) call below was safe). Observing a null body throws
+    // synchronously and - since this is all top-level code in one IIFE - kills
+    // every statement after the first offender, silently dropping everything
+    // from that point on (menu commands included). observeBody() defers the
+    // .observe() call until <body> exists, same pattern already used by
+    // applyEnglishToLanguageSelect's startObserving() above.
+    function observeBody(observer, options) {
+        if (document.body) {
+            observer.observe(document.body, options);
+        } else {
+            document.addEventListener('DOMContentLoaded', () => {
+                observer.observe(document.body, options);
+            }, { once: true });
+        }
     }
 
     // --- Debug logging toggle (off by default; console.log spam would
@@ -1328,7 +1102,7 @@
             window.closeNowPlay('npv-guard-autoclose');
         }
     });
-    npvGuardObserver.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['aria-hidden'] });
+    observeBody(npvGuardObserver, { childList: true, subtree: true, attributes: true, attributeFilter: ['aria-hidden'] });
 
     // On load, close it if it's already open before any npBtn click has happened.
     setTimeout(() => {
@@ -3112,7 +2886,7 @@ aside[data-testid=now-playing-bar] div[data-testid=now-playing-widget]>div:nth-c
     function startPremiumObserver() {
         if (premiumObserver) premiumObserver.disconnect();
         premiumObserver = new MutationObserver(handlePremiumMutations);
-        premiumObserver.observe(document.body, {
+        observeBody(premiumObserver, {
             childList: true,
             subtree: true,
             characterData: true,
@@ -3165,7 +2939,7 @@ aside[data-testid=now-playing-bar] div[data-testid=now-playing-widget]>div:nth-c
             adButtons.forEach(el => el.remove());
         };
         const adObserver = new MutationObserver(removeAdElements);
-        adObserver.observe(document.body, { childList: true, subtree: true });
+        observeBody(adObserver, { childList: true, subtree: true });
         window.addEventListener('beforeunload', () => adObserver.disconnect());
     }
 
@@ -3197,7 +2971,7 @@ aside[data-testid=now-playing-bar] div[data-testid=now-playing-widget]>div:nth-c
         };
         blockWwwAddCardButton();
         const wwwCardObserver = new MutationObserver(blockWwwAddCardButton);
-        wwwCardObserver.observe(document.body, { childList: true, subtree: true });
+        observeBody(wwwCardObserver, { childList: true, subtree: true });
         window.addEventListener('beforeunload', () => wwwCardObserver.disconnect());
     }
 
