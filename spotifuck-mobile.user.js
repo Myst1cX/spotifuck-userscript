@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.6
+// @version      7.7
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -385,6 +385,22 @@
 * to actually exist before it tries to watch it, instead of assuming it's
 * already there. No effect on setups where this wasn't happening - it only
 * adds a quick check before doing what it already did.
+*
+* Fixed (v7.7):
+* - v7.6 fixed the script crashing on <body> not existing yet, but that
+* fix uncovered a second, near-identical crash one step later: the
+* function that injects all of the script's CSS (injectCSS) adds its
+* <style> tags directly into <head>, and with the same "allow user
+* scripts" timing as before, <head> can not exist yet either at the
+* moment this runs. So it crashed the same way - one appendChild call
+* failing and silently cancelling everything scheduled to run after it
+* (the play/pause button hookup, the bottom nav bar, the "Ready" message
+* never even printing). Fixed the same way as v7.6: the script now
+* waits for <head> to exist before injecting its CSS, instead of
+* assuming it's already there. Unlike waiting for <body> (which can take
+* a moment), <head> normally appears within a millisecond or two of the
+* page starting to load, so this doesn't introduce any visible delay or
+* flash of unstyled Spotify UI before the script's CSS kicks in.
   */
 
 (function() {
@@ -462,6 +478,36 @@
                 observer.observe(document.body, options);
             }, { once: true });
         }
+    }
+
+    // --- document-start safety, part 2: injectCSS() below does several
+    // document.head.appendChild(...) calls, same document-start timing
+    // problem as observeBody() above but for <head> instead of <body>. <head>
+    // is usually the very first thing parsed, so this crashed far less often
+    // than the <body> case - but "allow user scripts" can still catch it
+    // before <head> exists, and injectCSS's first appendChild throwing kills
+    // everything after it (firstFuck, the bottom nav init, etc.) the same
+    // way the earlier crash did. Unlike waiting for <body> (which can take a
+    // while and would delay CSS injection long enough to cause a visible
+    // flash of unstyled content), this uses a MutationObserver on
+    // <html> - which is always present at document-start - to catch the
+    // instant <head> gets inserted, typically within a millisecond or two.
+    function whenHeadReady(callback) {
+        if (document.head) { callback(); return; }
+        const root = document.documentElement;
+        if (!root) {
+            // Not even <html> exists yet (extremely early) - nothing to
+            // attach an observer to, so just check again next frame.
+            requestAnimationFrame(() => whenHeadReady(callback));
+            return;
+        }
+        const observer = new MutationObserver(() => {
+            if (document.head) {
+                observer.disconnect();
+                callback();
+            }
+        });
+        observer.observe(root, { childList: true });
     }
 
     // --- Debug logging toggle (off by default; console.log spam would
@@ -2520,6 +2566,7 @@ aside[data-testid=now-playing-bar] div[data-testid=now-playing-widget]>div:nth-c
 
     // Initialize immediately
     if (HOST_IS_OPEN) {
+        whenHeadReady(() => {
         injectCSS();
         firstFuck();
 
@@ -2539,6 +2586,7 @@ aside[data-testid=now-playing-bar] div[data-testid=now-playing-widget]>div:nth-c
                 prewarmLibrarySidebar();
             }
         }, 100);
+        });
     }
 
     // Add cleanup on page unload to prevent memory leaks
