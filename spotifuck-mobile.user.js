@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.8
+// @version      7.9
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -399,8 +399,8 @@
 * flash of unstyled Spotify UI before the script's CSS kicks in.
 *
 * Fixed (v7.8):
-* - www.spotify.com was only matched on five narrow paths (*/account/*,
-* */premium/*, */duo/*, */student/*, */family/*). Since www.spotify.com routes
+* - www.spotify.com was only matched on five narrow paths (* /account/*,
+* * /premium/*, * /duo/*, * /student/*, * /family/*). Since www.spotify.com routes
 * client-side (pushState, no full reload), landing anywhere else first (e.g.
 * the homepage) meant the script never got injected at all, even after
 * navigating into a matched path. Fixed by matching the whole www.spotify.com
@@ -412,6 +412,11 @@
 * original five.
 * - All three @match lines now use *:// instead of a mix of *:// and https://,
 * purely cosmetic (Spotify enforces HTTPS on all three anyway).
+*
+* Fixed (v7.9):
+* - Fixed the v7.8 changelog note (it literally spelled out the match patters, causing
+* causing the * / that were written together to close the comment block early).
+* - The syntax error breaking the script is no more.
   */
 
 (function() {
