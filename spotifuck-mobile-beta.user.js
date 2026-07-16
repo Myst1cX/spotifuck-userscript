@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Spotifuck Mobile Beta
+// @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      8.2.wohoo
+// @version      7.5
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -18,8 +18,8 @@
 // @run-at       document-start
 // @homepageURL  https://github.com/Myst1cX/spotifuck-userscript
 // @supportURL   https://github.com/Myst1cX/spotifuck-userscript/issues
-// @updateURL    https://raw.githubusercontent.com/Myst1cX/spotifuck-userscript/main/spotifuck-mobile-beta.user.js
-// @downloadURL  https://raw.githubusercontent.com/Myst1cX/spotifuck-userscript/main/spotifuck-mobile-beta.user.js
+// @updateURL    https://raw.githubusercontent.com/Myst1cX/spotifuck-userscript/main/spotifuck-mobile.user.js
+// @downloadURL  https://raw.githubusercontent.com/Myst1cX/spotifuck-userscript/main/spotifuck-mobile.user.js
 // ==/UserScript==
 
 /*
@@ -556,62 +556,80 @@
 
 *
 
-* Newly added (v7.4):
+* Newly added (v7.4 - 7.5):
 *
-* - Compact player mode, ported from kitbodega/SpotiKit 7.3.2.fork's
-* #sp-player-toggle/.minimized feature: a thin strip pinned to the top
-* of the player bar toggles a collapsed view (artwork + title/artist
-* only). Adapted to this file's fixed full-width bottom bar layout
+* - Compact player mode: a thin toggle strip pinned to the top of the
+* player bar collapses it down to artwork + title/artist only, ported
+* from kitbodega/SpotiKit 7.3.2.fork's #sp-player-toggle/.minimized
+* feature and adapted to this file's fixed full-width bottom bar layout
 * (SpotiKit's own version targets a floating rounded card instead).
-* Entering compact mode physically moves (reparents, not clones) the
-* three real full-player buttons - npbtn (Now Playing view/lyrics), the
-* real Queue button, and the real Play/Pause button (window.pBtn) -
-* into the compact strip, then moves them back to their exact original
-* DOM position (same parent, same next-sibling) on exit. Because these
-* are the actual elements rather than new proxy buttons, they keep
-* their existing click listeners, icons, and aria state automatically -
-* nothing extra to build or keep in sync. State persists across
-* reloads via GM_setValue (COMPACT_KEY), unlike SpotiKit's original
-* sessionStorage-backed version.
-* - The dedicated compactPlayer <style> block in injectCSS() hides the
-* rest of the player-bar chrome while compact mode is on. The real
-* player DOM has three sibling wrapper divs in the player bar's first
-* row (one wrapping now-playing-widget, one wrapping player-controls,
-* one wrapping a secondary-controls row - Lyrics+, npbtn, the disabled
-* native lyrics-button, Queue, Connect, volume, PiP, Fullscreen) - so
-* the hide rule is anchored on the stable now-playing-widget testid via
-* a :has() selector that picks out its wrapper and hides everything
-* after it, rather than hard-coding each wrapper's own build-hashed
-* CSS-module class, which would silently stop matching the moment that
-* hash changes on a future Spotify deploy.
-* - See setupCompactToggle() in addCSSJSHack().
-
-*
-*
-* Newly added (v7.5):
-*
-* - Compact mode reworked: only Play/Pause and Add-to-playlist remain in the
-* strip. NPV (npbtn), the real Queue button, the native Lyrics button, and
-* Lyrics+ no longer move into compact mode - Queue/Lyrics/Lyrics+ stay
-* hidden with the rest of the secondary-controls row same as before, npbtn
-* simply isn't pulled out anymore. Add-to-playlist can't be reparented the
-* same trivial way Play/Pause is (it's a React-owned node whose icon
-* changes with library state), so it gets the same synthetic-proxy
-* treatment the old native-Lyrics proxy used to - except this proxy is kept
-* live via a MutationObserver on now-playing-widget instead of a one-time
-* clone, since (unlike Lyrics) its icon can go stale.
-* - Freeing up 3 of the 5 old compact-strip slots also let the widget row's
-* reserved right-side padding shrink drastically, which was the actual
-* cause of the artist/album marquee text collapsing to near-zero width on
-* narrow mobile viewports (not a mobile-specific bug - just not enough
-* room left once padding was accounted for).
-* - Compact mode also grew a thin, still-draggable scrubber pinned to the
-* very bottom edge of the 64px strip: the real progress-bar/playback-
-* progressbar elements are unhidden and restyled instead of moved, same
-* "leave the real interactive DOM alone, just recolor around it" approach
-* as everything else in compact mode - only the elapsed/remaining time
-* labels and the general-controls (shuffle/prev/next/repeat/translate) row
-* stay hidden.
+* State persists across reloads/sessions via GM_setValue (COMPACT_KEY),
+* unlike SpotiKit's original sessionStorage-backed version.
+* - Only Play/Pause and the library-action button (Add to playlist / Add
+* to Liked Songs, whichever is currently showing) move into the strip.
+* Play/Pause is the real full-player button, just reparented (moved, not
+* cloned) - it keeps its existing click listener, icon, and aria state
+* automatically, nothing extra to build or keep in sync. The
+* library-action button can't be reparented the same trivial way (it's a
+* React-owned node whose icon/label/color change with library state), so
+* it gets a synthetic proxy in the strip instead, kept live via a
+* MutationObserver on now-playing-widget so it never goes stale when the
+* real button's icon changes or the underlying node itself gets replaced
+* (track change, liked-state morph). NPV (npbtn), the real Queue button,
+* the native Lyrics button, and Lyrics+ were moved into the strip in an
+* earlier pass and then dropped from it - they now just stay hidden with
+* the rest of the secondary-controls row, same as in full player.
+* - Fixed a bug where the belt-and-suspenders stray-element cleanup sweep
+* could mistake Spotify's own now-playing-widget wrapper for a leftover
+* stray and delete it outright, taking the whole player - artwork,
+* title/artist, everything - down with it. It now snapshots the
+* widget's legitimate original children up front and only ever removes
+* elements outside that snapshot (plus the strip itself and any
+* moved/proxy element). The move-back logic got a matching guard: if a
+* moved button's original parent was itself replaced by React while
+* compact mode was on, it's now removed instead of left behind as an
+* unpositioned stray, which was causing Play/Pause to render twice.
+* - Compact mode grew its own thin, still-draggable scrubber pinned near
+* the bottom of the 64px strip - the real progress-bar/playback-progress
+* elements are unhidden and restyled in place rather than moved, the
+* same "leave the real interactive DOM alone, just recolor/reposition
+* around it" approach used everywhere else in compact mode. It sits 4px
+* off the very bottom edge rather than flush, so the seek-position thumb
+* doesn't get clipped when it grows larger on hover/highlight.
+* - The compact player bar no longer caps its own total height to 64px.
+* That cap used to squash the green "Playing on X device" Spotify
+* Connect banner into that same fixed space whenever it was showing,
+* instead of letting it sit above the compact row the way it already
+* does in full player. The bar is simply position:fixed with a bottom
+* offset and grows upward with its content now, same as full player.
+* - Freeing up 3 of the 5 original compact-strip slots also let the
+* widget row's reserved right-side padding shrink drastically, fixing
+* the artist/album marquee text collapsing to near-zero width on narrow
+* mobile viewports (not actually a mobile-specific bug - just not
+* enough room left once padding was accounted for).
+* - The "Switch to video" row (+ its bullet separator) Spotify shows
+* under title/artist for tracks with a music video is now hidden in
+* both compact AND full player - previously it was only hidden in
+* compact mode, as a layout fix (the 64px compact row was only budgeted
+* for two rows, title and artist). Targeted via the stable aria-label
+* rather than the hashed wrapper class, since that's the only part of
+* this row guaranteed not to change across Spotify builds.
+* - setupCompactToggle() and its restore-on-load retry got folded into
+* the same indefinite 1s poll (npvSetupInterval) already used for the
+* three NPV-related setup functions, so a slow/cold load can't miss
+* wiring compact mode the same way it could already miss wiring those.
+* Same reasoning as before for not logging every "not found yet" tick
+* through dbg() - it's a genuine continuous 1s poll, so logging every
+* miss would spam the console the whole time these are loading. dbg()
+* coverage was checked against every function touched by this change;
+* logging was added at each meaningful state transition (entering/
+* exiting compact mode, the strip first being inserted) - the same
+* poll-tick exclusion as the existing three NPV functions was extended
+* to this feature's own setup/restore calls for the same reason, and
+* pure internal helpers with no state transition of their own (moving a
+* node, syncing the proxy's attributes, etc.) weren't given their own
+* dbg() calls, consistent with how sub-helpers elsewhere in the file
+* (e.g. inside applyEnglishToLanguageSelect) are handled.
   */
 
 (function() {
@@ -2085,7 +2103,7 @@
                 }
             };
 
-            // Library-action button (v7.6): same "never physically move it" reasoning as the
+            // Library-action button (v7.5): same "never physically move it" reasoning as the
             // old Lyrics proxy this replaces (it's a React-owned node inside now-playing-widget's
             // last child, which the compact CSS keeps hidden) - build a synthetic proxy in the
             // compact strip that forwards clicks to the real button in place.
@@ -2481,7 +2499,7 @@ body.sp-search input[data-testid="search-input"]{display:flex!important}
         compactPlayer.textContent = `
 
 aside[data-testid=now-playing-bar].spf-compact{
-  /* No height/max-height cap here anymore (v7.5.1) - that was locking the
+  /* No height/max-height cap here anymore (v7.5) - that was locking the
      aside's TOTAL height to exactly 64px, which included the "Playing on
      X device" connect banner whenever it's present, squashing it into
      that fixed space instead of letting it sit above the compact row like
@@ -2522,10 +2540,17 @@ aside[data-testid=now-playing-bar].spf-compact>div:first-child>div:has([data-tes
 }
 /* The player-controls wrapper is never hidden in the first place (see
    above) - just restyled directly into a thin scrubber pinned near the
-   bottom edge of the compact strip. bottom:4px (not 0) - the row above
-   has overflow:hidden, and the seek-position thumb grows larger on
-   hover/highlight than the 6px track itself, so flush against the very
-   bottom edge let the enlarged thumb get clipped. This buffer keeps it
+   bottom edge of the compact strip.
+   Plain language: this 4px buffer is what keeps the little circle
+   marking the current playback position fully visible when it's
+   highlighted (tapped/hovered), instead of getting clipped off - whether
+   or not the bottom nav bar (Home/Search/Library) or the green Spotify
+   Connect banner (shown when casting to a device you're not currently
+   viewing from) happen to be sitting under the player bar at the time.
+   Dev/technical: bottom:4px, not 0 - the row above has overflow:hidden,
+   and the seek-position thumb grows larger on hover/highlight than the
+   6px track itself, so flush against the very bottom edge let the
+   enlarged thumb get clipped by that overflow. This buffer keeps it
    fully visible when highlighted. */
 aside[data-testid=now-playing-bar].spf-compact>div:first-child>div:has([data-testid="player-controls"]){
   display:flex!important;
@@ -2622,12 +2647,15 @@ aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widge
 }
 /* The music-video "Switch to video" row (+ its bullet separator) is a third
    sibling row alongside title/artist inside nth-child(2) whenever a track
-   has an associated video - the 64px compact row was only ever budgeted
-   for two rows (title, artist), so this pushes both into less vertical
-   space than they need. Targeted via the stable aria-label rather than the
+   has an associated video. Initially only hidden in compact mode, where
+   the 64px row was only ever budgeted for two rows (title, artist) and
+   the extra row pushed both into less vertical space than they need.
+   Now (v7.5) hidden in full player too, unconditionally - not just a
+   compact-mode layout fix anymore, so the .spf-compact scope was dropped
+   from the selector. Targeted via the stable aria-label rather than the
    hashed wrapper class, since that's the only part of this row guaranteed
-   not to change across Spotify builds. Full player is untouched. */
-aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:nth-child(2)>div:has([aria-label="Switch to video"]){
+   not to change across Spotify builds. */
+aside[data-testid=now-playing-bar] div[data-testid=now-playing-widget]>div:nth-child(2)>div:has([aria-label="Switch to video"]){
   display:none!important
 }
 
