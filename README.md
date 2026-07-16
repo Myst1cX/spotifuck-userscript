@@ -9,6 +9,7 @@
 > **UI HACKS & ENHANCEMENTS**  
 > Customizes the Spotify Web Player's interface for a mobile-like experience.  
 > Removes unnecessary elements, expands panels, and tweaks layout for maximum usability.
+> Adds a toggleable compact player mode (collapses the player bar down to artwork + title/artist + add to liked songs/add to playlist button + play/pause button). Your player mode selection is remembered.
 >
 > **PLAYBACK CONTROL**  
 > Instantly play, pause, skip, seek, and control playback with injected functions.   
