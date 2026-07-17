@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Spotifuck Mobile Dev (Don't Install)
+// @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.10.dev (not for public)
+// @version      7.10
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -14,8 +14,8 @@
 // @run-at       document-start
 // @homepageURL  https://github.com/Myst1cX/spotifuck-userscript
 // @supportURL   https://github.com/Myst1cX/spotifuck-userscript/issues
-// @updateURL    https://raw.githubusercontent.com/Myst1cX/spotifuck-userscript/main/spotifuck-dev.user.js
-// @downloadURL  https://raw.githubusercontent.com/Myst1cX/spotifuck-userscript/main/spotifuck-dev.user.js
+// @updateURL    https://raw.githubusercontent.com/Myst1cX/spotifuck-userscript/main/spotifuck-mobile.user.js
+// @downloadURL  https://raw.githubusercontent.com/Myst1cX/spotifuck-userscript/main/spotifuck-mobile.user.js
 // ==/UserScript==
 
 /*
@@ -418,15 +418,15 @@
 * causing the * / that were written together to close the comment block early).
 * - The syntax error breaking the script is no more.
 *
-* Newly added (v7.10.dev):
-* - Now publishes window.__spReservedInsets = { bottom: 56 + player.offsetHeight },
-* the same reserved-bottom-space number already used internally for the
-* --sp-np-bar-height CSS var, so other userscripts (pip-gui-stable's Lyrics+
-* popup) can read it directly instead of scanning the DOM for our nav/player.
-* - Kept live via the existing player ResizeObserver (updateNPBarHeightVar) -
-* no new observer added. Also fires a 'sp-reserved-insets-changed' CustomEvent
-* on window with the same value each time it updates, so listeners can react
-* immediately rather than polling.
+* Newly added (v7.10):
+* - updateNPBarHeightVar() (already firing off the player's ResizeObserver + a window
+* resize listener) now also publishes window.__spReservedInsets = { bottom: 56 +
+* player.offsetHeight }, and fires a sp-reserved-insets-change event whenever that
+* value actually changes.
+* - This lets other userscripts running alongside Spotifuck - currently Lyrics+
+* (pip-gui-stable) - find out how much space the bottom nav/player strip is taking
+* up on mobile, so their own floating UI can stop short of it instead of being
+* dragged, resized, or restored underneath it.
   */
 
 (function() {
@@ -1524,10 +1524,16 @@
         const player = document.querySelector('aside[data-testid=now-playing-bar]');
         if (player) {
             document.documentElement.style.setProperty('--sp-np-bar-height', player.offsetHeight + 'px');
-            // v7.10: publish the same reserved space as a small public contract other
-            // userscripts (e.g. pip-gui-stable) can read instead of guessing at our DOM.
-            window.__spReservedInsets = { bottom: 56 /* nav */ + player.offsetHeight };
-            window.dispatchEvent(new CustomEvent('sp-reserved-insets-changed', { detail: window.__spReservedInsets }));
+            // Exposed so other userscripts (e.g. Lyrics+'s PiP popup) can keep
+            // themselves out of the fixed bottom nav (56px) + player strip
+            // without having to scan the DOM for it themselves. Only reassigned
+            // (and only fires the change event) when the value actually moved,
+            // so idle listeners aren't woken up on every no-op ResizeObserver tick.
+            const bottom = 56 + player.offsetHeight;
+            if (!window.__spReservedInsets || window.__spReservedInsets.bottom !== bottom) {
+                window.__spReservedInsets = { bottom };
+                window.dispatchEvent(new CustomEvent('sp-reserved-insets-change', { detail: window.__spReservedInsets }));
+            }
         }
     }
     function setupNPBarHeightSync() {
