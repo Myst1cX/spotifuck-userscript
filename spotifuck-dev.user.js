@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile Dev
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.11.dev
+// @version      7.11.devfix
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -428,31 +428,31 @@
 * up on mobile, so their own floating UI can stop short of it instead of being
 * dragged, resized, or restored underneath it.
 *
-* Fixed (v7.11.dev) - Artwork/NPV/Queue/Connect panels not opening on mobile:
-* - Root cause: premiumSpoofEnabledHere() and debugLoggingEnabled() each called
-* GM_getValue() fresh on every call, with zero throttling. premiumSpoofEnabledHere()
-* is the gate checked by three separate MutationObservers watching document.body
-* (handlePremiumMutations, removeAdElements, blockWwwAddCardButton), so it fired on
-* nearly every DOM mutation on the page. debugLoggingEnabled() backs dbg(), which is
-* called from inside closeNowPlay()/the NPV guard itself. Under Violentmonkey's MV3
-* compat shim (no persistent background page, only a service worker), GM_getValue
-* apparently blocks the main thread per call before giving up - eating directly into
-* the 500ms otherPanelOpening grace window that exists to survive the shared
-* #Desktop_PanelContainer_Id's stale-label moment, turning a normally-safe race into
-* a lost one. PC (Firefox + Violentmonkey MV2) never had this because GM_getValue
-* there is a real synchronous call, near-instant.
-* - Fix: both flags are now read from GM_getValue exactly once at script start and
-* cached (debugLoggingEnabledCached / premiumSpoofEnabledCached). Safe because every
-* GM_registerMenuCommand handler that flips either flag calls location.reload()
-* immediately after GM_setValue - the true value can never drift out from under a
-* cached one without the whole script re-running from scratch anyway.
-* - Also: startPremiumObserver(), removeAdElements()'s observer, and
-* blockWwwAddCardButton()'s observer now skip attaching their MutationObserver
-* entirely when the (now-cached) flag is off for the current host, instead of always
-* attaching and only no-op'ing inside the callback on every mutation.
-* - Not changed: markOtherPanelOpening()'s 500ms grace window itself (candidate fix
-* #1 from the original bug report) - left alone pending confirmation that removing
-* the GM_getValue cost resolves this on its own.
+* Fixed (v7.11.dev) - NPV/Queue/Connect panels not opening on mobile
+* (Quetta, Violentmonkey MV3) - see npv-panel-bug.md for the full writeup:
+* - premiumSpoofEnabledHere() was calling GM_getValue() fresh on every call, and it's
+* the first thing handlePremiumMutations()/removeAdElements()/blockWwwAddCardButton()
+* do on EVERY MutationObserver firing on document.body (i.e. almost every DOM
+* mutation on the page). On MV2 (PC) that's a near-instant sync call, harmless. On
+* Violentmonkey MV3 (mobile), sync-GM_getValue is a compat shim with no persistent
+* background page to ask, so it blocks the main thread on a message round-trip to the
+* service worker before giving up - and it was firing roughly 2x more often than it
+* even finished debouncing (358 "GM_getValue is not supported" log lines vs 189
+* completed scans). That ate directly into the 500ms otherPanelOpening grace window
+* (markOtherPanelOpening) meant to survive #Desktop_PanelContainer_Id's stale-label
+* moment right after Queue/Connect opens, turning a normally-safe race into a lost
+* one - the panel would open and then get closed again by our own npvGuardObserver
+* before the user ever saw it, on mobile only.
+* - Fix: premiumSpoofEnabledHere() now caches its result instead of re-reading it on
+* every mutation. Safe for the life of the page - the only things that can change
+* SPOOF_OPEN_KEY/SPOOF_WWW_KEY are the two menu-command toggles, and both already call
+* location.reload() right after setFlag(), so there's no path where a stale cached
+* value gets observed. This also kills the console spam as a side effect.
+* - otherPanelOpening's 500ms window was left as-is rather than widened: the theory
+* is that 500ms was never actually too short, it was just getting starved by the
+* blocked GM_getValue calls above. Fix the thief first, see if 500ms holds on its
+* own. Widening it is a real fallback if mobile testing still shows auto-closes -
+* just untested/unneeded for now, so not shipped speculatively.
   */
 
 (function() {
@@ -565,18 +565,9 @@
     // --- Debug logging toggle (off by default; console.log spam would
     // otherwise fire on every click for every ordinary user) ---
     const DEBUG_KEY = 'spotifuck_debugLog';
-    // Read once - dbg() calls debugLoggingEnabled() on every single invocation
-    // (including from inside closeNowPlay()/the NPV guard itself), so an
-    // uncached GM_getValue here sits directly in the guard's hot path. Every
-    // GM_registerMenuCommand handler that flips DEBUG_KEY calls
-    // location.reload() immediately after GM_setValue (see below), so a value
-    // read once here is guaranteed correct for this page load's entire
-    // lifetime - there's no session-long drift to protect against.
-    let debugLoggingEnabledCached = false;
-    try { debugLoggingEnabledCached = typeof GM_getValue === 'function' ? GM_getValue(DEBUG_KEY, false) : false; }
-    catch (e) { debugLoggingEnabledCached = false; }
     function debugLoggingEnabled() {
-        return debugLoggingEnabledCached;
+        try { return typeof GM_getValue === 'function' ? GM_getValue(DEBUG_KEY, false) : false; }
+        catch (e) { return false; }
     }
 
     // --- Compact player toggle state (v7.4) - GM_setValue persists across
@@ -607,17 +598,27 @@
     function setFlag(key, val) {
         try { if (typeof GM_setValue === 'function') GM_setValue(key, val); } catch (e) {}
     }
-    // Read once - this gate gets called on every DOM mutation (childList +
-    // subtree + characterData on document.body) by three separate
-    // MutationObservers (handlePremiumMutations, removeAdElements,
-    // blockWwwAddCardButton), completely unthrottled, before any of their own
-    // debouncing even starts. Same reload-on-toggle reasoning as
-    // debugLoggingEnabledCached above makes a single read here safe.
-    const premiumSpoofEnabledCached = HOST_IS_OPEN ? getFlag(SPOOF_OPEN_KEY)
-        : HOST_IS_WWW ? getFlag(SPOOF_WWW_KEY)
-        : false;
+    // v7.11: cached, not re-read from GM_getValue on every call. This gate used to be
+    // the first thing handlePremiumMutations()/removeAdElements()/blockWwwAddCardButton()
+    // did on EVERY MutationObserver firing (i.e. almost every DOM mutation on the page).
+    // On MV2 (PC) GM_getValue is a near-instant sync call, so that was harmless. On
+    // Violentmonkey MV3 (mobile), sync-GM_getValue is a compat shim with no persistent
+    // background page to ask - it blocks the main thread waiting on a message round-trip
+    // to the service worker before giving up. Firing that on nearly every mutation ate
+    // directly into the 500ms otherPanelOpening grace window (see markOtherPanelOpening),
+    // causing NPV/Queue/Connect panels to get auto-closed by our own guard before the
+    // user ever saw them. Safe to cache for the life of the page: the only things that
+    // can change SPOOF_OPEN_KEY/SPOOF_WWW_KEY are the menu-command toggles below, and
+    // both of those already call location.reload() right after setFlag(), so there's no
+    // path where a stale cached value can be observed.
+    let premiumSpoofEnabledCache = null;
     function premiumSpoofEnabledHere() {
-        return premiumSpoofEnabledCached;
+        if (premiumSpoofEnabledCache === null) {
+            if (HOST_IS_OPEN) premiumSpoofEnabledCache = getFlag(SPOOF_OPEN_KEY);
+            else if (HOST_IS_WWW) premiumSpoofEnabledCache = getFlag(SPOOF_WWW_KEY);
+            else premiumSpoofEnabledCache = false;
+        }
+        return premiumSpoofEnabledCache;
     }
 
     if (typeof GM_registerMenuCommand === 'function') {
@@ -3010,15 +3011,6 @@ aside[data-testid=now-playing-bar] div[data-testid=now-playing-widget]>div:nth-c
     }
 
     function startPremiumObserver() {
-        // Skip attaching the observer at all when the spoof is off for this
-        // host - premiumSpoofEnabledCached can't change mid-session (every
-        // toggle reloads the page), so there's nothing this observer would
-        // ever do for such a user; no need to pay for a callback firing on
-        // every DOM mutation just to no-op inside it.
-        if (!premiumSpoofEnabledHere()) {
-            dbg('startPremiumObserver: skipped', 'document.body', { reason: 'premium spoof disabled for this host' });
-            return;
-        }
         if (premiumObserver) premiumObserver.disconnect();
         premiumObserver = new MutationObserver(handlePremiumMutations);
         observeBody(premiumObserver, {
@@ -3073,14 +3065,9 @@ aside[data-testid=now-playing-bar] div[data-testid=now-playing-widget]>div:nth-c
             adSlots.forEach(el => el.remove());
             adButtons.forEach(el => el.remove());
         };
-        // Same reasoning as startPremiumObserver above: skip attaching this
-        // observer at all when the spoof is off, rather than firing on every
-        // mutation only to no-op inside removeAdElements().
-        if (premiumSpoofEnabledHere()) {
-            const adObserver = new MutationObserver(removeAdElements);
-            observeBody(adObserver, { childList: true, subtree: true });
-            window.addEventListener('beforeunload', () => adObserver.disconnect());
-        }
+        const adObserver = new MutationObserver(removeAdElements);
+        observeBody(adObserver, { childList: true, subtree: true });
+        window.addEventListener('beforeunload', () => adObserver.disconnect());
     }
 
     // add-new-card-button blocker for www.spotify.com's own account pages
@@ -3109,16 +3096,10 @@ aside[data-testid=now-playing-bar] div[data-testid=now-playing-widget]>div:nth-c
                 };
             });
         };
-        // Same reasoning as startPremiumObserver/removeAdElements above: skip
-        // the one-shot call and the observer both when the spoof is off,
-        // rather than firing on every mutation only to no-op inside
-        // blockWwwAddCardButton().
-        if (premiumSpoofEnabledHere()) {
-            blockWwwAddCardButton();
-            const wwwCardObserver = new MutationObserver(blockWwwAddCardButton);
-            observeBody(wwwCardObserver, { childList: true, subtree: true });
-            window.addEventListener('beforeunload', () => wwwCardObserver.disconnect());
-        }
+        blockWwwAddCardButton();
+        const wwwCardObserver = new MutationObserver(blockWwwAddCardButton);
+        observeBody(wwwCardObserver, { childList: true, subtree: true });
+        window.addEventListener('beforeunload', () => wwwCardObserver.disconnect());
     }
 
 })();
