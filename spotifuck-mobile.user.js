@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile Stable
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.10
+// @version      7.11
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -427,6 +427,43 @@
 * (pip-gui-stable) - find out how much space the bottom nav/player strip is taking
 * up on mobile, so their own floating UI can stop short of it instead of being
 * dragged, resized, or restored underneath it.
+*
+* Fixed (v7.11):
+* - forceEnglish()'s /intl-xx/ URL correction and account-setting flip
+* (forceEnglishAccountSetting()) used to run immediately at document-start,
+* before Spotify's own SPA had even started hydrating. A user reported
+* open.spotify.com getting permanently stuck never finishing its initial
+* load with the script enabled; disabling the script, letting the page load
+* fully, manually setting the account language to English, then re-enabling
+* fixed it for them - consistent with the location.replace() call inside
+* forceEnglish() racing Spotify's own startup rather than a logic bug in the
+* correction itself. That work now lives in a new function,
+* runIntlCorrectionOnceReady(), which waits for
+* [data-testid="control-button-playpause"] to exist (the persistent
+* player-bar's play/pause button, present as soon as the app shell mounts,
+* even before anything is playing, and not localized like its aria-label
+* is) and only then runs the correction, exactly once. navigator.language
+* spoofing and the separate www.spotify.com region-path redirect are
+* untouched and still run immediately at document-start as before.
+* - What runIntlCorrectionOnceReady() actually does on a mismatched
+* /intl-xx/ load: the page still renders in the account's saved language for
+* a moment (unavoidable - we can't know whether the account setting needs
+* flipping without checking it first, via a hidden /preferences iframe,
+* which takes a moment). Previously that check was preceded by a separate,
+* usually pointless location.replace() that stripped the /intl-xx/ prefix
+* from the URL before the check even started - pointless because if the
+* account setting really was still non-English, the server just redirected
+* straight back to /intl-xx/ on the very next load anyway, wasting a
+* navigation. That strip is gone now; the script goes straight to the
+* account-setting check via forceEnglishAccountSetting(), which takes the
+* /intl-xx/-stripped target path as a new optional parameter. Whatever that
+* check decides to do next - flip the setting and verify, or just confirm
+* it's already English, or give up because the check itself failed - it now
+* navigates straight to the stripped target path in a single
+* location.replace(), instead of reloading back onto the still-prefixed
+* /intl-xx/ URL and relying on a later load to strip it. Net effect: one
+* navigation off /intl-xx/ instead of two, and the page is never left stuck
+* on /intl-xx/ even in the failure cases.
   */
 
 (function() {
@@ -721,19 +758,89 @@
             }
         }
 
-        const m = location.pathname.match(/^\/intl-([a-z]{2})(\/.*)?$/i);
-        if (m && m[1].toLowerCase() !== 'en') {
-            dbg('forceEnglish: redirecting off /intl-xx/ prefix', location.pathname, { to: m[2] || '/' });
-            location.replace(location.origin + (m[2] || '/') + location.search + location.hash);
-            return; // navigation is pending - don't run forceEnglishAccountSetting()
-                     // against a page that's about to be torn down; it'll run
-                     // fresh on the load this redirect produces instead.
+        // The /intl-xx/ URL check and account-setting flip used to run right
+        // here, immediately, at document-start - before Spotify's own SPA
+        // had even started hydrating. A user reported open.spotify.com
+        // getting permanently stuck never finishing its initial load with
+        // the script enabled; disabling the script, letting the page load
+        // fully, manually setting the account language to English, then
+        // re-enabling fixed it for them - consistent with this code's own
+        // location.replace() call racing Spotify's startup rather than a
+        // logic bug in the correction itself. See
+        // runIntlCorrectionOnceReady() below for the fix: it now waits for
+        // the player UI to actually exist before doing any of this.
+        runIntlCorrectionOnceReady();
+    }
+
+    // Guards so a MutationObserver storm (or multiple forceEnglish() calls,
+    // if that ever happens) can't spawn overlapping waits or run the
+    // correction more than once.
+    let intlCorrectionRun = false;
+
+    /**
+     * runIntlCorrectionOnceReady - Waits for
+     * [data-testid="control-button-playpause"] to exist in the DOM - the
+     * persistent player-bar's play/pause button, present as soon as
+     * Spotify's app shell has mounted, even before anything is playing, and
+     * not localized (data-testid is an internal test hook, unlike its
+     * aria-label) - then runs the /intl-xx/ URL correction and
+     * account-setting flip exactly once. This is what forceEnglish() used to
+     * do immediately at document-start; see the comment above its call to
+     * this function for why that was moved here instead.
+     */
+    function runIntlCorrectionOnceReady() {
+        if (intlCorrectionRun) return;
+
+        const run = () => {
+            if (intlCorrectionRun) return;
+            intlCorrectionRun = true;
+
+            const m = location.pathname.match(/^\/intl-([a-z]{2})(\/.*)?$/i);
+            // Some account languages (e.g. Italian) get server-redirected to an
+            // /intl-xx/ URL on every load; others (e.g. Slovenian) never do. The
+            // real cause, when it happens, is the saved account-level language
+            // setting (forceEnglishAccountSetting() below) - so rather than
+            // stripping the URL as its own navigation and only falling through to
+            // the account fix on a later load, the stripped target path is handed
+            // straight to forceEnglishAccountSetting(). If it needs to flip the
+            // setting, its own verification redirect lands directly on that
+            // stripped path - one navigation does both jobs instead of two. If the
+            // setting turns out to already be English (or the flip can't be
+            // attempted at all), forceEnglishAccountSetting() falls back to
+            // stripping the URL itself so this load still isn't left on
+            // /intl-xx/.
+            const onIntlPrefix = m && m[1].toLowerCase() !== 'en';
+            const strippedTarget = onIntlPrefix ? (m[2] || '/') : null;
+
+            if (HOST_IS_OPEN) {
+                forceEnglishAccountSetting(strippedTarget);
+            } else if (onIntlPrefix) {
+                // Can't flip the account setting cross-origin from here, so the
+                // cheap URL strip is the only correction available.
+                dbg('forceEnglish: redirecting off /intl-xx/ prefix', location.pathname, { to: strippedTarget });
+                location.replace(location.origin + strippedTarget + location.search + location.hash);
+            } else {
+                dbg('forceEnglish: skipping account-setting flip', 'forceEnglishAccountSetting()', { reason: 'not open.spotify.com - iframe to open.spotify.com/preferences would be cross-origin and always fail here' });
+            }
+        };
+
+        if (document.querySelector('[data-testid="control-button-playpause"]')) {
+            run();
+            return;
         }
 
-        if (HOST_IS_OPEN) {
-            forceEnglishAccountSetting();
+        const observer = new MutationObserver(() => {
+            if (document.querySelector('[data-testid="control-button-playpause"]')) {
+                observer.disconnect();
+                run();
+            }
+        });
+        const startObserving = () => observer.observe(document.body, { childList: true, subtree: true });
+        if (document.body) {
+            startObserving();
         } else {
-            dbg('forceEnglish: skipping account-setting flip', 'forceEnglishAccountSetting()', { reason: 'not open.spotify.com - iframe to open.spotify.com/preferences would be cross-origin and always fail here' });
+            // document-start - <body> hasn't been parsed yet.
+            document.addEventListener('DOMContentLoaded', startObserving, { once: true });
         }
     }
 
@@ -753,7 +860,7 @@
      * being treated as done, with a capped number of retries if it didn't
      * stick server-side.
      */
-    function forceEnglishAccountSetting() {
+    function forceEnglishAccountSetting(stripTarget = null) {
         // NOTE: there used to be a permanent "spotifuckForcedEnglishAccountSetting"
         // flag here that, once set, skipped this function forever. That assumed
         // the account setting only ever changes via this script. It doesn't -
@@ -772,6 +879,18 @@
         // correction cycle, so a broken selector can't cause endless reloads.
         const ATTEMPTS_KEY = 'spotifuckEnglishFlipAttempts';
         const MAX_ATTEMPTS = 3;
+
+        // When called from an /intl-xx/ URL, stripTarget is the path we'd land
+        // on with that prefix removed. Any navigation this function makes below
+        // (the verify-reload after a flip, or the fallback strip when no flip
+        // was possible) goes to this URL instead of a bare reload, so the
+        // /intl-xx/ correction and the account-setting fix collapse into a
+        // single navigation instead of two.
+        const stripUrl = stripTarget ? (location.origin + stripTarget + location.search + location.hash) : null;
+        const navigateAfter = (cleanup) => {
+            cleanup();
+            if (stripUrl) location.replace(stripUrl); else location.reload();
+        };
 
         if (window.top !== window.self) return; // only the top frame drives this
 
@@ -830,25 +949,45 @@
 
         const attemptFlip = () => {
             withPreferencesDoc((doc, cleanup) => {
-                if (!doc) { cleanup(); giveUp('could not load preferences document'); return; }
+                if (!doc) {
+                    if (stripUrl) {
+                        dbg('forceEnglish: redirecting off /intl-xx/ prefix', location.pathname, { to: stripTarget, reason: 'account flip unavailable - could not load preferences document' });
+                        navigateAfter(cleanup);
+                    } else {
+                        cleanup();
+                        giveUp('could not load preferences document');
+                    }
+                    return;
+                }
                 applyEnglishToLanguageSelect(doc, (result) => {
                     if (!result.found) {
-                        cleanup();
-                        giveUp('language selector not found - Spotify may have changed the settings page');
+                        if (stripUrl) {
+                            dbg('forceEnglish: redirecting off /intl-xx/ prefix', location.pathname, { to: stripTarget, reason: 'account flip unavailable - language selector not found' });
+                            navigateAfter(cleanup);
+                        } else {
+                            cleanup();
+                            giveUp('language selector not found - Spotify may have changed the settings page');
+                        }
                         return;
                     }
                     if (!result.changed) {
-                        cleanup();
                         localStorage.removeItem(ATTEMPTS_KEY);
                         dbg('forceEnglishAccountSetting: language already English', '#desktop.settings.selectLanguage', { reload: false });
+                        if (stripUrl) {
+                            dbg('forceEnglish: redirecting off /intl-xx/ prefix', location.pathname, { to: stripTarget });
+                            navigateAfter(cleanup);
+                        } else {
+                            cleanup();
+                        }
                         return;
                     }
                     // Dispatched the change event, but that only proves React
                     // saw it - not that Spotify's backend actually saved it.
-                    // Reload and verify on the next load before trusting this.
+                    // Navigate and verify on the next load before trusting this -
+                    // to the stripped URL if we have one, otherwise a plain reload.
                     localStorage.setItem(PENDING_KEY, 'true');
-                    dbg('forceEnglishAccountSetting: dispatched change, reloading to verify', '#desktop.settings.selectLanguage', { reload: true });
-                    setTimeout(() => { cleanup(); location.reload(); }, 1000);
+                    dbg('forceEnglishAccountSetting: dispatched change, navigating to verify', '#desktop.settings.selectLanguage', { to: stripTarget || location.pathname });
+                    setTimeout(() => navigateAfter(cleanup), 1000);
                 });
             });
         };
