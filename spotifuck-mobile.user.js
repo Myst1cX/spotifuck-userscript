@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile Stable
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.11
+// @version      7.12
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -464,10 +464,38 @@
 * /intl-xx/ URL and relying on a later load to strip it. Net effect: one
 * navigation off /intl-xx/ instead of two, and the page is never left stuck
 * on /intl-xx/ even in the failure cases.
+*
+* Fixed (v7.12):
+* - __spReservedInsets (added in v7.10 so Lyrics+'s PiP popup could stay off the reserved
+* bottom nav/player strip) never actually reached Lyrics+ - this script and Lyrics+'s
+* pip-gui-stable both use @grant, which puts each userscript in its own sandboxed JS
+* context under Tampermonkey/Violentmonkey. Plain `window` is a per-script object there,
+* not the real shared page global, so assigning window.__spReservedInsets here only ever
+* set it in this script's own sandbox. Lyrics+ confirmed via its own diagnostic logging
+* that it always read reserved height as 0/undefined, on every resize, with no exceptions.
+* Fix: updateNPBarHeightVar() now reads/writes __spReservedInsets and dispatches
+* sp-reserved-insets-change through unsafeWindow (the real page global both sandboxes
+* wrap) instead of window, falling back to window if unsafeWindow isn't exposed.
+* - __spReservedInsets also used to only ever expose the combined nav+player height
+* (`bottom`). Lyrics+'s PiP popup read that single value for its drag/resize/restore
+* clamp, so in practice it could never be dragged or resized down past the *top of the
+* player* - the clamp was reserving the player's own height as off-limits too, not just
+* the fixed bottom nav bar underneath it. updateNPBarHeightVar() now also publishes
+* `bottomNav` (just the fixed 56px nav bar, with the player's height excluded) alongside
+* the existing combined `bottom`, which is untouched, in case anything still wants the
+* old combined figure. The --sp-np-bar-height CSS var and the 56px nav height math are
+* otherwise untouched by any of this - only the object/event this script's write side
+* goes through, and what it exposes, changed.
+* - Companion fix required on Lyrics+'s side (pip-gui-stable / v17.49): it needs the
+* matching change on its read side too - reading through unsafeWindow, and preferring
+* `bottomNav` over `bottom` when both are present so the popup can be dragged/resized/
+* restored right over the player, with only the bottom nav bar itself staying
+* permanently off-limits - or none of this does anything on its own.
   */
 
 (function() {
     'use strict';
+
     console.log('🎵 Spotifuck v6 - APK v1.6.4 Port');
 
     // Global state variables
@@ -1659,6 +1687,17 @@
     // varies with content though, so this keeps --sp-np-bar-height in sync via
     // a live ResizeObserver - the #main-view clip CSS (injectCSS) subtracts that
     // variable, plus the bottom nav's fixed 56px, from 100dvh.
+    //
+    // FIX (v7.12): this and Lyrics+'s pip-gui-stable both use @grant, so each
+    // runs in its own sandboxed JS context under Tampermonkey/Violentmonkey -
+    // plain `window` is per-script there, not the real shared page global.
+    // Assigning window.__spReservedInsets here never reached Lyrics+'s
+    // window, so it always read reserved as 0/undefined (confirmed via
+    // Lyrics+'s diagnostic logging). unsafeWindow is the real page global
+    // both sandboxes wrap - read/write/dispatch this specific handshake
+    // through that instead. Falls back to window if unsafeWindow isn't
+    // exposed (e.g. @grant none, where window already IS the real window).
+    const SP_SHARED_WINDOW = typeof unsafeWindow !== 'undefined' ? unsafeWindow : window;
     function updateNPBarHeightVar() {
         const player = document.querySelector('aside[data-testid=now-playing-bar]');
         if (player) {
@@ -1666,12 +1705,24 @@
             // Exposed so other userscripts (e.g. Lyrics+'s PiP popup) can keep
             // themselves out of the fixed bottom nav (56px) + player strip
             // without having to scan the DOM for it themselves. Only reassigned
-            // (and only fires the change event) when the value actually moved,
+            // (and only fires the change event) when a value actually moved,
             // so idle listeners aren't woken up on every no-op ResizeObserver tick.
-            const bottom = 56 + player.offsetHeight;
-            if (!window.__spReservedInsets || window.__spReservedInsets.bottom !== bottom) {
-                window.__spReservedInsets = { bottom };
-                window.dispatchEvent(new CustomEvent('sp-reserved-insets-change', { detail: window.__spReservedInsets }));
+            //
+            // v7.12: also publishes bottomNav on its own (just the fixed 56px nav
+            // bar, no player) alongside the existing combined `bottom`. Companion
+            // change to Lyrics+ v17.53.dev - the popup's drag/resize clamp used to
+            // reserve nav+player together, which meant it could never be dragged
+            // or resized over the player at all. It's now allowed to cover the
+            // player; only the bottom nav bar itself is still off-limits. `bottom`
+            // (nav+player) is kept as-is in case anything still wants the old
+            // combined figure.
+            const BOTTOM_NAV_HEIGHT = 56;
+            const bottom = BOTTOM_NAV_HEIGHT + player.offsetHeight;
+            if (!SP_SHARED_WINDOW.__spReservedInsets ||
+                SP_SHARED_WINDOW.__spReservedInsets.bottom !== bottom ||
+                SP_SHARED_WINDOW.__spReservedInsets.bottomNav !== BOTTOM_NAV_HEIGHT) {
+                SP_SHARED_WINDOW.__spReservedInsets = { bottom, bottomNav: BOTTOM_NAV_HEIGHT };
+                SP_SHARED_WINDOW.dispatchEvent(new CustomEvent('sp-reserved-insets-change', { detail: SP_SHARED_WINDOW.__spReservedInsets }));
             }
         }
     }
