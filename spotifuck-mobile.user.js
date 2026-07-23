@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile Stable
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.12
+// @version      7.13
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -491,6 +491,20 @@
 * `bottomNav` over `bottom` when both are present so the popup can be dragged/resized/
 * restored right over the player, with only the bottom nav bar itself staying
 * permanently off-limits - or none of this does anything on its own.
+*
+* Fixed (v7.13):
+* - Compact player row grown 64px -> 68px. The scrubber (seekbar) had already been
+* shifted from bottom:0 to bottom:4px (to stop its enlarged hover/highlight
+* thumb from getting clipped by the row's own overflow:hidden), but the row's
+* height and padding-bottom were never updated to match, so that 4px shift
+* just ate 4px of dead space at the very bottom of the row instead of
+* actually making room. Row padding-bottom moved 6px -> 10px (still exactly
+* matching the scrubber's own bottom:4px + height:6px = 10px, same flush
+* fit as the original 0px/6px pairing), and the Play/Pause + library-action
+* buttons' top offset moved 32px -> 34px (half of the new 68px, same as
+* before) so they stay centered on the row. This is a visual-only fit fix -
+* sp-np-bar-height keeps working unmodified since it reads the row's live 
+* offsetHeight rather than a hardcoded figure.
   */
 
 (function() {
@@ -2638,19 +2652,35 @@ aside[data-testid=now-playing-bar].spf-compact>div:first-child{
   display:flex!important;
   flex-direction:row!important;
   align-items:center!important;
-  /* Explicit 64px, not height:100% - the aside itself no longer has a
+  /* Explicit 68px, not height:100% - the aside itself no longer has a
      fixed height to inherit a percentage from (see above), so this row is
-     now what actually defines the compact row's height. */
-  height:64px!important;
-  min-height:64px!important;
-  max-height:64px!important;
+     now what actually defines the compact row's height.
+     68px, not 64px: the scrubber below sits at bottom:4px (not bottom:0)
+     so its enlarged hover/highlight thumb doesn't get clipped by this
+     row's overflow:hidden. That 4px shift moved the scrubber up but left
+     the row's own height unchanged, so the row grew a 4px dead strip at
+     its very bottom (below the scrubber, above nothing) instead of
+     actually giving the scrubber room - shrinking the usable/padded area
+     by 4px without shrinking anything visible to compensate. Growing the
+     row by that same 4px (64->68) turns that dead strip into real,
+     intentional height instead, so the padding-bottom below can widen to
+     match and everything above (artwork/title/artist, Play/Pause,
+     library-action) keeps the exact same breathing room relative to the
+     scrubber that it had before the scrubber moved. */
+  height:68px!important;
+  min-height:68px!important;
+  max-height:68px!important;
   overflow:hidden!important;
   position:relative!important;
   /* Only two buttons now (Play/Pause + Add-to-playlist, right:8/44 below)
      instead of the old five (which needed 256px) - this was the actual
      cause of the artist/album marquee text collapsing to near-zero width
-     on narrow viewports; bottom:6px keeps it clear of the new scrubber. */
-  padding:0 84px 6px 8px!important
+     on narrow viewports; bottom:10px (was 6px, +4 to match the row's own
+     +4px above) keeps content clear of the scrubber, whose top edge
+     (bottom:4px + height:6px = 10px) now sits flush against this
+     padding's edge again, same as the 6px/6px flush fit before the
+     scrubber moved up. */
+  padding:0 84px 10px 8px!important
 }
 aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]{
   flex:1!important;
@@ -2735,23 +2765,25 @@ aside[data-testid=now-playing-bar] div[data-testid=now-playing-widget]>div:nth-c
    (assigned by moveOut()/ensureLibActionProxy(), cleared by moveBack()/
    removeLibActionProxy() - see setupCompactToggle), so no
    :not(.spf-compact) guard is needed here.
-   top:32px (not top:50%!) - both buttons are appended directly to the
-   aside, not to the 64px compact row itself, and the aside's own height is
+   top:34px (not top:50%!) - both buttons are appended directly to the
+   aside, not to the 68px compact row itself, and the aside's own height is
    no longer fixed (see the aside-level .spf-compact rule above - that's
    what lets the green "Playing on X device" banner get its own space
    instead of being squashed). 50% would center against whatever the
-   aside's CURRENT total height happens to be (64px content row alone, or
-   64px + the banner's height on top of it), which is exactly why they sat
+   aside's CURRENT total height happens to be (68px content row alone, or
+   68px + the banner's height on top of it), which is exactly why they sat
    low whenever the banner was present - and also slightly low even
    without it, since 50% of the aside's real rendered height was never
-   quite exactly 32px once box-shadow/border are accounted for. The
+   quite exactly 34px once box-shadow/border are accounted for. The
    compact row is always flush with the aside's own TOP edge regardless of
-   whether the banner is occupying space below it, so a fixed 32px from
-   the top (half of the row's own fixed 64px height) reliably lands on the
-   row's center either way. */
+   whether the banner is occupying space below it, so a fixed 34px from
+   the top (half of the row's own fixed 68px height, grown from 64px to
+   give the scrubber below room without eating into anyone else's space -
+   see the row's own height comment above) reliably lands on the row's
+   center either way. */
 #spf-compact-play,#spf-compact-libaction{
   position:absolute!important;
-  top:32px!important;
+  top:34px!important;
   transform:translateY(-50%)!important;
   margin:0!important;
   z-index:10
