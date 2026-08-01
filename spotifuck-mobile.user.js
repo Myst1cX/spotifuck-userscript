@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile Stable
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.13
+// @version      7.14
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -505,6 +505,23 @@
 * before) so they stay centered on the row. This is a visual-only fit fix -
 * sp-np-bar-height keeps working unmodified since it reads the row's live 
 * offsetHeight rather than a hardcoded figure.
+*
+* Fixed (v7.14):
+* - Signed-out users got #spf-compact-toggle appended to the sign-up
+* prompt, and tapping it exposed the real play/pause button
+* (#spf-compact-play) on top of it. Cause: Spotify renders the sign-up
+* prompt inside the exact same aside[data-testid=now-playing-bar] element
+* as the real player, with no separate class/attribute to tell them apart,
+* so setupCompactToggle() - which appends the toggle to that aside -
+* matched the sign-up prompt's copy too and moveOut() relocated the
+* (normally hidden there) play/pause button on tap. That same exposed
+* button is also what runIntlCorrectionOnceReady() watches for before
+* running its English-language/URL correction, so it was firing that
+* reload for signed-out users too. Fixed both at once: setupCompactToggle()
+* now checks for div[data-testid=signup-bar] and skips appending the
+* toggle when it's present, and runIntlCorrectionOnceReady() now also
+* gates directly on [data-testid="signup-bar"] instead of only on the
+* play/pause button.
   */
 
 (function() {
@@ -821,14 +838,17 @@
 
     /**
      * runIntlCorrectionOnceReady - Waits for
-     * [data-testid="control-button-playpause"] to exist in the DOM - the
-     * persistent player-bar's play/pause button, present as soon as
-     * Spotify's app shell has mounted, even before anything is playing, and
-     * not localized (data-testid is an internal test hook, unlike its
-     * aria-label) - then runs the /intl-xx/ URL correction and
-     * account-setting flip exactly once. This is what forceEnglish() used to
-     * do immediately at document-start; see the comment above its call to
-     * this function for why that was moved here instead.
+     * [data-testid="control-button-playpause"] (present once Spotify's app
+     * shell has mounted) OR [data-testid="signup-bar"] (the signed-out
+     * landing/signup prompt, on its own timeline) to exist in the DOM, then
+     * runs the /intl-xx/ URL correction and account-setting flip exactly
+     * once. The signup-bar branch matters because that play/pause button is
+     * kept hidden by Spotify on the signup prompt in full view - see v7.14 -
+     * so without it, a signed-out session had no reliable trigger at all.
+     * Neither data-testid is localized, unlike their aria-labels. This is
+     * what forceEnglish() used to do immediately at document-start; see the
+     * comment above its call to this function for why that was moved here
+     * instead.
      */
     function runIntlCorrectionOnceReady() {
         if (intlCorrectionRun) return;
@@ -866,13 +886,13 @@
             }
         };
 
-        if (document.querySelector('[data-testid="control-button-playpause"]')) {
+        if (document.querySelector('[data-testid="control-button-playpause"],[data-testid="signup-bar"]')) {
             run();
             return;
         }
 
         const observer = new MutationObserver(() => {
-            if (document.querySelector('[data-testid="control-button-playpause"]')) {
+            if (document.querySelector('[data-testid="control-button-playpause"],[data-testid="signup-bar"]')) {
                 observer.disconnect();
                 run();
             }
@@ -2115,6 +2135,20 @@
             const player = document.querySelector('aside[data-testid=now-playing-bar]:not(.spf-compact-ready)');
             if (!player) return;
             player.classList.add('spf-compact-ready');
+            // v7.14: Spotify reuses this exact same aside[data-testid=now-playing-bar]
+            // for the signed-out signup preview (div[data-testid=signup-bar] as a
+            // child) - there's no separate markup/class distinguishing it from the
+            // real logged-in player bar. Without this check, this function couldn't
+            // tell the two apart either, so on a signed-out load it happily appended
+            // #spf-compact-toggle to the signup-bar's aside. Clicking that (very
+            // real, very clickable) toggle then ran the exact same moveOut() logic
+            // as on the real player, relocating the (disabled but still present)
+            // play/pause button into #spf-compact-play - which is what was actually
+            // showing up as "compact toggle and full view both exposed" on the
+            // signup prompt. Bail out before appending anything if signup-bar is
+            // present; .spf-compact-ready is still set above either way, so a
+            // signed-out load doesn't get a toggle for the rest of the session.
+            if (player.querySelector('[data-testid="signup-bar"]')) return;
 
             // Snapshot of whatever's already a legitimate child of `player` before
             // this script appends anything to it - i.e. Spotify's own widget
