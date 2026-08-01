@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile Stable
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.14
+// @version      7.15
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -522,6 +522,31 @@
 * toggle when it's present, and runIntlCorrectionOnceReady() now also
 * gates directly on [data-testid="signup-bar"] instead of only on the
 * play/pause button.
+*
+* Fixed (v7.15):
+* a) findLibActionBtn() (the compact-mode library-action proxy, added in
+* v7.5) only ever matched "Add to playlist" or "Add to Liked Songs" - both
+* song-only labels. Playing a podcast episode meant this selector matched
+* nothing at all, so ensureLibActionProxy() silently returned null and
+* compact mode had no library-action slot whatsoever while playing a
+* podcast - not a wrong button, no button. Added the podcast equivalent,
+* button[aria-label="Add to Your Episodes"], as a third option in the
+* selector, so the proxy now covers all three real buttons this slot can
+* ever actually be.
+* b) Compact mode for podcast episodes was leaving the entire secondary-
+* controls wrapper (Queue/Connect/Volume/PiP/Fullscreen) visible, which
+* also squeezed the title/author text down to an unreadably small width
+* alongside it. The CSS rule that hides that wrapper in compact mode
+* (added in v7.5) was anchored only on data-testid="lyrics-button" being
+* present inside it - a deliberate choice at the time (always present for
+* songs, unlike lyrics-plus-btn, which only exists if that separate
+* userscript is installed), but podcast episodes have no lyrics button at
+* all, so the rule never matched on a podcast in the first place. Widened
+* the same :has() selector to also match on the Queue button
+* (data-testid="control-button-queue") or Connect button
+* (aria-label="Connect to a device") - both present regardless of track
+* type - so it now correctly collapses the wrapper away for podcasts too,
+* same as it already did for songs.
   */
 
 (function() {
@@ -2213,7 +2238,7 @@
             // class/aria-checked/aria-label/title/icon every time.
             let libActionObserver = null;
             const findLibActionBtn = () =>
-                document.querySelector('[data-testid="now-playing-widget"] button[aria-label="Add to playlist"], [data-testid="now-playing-widget"] button[aria-label="Add to Liked Songs"]');
+                document.querySelector('[data-testid="now-playing-widget"] button[aria-label="Add to playlist"], [data-testid="now-playing-widget"] button[aria-label="Add to Liked Songs"], [data-testid="now-playing-widget"] button[aria-label="Add to Your Episodes"]');
             const syncLibActionProxy = (proxy, realBtn) => {
                 proxy.className = realBtn.className;
                 proxy.setAttribute('aria-checked', realBtn.getAttribute('aria-checked') || 'false');
@@ -2613,11 +2638,19 @@ aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widge
 }
 /* Hide just the secondary-controls wrapper (Lyrics+, npbtn, native lyrics/
    queue/connect/volume/pip/fullscreen) - none of which appear in compact
-   mode anymore (v7.5). Anchored on the native lyrics-button testid (always
-   present, unlike lyrics-plus-btn which only exists if that separate
-   userscript is installed) rather than that wrapper's own build-hashed
-   CSS-module class, which would silently stop matching the moment that
-   hash changes on a future Spotify deploy.
+   mode anymore (v7.5). Anchored on stable testid/aria-label attributes
+   (never hashed CSS-module classnames, which silently stop matching the
+   moment Spotify changes a build hash) rather than the wrapper's own class.
+   v7.15: originally anchored on data-testid="lyrics-button" alone (always
+   present for songs, unlike lyrics-plus-btn which only exists if that
+   separate userscript is installed) - but podcast episodes have no lyrics
+   button at all, so this never matched on a podcast, leaving the entire
+   wrapper (Queue/Connect/Volume/PiP/Fullscreen) visible and eating into the
+   title/author area's available width, on top of just not collapsing away
+   like it does for songs. Widened to also match on the Queue button
+   (data-testid="control-button-queue") or Connect button
+   (aria-label="Connect to a device") - both present on every track type,
+   song or podcast - so this now correctly fires either way.
    IMPORTANT: this must NOT be a blanket "~ div" rule catching every
    sibling after the now-playing-widget wrapper - that was the previous
    (buggy) approach, and it also caught the player-controls wrapper, which
@@ -2629,7 +2662,7 @@ aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widge
    second rule said. Targeting the secondary-controls wrapper directly
    sidesteps that fight entirely - there's nothing left it needs to be
    un-hidden from. */
-aside[data-testid=now-playing-bar].spf-compact>div:first-child>div:has([data-testid="lyrics-button"]){
+aside[data-testid=now-playing-bar].spf-compact>div:first-child>div:has([data-testid="lyrics-button"],[data-testid="control-button-queue"],[aria-label="Connect to a device"]){
   display:none!important
 }
 /* The player-controls wrapper is never hidden in the first place (see
