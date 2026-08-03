@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Spotifuck Mobile Stable
+// @name         Spotifuck Mobile TEST BUILD
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.15
+// @version      7.16
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -547,6 +547,30 @@
 * (aria-label="Connect to a device") - both present regardless of track
 * type - so it now correctly collapses the wrapper away for podcasts too,
 * same as it already did for songs.
+*
+* Fixed (v7.16):
+* - Compact mode never accounted for Spotify's Smart Shuffle "recommendation"
+* UI, which adds two extra direct-child elements (the enhance-badge <svg>,
+* and a Remove-recommendation/Add-to-Songs-To-Show button row) as siblings
+* of the title/artist rows inside now-playing-widget's nth-child(2). The
+* compact CSS for that wrapper was flex-direction:column, written assuming
+* exactly those two rows - with Smart Shuffle active it stacked all four,
+* and the ~44px of height budgeted there (now-playing-widget's own
+* overflow:hidden) clipped the overflow: the badge ended up shoved onto its
+* own misplaced row, and the button row was cut off entirely - not hidden
+* on purpose, just silently clipped.
+* Switched that wrapper to flex-flow:row wrap with explicit order on each
+* piece: title and the (now 12px) badge share line 1, the artist row is
+* forced onto line 2 via flex-basis:100%. The button row is now explicitly
+* display:none instead of accidentally clipped - no room for two more
+* buttons alongside Play/Pause + the existing library-action proxy in a
+* 68px-tall strip - but "Remove recommendation" gets its own compact-strip
+* proxy button instead (#spf-compact-recaction, right:80px, see
+* ensureRecActionProxy/removeRecActionProxy - same synthetic-clone-and-
+* forward-clicks pattern as the existing library-action proxy), since
+* dismissing an unwanted recommendation is worth it. "Add to Songs To Show"
+* is skipped - close enough in purpose to the library-action proxy that's
+* already there for every track regardless of Smart Shuffle.
   */
 
 (function() {
@@ -2284,6 +2308,57 @@
                 document.getElementById('spf-compact-libaction')?.remove();
             };
 
+            // Smart Shuffle's "Remove recommendation" button (v7.16): same synthetic-
+            // proxy approach as the library-action button above, added because this
+            // button only exists at all when Spotify is recommending the current track -
+            // it's a sibling of the title/artist rows inside now-playing-widget's
+            // nth-child(2), not that wrapper's hidden last child, so it was never covered
+            // by the library-action proxy's search. Previously it wasn't hidden or
+            // handled at all - just silently clipped off by now-playing-widget's own
+            // overflow:hidden as a side effect of the (pre-v7.16) column layout, which
+            // also mispositioned the enhance-badge next to it (see injectCSS). "Add to
+            // Songs To Show", the other button in the same wrapper, is intentionally NOT
+            // proxied - no room for a fourth compact-strip button, and it's close enough
+            // in purpose to the library-action proxy already covering every track.
+            let recActionObserver = null;
+            const findRecActionBtn = () =>
+                document.querySelector('[data-testid="now-playing-widget"] button[aria-label="Remove recommendation"]');
+            const ensureRecActionProxy = () => {
+                let proxy = document.getElementById('spf-compact-recaction');
+                const realBtn = findRecActionBtn();
+                if (proxy) return proxy;
+                if (!realBtn) return null;
+                proxy = document.createElement('button');
+                proxy.id = 'spf-compact-recaction';
+                proxy.className = realBtn.className;
+                proxy.setAttribute('aria-label', 'Remove recommendation');
+                proxy.title = 'Remove recommendation';
+                proxy.innerHTML = realBtn.innerHTML;
+                proxy.addEventListener('click', () => {
+                    // Re-query rather than close over realBtn - clicking this removes the
+                    // recommendation, which unmounts the real button (and this proxy) shortly
+                    // after, same lifecycle reasoning as the library-action proxy above.
+                    findRecActionBtn()?.click();
+                });
+                player.appendChild(proxy);
+                const widgetEl = document.querySelector('[data-testid="now-playing-widget"]');
+                if (widgetEl) {
+                    // No attribute-level sync needed (unlike library-action, this button's
+                    // label/icon never change while it exists) - just watch for it
+                    // disappearing (recommendation removed, or track changed) so the proxy
+                    // doesn't outlive it.
+                    recActionObserver = new MutationObserver(() => {
+                        if (!findRecActionBtn()) removeRecActionProxy();
+                    });
+                    recActionObserver.observe(widgetEl, { childList: true, subtree: true });
+                }
+                return proxy;
+            };
+            const removeRecActionProxy = () => {
+                if (recActionObserver) { recActionObserver.disconnect(); recActionObserver = null; }
+                document.getElementById('spf-compact-recaction')?.remove();
+            };
+
             // Belt-and-suspenders sweep for the same failure mode moveBack()'s
             // disconnected-parent branch now guards against, but covering cases
             // moveBack() itself can't see - e.g. strays created by a session that
@@ -2309,6 +2384,7 @@
                 // mobile viewports.
                 moveOut(window.pBtn || document.querySelector('button[data-testid="control-button-playpause"]'), 'spf-compact-play');
                 ensureLibActionProxy();
+                ensureRecActionProxy();
                 player.classList.add('spf-compact');
                 setCompactMode(true);
                 dbg('compactToggle: entered compact', '#spf-compact-toggle', { movedCount: movedOut.length });
@@ -2316,6 +2392,7 @@
             const exitCompact = () => {
                 moveBack();
                 removeLibActionProxy();
+                removeRecActionProxy();
                 player.classList.remove('spf-compact');
                 setCompactMode(false);
                 dbg('compactToggle: exited compact', '#spf-compact-toggle', {});
@@ -2774,19 +2851,73 @@ aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widge
   object-fit:cover!important;
   border-radius:4px!important
 }
+/* v7.16: was flex-direction:column assuming exactly two children here
+   (title row, artist row) - true for a normal track, but Spotify's Smart
+   Shuffle "recommendation" UI adds two MORE direct-child siblings here (the
+   enhance-badge <svg> and the Remove/Add-to-list button row), which the old
+   column layout just stacked as two extra full-width rows. With only ~44px
+   of height budgeted (now-playing-widget's own overflow:hidden), that pushed
+   the artist row and/or the button row past the visible area - the enhance-
+   badge ended up on its own misplaced line, and the button row got silently
+   clipped off entirely (not hidden on purpose - just cut off).
+   Row+wrap instead: title and badge share line 1 (badge is a small icon, not
+   its own row), the artist row is forced onto line 2 via flex-basis:100% two
+   rules down, and the button row is hidden outright below - see the comment
+   there for why, and for the "Remove recommendation" proxy that replaces it. */
 aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:nth-child(2){
   display:flex!important;
-  flex-direction:column!important;
-  justify-content:center!important;
-  gap:2px!important;
+  flex-flow:row wrap!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  column-gap:4px!important;
+  row-gap:0!important;
   min-width:0!important;
   max-width:none!important;
   overflow:hidden!important
 }
-aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:nth-child(2)>div{
+/* Title row - order:1 pins it first regardless of DOM position (the badge
+   sits between title and artist in the markup, not inside either one).
+   Targeted via the stable data-testid of its own descendant, not a hashed
+   class, same convention as the rest of this file. */
+aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:nth-child(2)>div:has([data-testid="context-item-info-title"]){
+  order:1!important;
+  flex:0 1 auto!important;
+  min-width:0!important;
   white-space:nowrap!important;
   overflow:hidden!important;
   max-width:100%!important
+}
+/* Smart Shuffle recommendation badge - only present when Spotify is
+   recommending the current track. Sized down slightly to fit the compact
+   strip's tighter line-height alongside the title text. */
+aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:nth-child(2)>svg[data-testid="enhance-badge"]{
+  order:2!important;
+  flex:0 0 auto!important;
+  width:12px!important;
+  height:12px!important
+}
+/* Artist/subtitle row - forced onto its own "line 2" via flex-basis:100%
+   regardless of whether the badge above landed on line 1 with it or not. */
+aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:nth-child(2)>div:has([data-testid="context-item-info-subtitles"]){
+  order:3!important;
+  flex:0 0 100%!important;
+  min-width:0!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  max-width:100%!important
+}
+/* Smart Shuffle's Remove/Add-to-list button row - explicitly hidden now
+   (was previously just silently clipped by now-playing-widget's own
+   overflow:hidden, an accidental side effect of the old column layout, not
+   an intentional choice). No room for two more buttons alongside Play/Pause
+   + the library-action proxy in a 68px-tall strip. "Remove recommendation"
+   gets its own compact-strip proxy instead (#spf-compact-recaction, see
+   ensureRecActionProxy) since dismissing an unwanted recommendation is
+   worth the button; "Add to Songs To Show" is skipped - it's close enough
+   in purpose to the library-action proxy that's already there for every
+   track. */
+aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:nth-child(2)>div:has([aria-label="Remove recommendation"]){
+  display:none!important
 }
 /* The music-video "Switch to video" row (+ its bullet separator) is a third
    sibling row alongside title/artist inside nth-child(2) whenever a track
@@ -2848,7 +2979,7 @@ aside[data-testid=now-playing-bar] div[data-testid=now-playing-widget]>div:nth-c
    give the scrubber below room without eating into anyone else's space -
    see the row's own height comment above) reliably lands on the row's
    center either way. */
-#spf-compact-play,#spf-compact-libaction{
+#spf-compact-play,#spf-compact-libaction,#spf-compact-recaction{
   position:absolute!important;
   top:34px!important;
   transform:translateY(-50%)!important;
@@ -2857,6 +2988,7 @@ aside[data-testid=now-playing-bar] div[data-testid=now-playing-widget]>div:nth-c
 }
 #spf-compact-play{right:8px}
 #spf-compact-libaction{right:44px}
+#spf-compact-recaction{right:80px}
 
 /* Play/Pause is a real Encore Primary button - filled white circle, icon
    colored dark via its own encore-inverted-light-set inner span - which
