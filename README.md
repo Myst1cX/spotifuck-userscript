@@ -36,7 +36,7 @@ A mobile-layout userscript for the Spotify Web Player: ports the Spotifuck Andro
 
 ### Mobile-like layout
 
-Ported from the reverse-engineered Spotifuck Android APK (`r0/e.java`), with the bottom nav bar itself ported from kitbodega/SpotiKit's own mobile layout:
+Ported and adapted from the reverse-engineered Spotifuk apk (`r0/e.java`), with the bottom nav bar itself taken from kitbodega/SpotiKit's own mobile layout:
 
 - A fixed Home/Search/Library bottom nav bar. Home and Search navigate via `history.pushState`; Library performs a real click on Spotify's own native library toggle (routed through one shared, guarded function so manual clicks, the auto-close-on-playlist trigger, and the nav tab itself can never end up double-firing on the button).
 - The native library sidebar is hidden by default. By pressing on the Library bottom nav bar, the library opens as a full-screen overlay; it auto-closes when you tap into a track, album, or playlist, but **not** when you tap into a folder, so browsing into a playlist still works (see [Library folder-navigation fix](#library-folder-navigation-fix)).
