@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile Stable
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.15.revert
+// @version      7.16
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -503,7 +503,7 @@
 * fit as the original 0px/6px pairing), and the Play/Pause + library-action
 * buttons' top offset moved 32px -> 34px (half of the new 68px, same as
 * before) so they stay centered on the row. This is a visual-only fit fix -
-* sp-np-bar-height keeps working unmodified since it reads the row's live 
+* sp-np-bar-height keeps working unmodified since it reads the row's live
 * offsetHeight rather than a hardcoded figure.
 *
 * Fixed (v7.14):
@@ -547,6 +547,25 @@
 * (aria-label="Connect to a device") - both present regardless of track
 * type - so it now correctly collapses the wrapper away for podcasts too,
 * same as it already did for songs.
+*
+* Fixed (v7.16):
+* findLibActionBtn() (the compact-mode library-action proxy) matched exactly three
+* aria-labels: "Add to playlist", "Add to Liked Songs", "Add to Your Episodes" - all
+* song/podcast states, but not a Smart Shuffle recommended song, where the same slot
+* instead renders "Remove recommendation" next to an add-button labeled "Add to
+* <playlist name>" - the destination playlist's own name, not fixed Spotify UI text,
+* so it never matched any of the three exact strings. ensureLibActionProxy() found
+* nothing and returned null, so no proxy was created - nothing got pulled out of
+* now-playing-widget's last child before the compact CSS rule (v7.5) hid that whole
+* wrapper, taking the library-action button down with it instead of surfacing it in
+* the compact strip like every other track state. All four labels this slot can ever
+* render - the three known ones plus every "Add to <playlist>" variant - share the
+* same "Add to " prefix, so the three exact-match selectors in findLibActionBtn() are
+* now one attribute-prefix selector, button[aria-label^="Add to "], scoped to
+* now-playing-widget. Matches every case the old selector did plus any playlist
+* Smart Shuffle recommends into, current or future, without hardcoding a name.
+* "Remove recommendation" doesn't start with "Add to " so it's untouched by this -
+* still hidden by the same blanket compact-mode rule, not proxied out, on purpose.
   */
 
 (function() {
@@ -2238,7 +2257,7 @@
             // class/aria-checked/aria-label/title/icon every time.
             let libActionObserver = null;
             const findLibActionBtn = () =>
-                document.querySelector('[data-testid="now-playing-widget"] button[aria-label="Add to playlist"], [data-testid="now-playing-widget"] button[aria-label="Add to Liked Songs"], [data-testid="now-playing-widget"] button[aria-label="Add to Your Episodes"]');
+                document.querySelector('[data-testid="now-playing-widget"] button[aria-label^="Add to "]');
             const syncLibActionProxy = (proxy, realBtn) => {
                 proxy.className = realBtn.className;
                 proxy.setAttribute('aria-checked', realBtn.getAttribute('aria-checked') || 'false');
