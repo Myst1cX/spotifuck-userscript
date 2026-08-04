@@ -55,7 +55,7 @@ The old `Now Playing View` button toggle was ported directly from the reverse-en
 
 ### AMOLED mode
 
-Pure-black AMOLED theme, ported from the same Spotifuck apk (`r0/e.java` line 207) - also later carried over into SpotiwebJS. Forces the player bar and the app's dark-theme background variables to pure black. Always on, not tied to either spoof toggle. Later widened to cover the Library overlay which would previously fail to inherit the style and fall back to Spotify's default dark gray theme.
+Pure-black AMOLED theme, ported from the same Spotifuck apk (`r0/e.java` line 207) - also later carried over into SpotiwebJS. Forces the player bar and the app's dark-theme background variables to pure black. Always on, not tied to either spoof toggle. Later widened to cover the Library overlay and some other overlays which would previously fail to inherit the style and fall back to Spotify's default dark gray theme.
 
 ### Force English
 
