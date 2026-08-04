@@ -15,7 +15,7 @@ A mobile-layout userscript for the Spotify Web Player: ports the Spotifuck Andro
   - [AMOLED mode](#amoled-mode)
   - [Force English](#force-english)
   - [Visual Premium Spoof](#visual-premium-spoof)
-  - [Ad-Slot Cleanup (DOM only, doesn't touch actual audio ads)](#ad-slot-cleanup)
+  - [Ad-Slot Cleanup (DOM only, doesn't touch actual audio ads)](#ad-slot-cleanup-dom-only-doesnt-touch-actual-audio-ads)
   - [Play/Pause reliability fix](#playpause-reliability-fix)
   - [Library folder-navigation fix](#library-folder-navigation-fix)
   - [Debug Logging & Replacement Log](#debug-logging--replacement-log)
