@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Spotifuck Mobile Stable
+// @name         Spotifuck Mobile Stable 12px
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.18
+// @version      7.20
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -601,6 +601,52 @@
 *   from that real measurement. The old --spf-removerec-gap constant is
 *   now only a fallback for the rare case the measurement comes back
 *   invalid, not the value actually used in the normal case.
+*
+* RESOLVED (v7.19):
+* - Cause: in compact mode, the enhance-badge (Smart Shuffle recommendation
+*   indicator, data-testid="enhance-badge") rendered floating on its own
+*   isolated row between the title and artist rows, misaligned from both
+*   horizontally and vertically - not lined up with the artist row the way
+*   it is natively. Root cause confirmed via getComputedStyle dumps of the
+*   badge's container in all three states: natively (no spotifuck) that
+*   container is display:grid, with the title on row 1 alone and the
+*   badge+artist sharing row 2 - which is why the badge lines up against
+*   the artist row with zero extra CSS (see v7.18 note above). An
+*   unconditional rule elsewhere in this file forces that container to
+*   display:flex!important regardless of mode; in the full/expanded player
+*   this happened to still look right (flex-direction defaults to row, and
+*   the badge is already ordered directly before the artist row in the
+*   DOM), but compact mode additionally forced flex-direction:column,
+*   which stacked title/badge/artist into three separate rows and broke
+*   the badge's pairing with the artist row entirely.
+* - Solution: compact mode's container rule now uses display:grid instead
+*   of flex, with title spanning both columns on row 1 and the badge (col
+*   1) + artist row (col 2) sharing row 2 - reproducing the same 2-row,
+*   grid-based structure the native (non-compact, non-spotifuck) DOM
+*   already uses, restoring the badge's original position relative to the
+*   artist row (~4px gap, vertically centered) instead of guessing new
+*   badge-specific CSS on top.
+*
+* RESOLVED (v7.20):
+* - Cause: after v7.19's grid fix, the badge was correctly paired with the
+*   artist row but still looked slightly low and misaligned in compact
+*   mode. getComputedStyle confirmed vertical centering was actually
+*   already exact (badge center 335 == artist-row center 335, matching
+*   native's own box-to-box centering) - the real problem was the badge's
+*   grid column, sized as auto, getting compressed from its natural 12px
+*   down to 8px width (height stayed 12px, so the icon rendered visibly
+*   squished/distorted). Compact mode's col only has ~60px of available
+*   width (squeezed by the 44px album art + the compact bar's tight
+*   layout), which isn't enough for badge(12) + gap(4) + the artist
+*   text's max-content width, and grid's auto tracks are allowed to
+*   shrink below max-content - unlike fixed-length tracks - when a grid
+*   is short on space. This never showed up in the full/expanded player,
+*   which has plenty of room and kept the badge at its native 12px.
+* - Solution: badge's grid column changed from auto to a fixed 12px
+*   (grid-template-columns:12px 1fr), which grid will not compress
+*   regardless of how tight col's width gets. The artist column (1fr)
+*   absorbs the remaining space and truncates via the existing
+*   white-space:nowrap/overflow rules, same as before.
   */
 
 (function() {
@@ -2917,13 +2963,54 @@ aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widge
   border-radius:4px!important
 }
 aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:nth-child(2){
-  display:flex!important;
-  flex-direction:column!important;
+  display:grid!important;
+  grid-template-columns:12px 1fr!important;
+  grid-template-rows:auto auto!important;
+  align-items:center!important;
   justify-content:center!important;
-  gap:2px!important;
+  column-gap:4px!important;
+  row-gap:0!important;
   min-width:0!important;
   max-width:none!important;
   overflow:hidden!important
+}
+/* Title spans both grid columns on row 1, alone - matches native's own
+   title-gets-its-own-line behavior (see native dump: title top=540 vs
+   badge/artist top~557/558, i.e. two rows, title on its own). */
+aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:nth-child(2)>div:first-child{
+  grid-column:1/3!important;
+  grid-row:1!important
+}
+/* Badge wrapper (jEiAs1et4fAU3chW) - row 2, column 1. Grid's align-items:
+   center on the row keeps it vertically centered against the artist text
+   next to it, and the 4px column-gap reproduces the native ~4px gap
+   between badge and artist (native: subtitle.left 104 - badge.left 88 -
+   badge.width 12 = 4). This is the same relation the badge already has,
+   by coincidence of flex-row + align-items:center, in the non-compact
+   (fully expanded) player bar - this rule just gets compact mode to the
+   same relation via a 2-row grid instead of 1 row, since compact needs
+   the title on its own line above.
+   Column 1 is a fixed 12px (not auto): with auto, getComputedStyle
+   showed the badge's own track getting compressed from 12px to 8px in
+   compact mode specifically, distorting the icon (12px height stayed,
+   only width shrank) - col's available width there (~60px, squeezed by
+   the 44px album art + compact bar) isn't enough for badge(12)+gap(4)+
+   artist's max-content text, and grid's auto tracks are allowed to
+   shrink below max-content when space is tight, unlike fixed-length
+   tracks. Pinning column 1 to 12px makes it non-shrinkable so the badge
+   always renders at native size; the artist column (1fr) absorbs
+   whatever width is left and truncates via the nowrap/overflow rules
+   below, same as it already did before this fix. */
+aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:nth-child(2)>div:nth-child(2){
+  grid-column:1!important;
+  grid-row:2!important
+}
+/* Artist row - row 2, column 2 (the remaining 1fr track), right next to
+   the badge instead of stacked below it. */
+aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:nth-child(2)>div:nth-child(3){
+  grid-column:2!important;
+  grid-row:2!important;
+  min-width:0!important
 }
 aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:nth-child(2)>div{
   white-space:nowrap!important;
@@ -2960,18 +3047,34 @@ aside[data-testid=now-playing-bar] div[data-testid=now-playing-widget]>div:nth-c
 /* enhance-badge (Smart Shuffle recommendation indicator, data-testid=
    "enhance-badge") - shown whether or not the track also has a video (see
    fix above: the video block next to it, when present, is hidden without
-   touching this). Deliberately NOT given any extra layout CSS here: the
-   no-video DOM (badge alone in jEiAs1et4fAU3chW, nothing else) already
-   renders correctly using Spotify's own native class on that wrapper -
-   that's the exact target appearance for the with-video case too once its
-   sibling video block is hidden. An earlier version of this fix added
-   display:flex/align-items/min-height overrides here, reasoning that
-   compact mode's forced column layout might squash a lone icon - in
-   practice that fought the native alignment (visibly misaligned against
-   the artist-name row below it) instead of helping, so it's gone. If a
-   real squashing/misalignment issue shows up later, fix it by matching
-   whatever jEiAs1et4fAU3chW's own native rules actually do, not by
-   guessing new ones on top. */
+   touching this). No layout CSS is given to the badge svg or its
+   jEiAs1et4fAU3chW wrapper directly - Spotify's own native class on that
+   wrapper already renders it correctly (vertically centered against the
+   artist-name row, ~4px to its left) once it's placed in the same grid
+   row as that artist row. Getting it into that row is handled entirely
+   by the col-level grid rules above (nth-child(2) and its nth-child(2)/
+   nth-child(3) children) - measured via getComputedStyle dumps in both
+   modes:
+   - Native (no spotifuck): col is display:grid, title on row 1 alone,
+     badge+artist sharing row 2 - which is exactly why the badge already
+     lines up with the artist row with no extra CSS needed.
+   - An unconditional (non-.spf-compact) rule elsewhere in this file
+     forces col to display:flex!important, which drops that native grid.
+     In the full/expanded player this still happens to look right,
+     because flex-direction defaults to row and badge is already ordered
+     directly before the artist row in the DOM - one row, three inline
+     items, native gap preserved by coincidence.
+   - In compact mode specifically, an added flex-direction:column turned
+     that same flex container into 3 stacked rows (title, badge, artist
+     each on their own line) - the badge lost its pairing with the artist
+     row entirely, which is the bug this was reported against.
+   The col-level rules above replace that flex-column with an explicit
+   2-row grid (title spans row 1; badge in row 2/col 1; artist in row 2/
+   col 2) to restore the same row-pairing natively achieved by grid,
+   without touching the badge/wrapper CSS itself. If a future
+   misalignment shows up, fix it by matching jEiAs1et4fAU3chW's native
+   rules / the col-level grid placement, not by adding CSS to the badge
+   directly. */
 
 /* Toggle strip - thin bar pinned to the top of the player bar in both full
    and compact states, click to switch between them. Position/size ported
