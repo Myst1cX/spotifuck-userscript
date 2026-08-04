@@ -69,7 +69,7 @@ Adopted from SpotiwebJS/kitbodega's original SpotiKit code and extended independ
 
 Toggleable per site (one switch for `open.spotify.com`, a second for `www.spotify.com` **and** `payments.spotify.com` together) from the userscript-manager menu, saved via GM storage, enabled by default.
 
-### Ad-Slot Cleanup
+### Ad-Slot Cleanup (DOM only, doesn't touch actual audio ads)
 
 Removes ad-slot-container elements (and a couple of specific ad-button classes) from the DOM on `open.spotify.com`, via a `MutationObserver` on `document.body`. Cosmetic only - ordinary ad-blocker-style DOM removal, not a way around anything server-enforced (bitrate, offline downloads, skip limits) - and doesn't touch the actual audio ad requests (see [Ad-Blocking (actual audio ads)](#ad-blocking-actual-audio-ads) below for that). Ships bundled with the premium spoof and is gated behind the same "Visual Premium Spoof (open.spotify.com)" toggle - turning that off also turns this off.
 
