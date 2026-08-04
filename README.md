@@ -41,7 +41,7 @@ Ported from the reverse-engineered Spotifuck Android APK (`r0/e.java`), with the
 - A fixed Home/Search/Library bottom nav bar. Home and Search navigate via `history.pushState`; Library performs a real click on Spotify's own native library toggle (routed through one shared, guarded function so manual clicks, the auto-close-on-playlist trigger, and the nav tab itself can never end up double-firing on the button).
 - The native library sidebar is hidden by default. By pressing on the Library bottom nav bar, the library opens as a full-screen overlay; it auto-closes when you tap into a track, album, or playlist, but **not** when you tap into a folder, so browsing into a playlist still works (see [Library folder-navigation fix](#library-folder-navigation-fix)).
 - The native top header (home icon, bell, upgrade button, profile menu) and the native search input are hidden from the Home tab by default and instead appear when user navigates to the Search tab.
-- The now-playing player sits fixed just above the nav bar, and `#main-view`'s height tracks the player's live-measured height via `ResizeObserver`, so scrollable content never runs behind the player or the nav.
+- The now-playing player sits fixed just above the bottom nav bar, and `#main-view`'s height tracks the player's live-measured height via `ResizeObserver`, so scrollable content never runs behind the player or the nav.
 - Library-open state persists across in-app navigation for the current page load and auto-closes if you switch to Home/Search while it's open.
 
 ### Compact player mode
