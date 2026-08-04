@@ -2,8 +2,8 @@
 
 A userscript that ports the Spotifuck Android mod's mobile UI (bottom nav, full-screen library) and playback-reliability fixes onto the Spotify Web Player, adds a compact player mode ported separately from kitbodega/SpotiKit, and layers a full premium-spoof/ad-cleanup/Force-English engine on top. Works on an actual phone browser or on desktop if you just prefer the mobile-style layout.
 
-> **Recommended userscript manager:** [Violentmonkey](https://violentmonkey.github.io/) or [Tampermonkey](https://www.tampermonkey.net/)
-> Want a desktop version?
+> **Recommended userscript manager:** [Violentmonkey](https://violentmonkey.github.io/) or [Tampermonkey](https://www.tampermonkey.net/)    
+> Want a desktop version?    
 > See [SpotiwebJS](https://github.com/Myst1cX/spotifuck-userscript/blob/main/spotiwebjs/README.md) in this same repo. (fix link later)
 
 ## Index
