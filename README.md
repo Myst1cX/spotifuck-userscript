@@ -1,6 +1,6 @@
 ## Spotifuck Mobile
 
-A userscript that ports the Spotifuck Android mod's mobile UI (bottom nav, full-screen library) and playback-reliability fixes onto the Spotify Web Player, adds a compact player mode ported separately from kitbodega/SpotiKit, and layers a full premium-spoof/ad-cleanup/Force-English engine on top. Works on an actual phone browser or on desktop if you just prefer the mobile-style layout.
+A mobile-layout userscript for the Spotify Web Player: ports the Spotifuck Android mod's mobile UI (bottom nav, full-screen library) and playback-reliability fixes onto the Spotify Web Player, adds a compact player mode ported separately from kitbodega/SpotiKit, and layers a full premium-spoof/ad-cleanup/Force-English engine on top. Works on an actual phone browser or on desktop if you just prefer the mobile-style layout.
 
 > **Recommended userscript manager:** [Violentmonkey](https://violentmonkey.github.io/) or [Tampermonkey](https://www.tampermonkey.net/)    
 > Want a desktop version?    
@@ -19,6 +19,7 @@ A userscript that ports the Spotifuck Android mod's mobile UI (bottom nav, full-
   - [Play/Pause reliability fix](#playpause-reliability-fix)
   - [Library folder-navigation fix](#library-folder-navigation-fix)
   - [Debug Logging & Replacement Log](#debug-logging--replacement-log)
+  - [Efficient Scanning](#efficient-scanning)
   - [Globals for scripting/automation](#globals-for-scriptingautomation)
 - [Installation](#installation)
   - [a) Quetta Browser method (recommended)](#a-quetta-browser--user-agent-switcher-and-manager-method)
@@ -70,7 +71,7 @@ Toggleable per site (one switch for `open.spotify.com`, a second for `www.spotif
 
 ### Ad-Slot Cleanup
 
-Removes ad-slot-container elements (and a couple of specific ad-button classes) from the DOM on `open.spotify.com`, via a `MutationObserver` on `document.body`. Cosmetic only - doesn't touch the actual audio ad requests (see [Ad-Blocking (actual audio ads)](#ad-blocking-actual-audio-ads) below for that). Ships bundled with the premium spoof and is gated behind the same "Visual Premium Spoof (open.spotify.com)" toggle - turning that off also turns this off.
+Removes ad-slot-container elements (and a couple of specific ad-button classes) from the DOM on `open.spotify.com`, via a `MutationObserver` on `document.body`. Cosmetic only - ordinary ad-blocker-style DOM removal, not a way around anything server-enforced (bitrate, offline downloads, skip limits) - and doesn't touch the actual audio ad requests (see [Ad-Blocking (actual audio ads)](#ad-blocking-actual-audio-ads) below for that). Ships bundled with the premium spoof and is gated behind the same "Visual Premium Spoof (open.spotify.com)" toggle - turning that off also turns this off.
 
 ### Play/Pause reliability fix
 
@@ -83,6 +84,10 @@ The original Spotifuck behavior auto-closed the library on any item selection, i
 ### Debug Logging & Replacement Log
 
 Every text swap the premium spoof makes is recorded (selector, before/after text, times applied); a "📋 Show everything replaced so far" menu command dumps it as a table in the console. Separately, a "Debug Logging (console)" menu toggle (off by default) turns on verbose `[SPFDBG]` console logging for every click handler, selector match, and state change the script makes - filter your browser console by `SPFDBG` to isolate it.
+
+### Efficient Scanning
+
+The text-replacement pass only re-scans nodes that actually changed (via a debounced `MutationObserver` watching both added/removed nodes and in-place text updates), not a blind full-page walk on a timer.
 
 ### Globals for scripting/automation
 
@@ -149,14 +154,14 @@ Every text swap the premium spoof makes is recorded (selector, before/after text
 
 ## Ad-Blocking (actual audio ads)
 
-> Spotifuck Mobile doesn't block the audio ads themselves - the ad-slot removal function is just DOM cleanup. Aims to remove Spotify's client-side ad-slot container (data-testid="ad-slot-container"), related ad-* UI wrappers, and an associated button from the DOM as they appear, using a MutationObserver. For true audio ad blocking, use a reliable adblocker depending on yoor browser. On Firefox and its non-chromium forks (no MV3 support), use: **[uBlock Origin](https://addons.mozilla.org/en-US/firefox/addon/ublock-origin/)** or **[uSpot](https://github.com/Myst1cX/uSpot/releases/)** alongside it. More on the difference [here](https://github.com/Myst1cX/uSpot/blob/main/README.md#uspot-vs-ublock-origin-what-is-the-difference). On Chromium browsers without MV2 support (MV3 only), use: **[Spotify Ad Blocker - Blockify](https://chromewebstore.google.com/detail/spotify-ad-blocker-blocki/nfmlkliedggdodlbgghmmchhgckjoaml).**
+> Spotifuck Mobile doesn't block the ad audio itself - the ad-slot removal function is just DOM cleanup. Aims to remove Spotify's client-side ad-slot container (data-testid="ad-slot-container"), related ad-* UI wrappers, and an associated button from the DOM as they appear, using a MutationObserver. For true audio ad blocking, use a reliable adblocker depending on yoor browser. On Firefox and its non-chromium forks (no MV3 support), use: **[uBlock Origin](https://addons.mozilla.org/en-US/firefox/addon/ublock-origin/)** or **[uSpot](https://github.com/Myst1cX/uSpot/releases/)** alongside it. More on the difference [here](https://github.com/Myst1cX/uSpot/blob/main/README.md#uspot-vs-ublock-origin-what-is-the-difference). On Chromium browsers without MV2 support (MV3 only), use: **[Spotify Ad Blocker - Blockify](https://chromewebstore.google.com/detail/spotify-ad-blocker-blocki/nfmlkliedggdodlbgghmmchhgckjoaml).**
 
 ## Notes
 
 > - Client-side only, doesn't touch Spotify's servers.
 > - Doesn't change any account data except the language setting, and only if Force English needs to flip it.
 > - Needs a userscript manager (Tampermonkey or Violentmonkey preferably).
-> - This is the mobile-layout option. For the plain desktop web player with no layout changes, see [SpotiwebJS](https://github.com/Myst1cX/spotifuck-userscript/blob/main/spotiwebjs/README.md).
+> - This is the mobile-layout option.
 
 ## Feedback
 
