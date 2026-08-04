@@ -3076,6 +3076,39 @@ aside[data-testid=now-playing-bar] div[data-testid=now-playing-widget]>div:nth-c
    rules / the col-level grid placement, not by adding CSS to the badge
    directly. */
 
+/* Badge-absent reclaim - tracks that were NOT Smart Shuffle-recommended
+   never get an <svg data-testid="enhance-badge"> at all, but the wrapper
+   div around where it WOULD go (col's 2nd child, jEiAs1et4fAU3chW at time
+   of writing) still exists in the DOM regardless - Spotify doesn't
+   conditionally render/remove that wrapper, it just ends up 0x0 because
+   there's nothing inside it. The bug: the *positioning* we give that slot
+   is hardcoded and doesn't know or care whether a badge is actually
+   present, so it keeps reserving space for one that isn't there:
+   - Compact mode: grid-template-columns:12px 1fr above pins column 1 to
+     a fixed 12px + the 4px column-gap regardless of content, so the
+     artist column starts 16px further right than it needs to.
+   - Full/expanded player: col.children[1]'s own native margin survives
+     even at width/height:0 (confirmed via getComputedStyle dump - wrapper
+     left=733.15/width=0, artist left=737.15, a leftover ~4px gap with
+     nothing to justify it).
+   :has() lets us detect "no badge svg inside this wrapper" without any
+   JS/MutationObserver, and zero out exactly the reservation each mode
+   added - collapsing column 1 + its gap in the grid, and stripping
+   whatever margin/padding the wrapper still carries in the flex case -
+   so the artist text reclaims the same title-aligned left edge it'd have
+   if the wrapper were never in the DOM at all. Scoped with :not(:has())
+   so tracks that DO have the badge are completely untouched by this. */
+aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:nth-child(2):not(:has(svg[data-testid="enhance-badge"])){
+  grid-template-columns:0 1fr!important;
+  column-gap:0!important
+}
+div[data-testid=now-playing-widget]>div:nth-child(2)>div:nth-child(2):not(:has(svg[data-testid="enhance-badge"])){
+  margin:0!important;
+  padding:0!important;
+  min-width:0!important;
+  width:0!important
+}
+
 /* Toggle strip - thin bar pinned to the top of the player bar in both full
    and compact states, click to switch between them. Position/size ported
    directly from SpotiKit's #sp-player-toggle. */
