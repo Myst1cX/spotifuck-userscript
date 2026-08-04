@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile Stable 12px
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.20
+// @version      7.21
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -647,6 +647,29 @@
 *   regardless of how tight col's width gets. The artist column (1fr)
 *   absorbs the remaining space and truncates via the existing
 *   white-space:nowrap/overflow rules, same as before.
+*
+* RESOLVED (v7.21):
+* - Cause: v7.19/v7.20 fixed the badge's position relative to the artist
+*   row for tracks that HAVE an enhance-badge, but never accounted for
+*   tracks that don't (i.e. weren't Smart Shuffle-recommended). Those
+*   tracks still get the badge's wrapper div in the DOM - Spotify doesn't
+*   remove it, it just renders 0x0 since there's no svg inside - but the
+*   space we reserve for it is hardcoded and doesn't check whether a
+*   badge is actually present: compact mode's grid-template-columns:12px
+*   1fr always reserves 12px + the 4px column-gap for column 1 regardless
+*   of content, and in the full/expanded player the wrapper's own native
+*   margin still held a ~4px gap even at width/height:0. Net effect: the
+*   artist text sat 16px (compact) / ~4px (full) further right than it
+*   should for any track without a badge.
+* - Solution: two new :has()-scoped rules target the col and the badge
+*   wrapper only when :not(:has(svg[data-testid="enhance-badge"])) - i.e.
+*   only on tracks with no badge. Compact mode's rule collapses column 1
+*   and its gap to 0 so the artist column starts at the same left edge as
+*   the title; the wrapper-level rule strips its leftover margin/padding
+*   so the full-player gap closes too. Both are pure CSS (no JS/
+*   MutationObserver needed) and, being more specific than the
+*   unconditional rules they layer on top of, only apply when a badge is
+*   genuinely absent - tracks that do have one are untouched.
   */
 
 (function() {
