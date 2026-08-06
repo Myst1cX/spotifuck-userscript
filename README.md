@@ -4,7 +4,7 @@ A mobile-layout userscript for the Spotify Web Player: ports the Spotifuck Andro
 
 > **Recommended userscript manager:** [Violentmonkey](https://violentmonkey.github.io/) or [Tampermonkey](https://www.tampermonkey.net/)    
 > Want a desktop version?    
-> See [SpotiwebJS](https://github.com/Myst1cX/SpotiKit/blob/main/README.md) in this same repo. (fix link later)
+> See [SpotiwebJS](https://github.com/Myst1cX/SpotiKit/blob/main/README.md) in this same repo.
 
 ## Index
 
