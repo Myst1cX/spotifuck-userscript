@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         Spotifuck Mobile Stable
+// @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
 // @version      7.18.b
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
