@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile Stable
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.18
+// @version      7.18.b
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -643,17 +643,18 @@
 *    open.
 * b) The CSS block that hides Spotify's native NPV toggle by squeezing
 *    #main-view's dock region to zero and force-expanding the freed space
-*    to 100vw ran completely unscoped here - unlike SpotiwebJS, which had
-*    already learned to scope it behind html:not(.npv-open). That meant
-*    the squeeze stayed armed even while NPV, Queue, or Connect was
-*    legitimately open, crushing the panel Spotify was actively trying to
-*    show. It's now scoped behind html:not(.fuckd-panel-open), a class
-*    isAnyPanelOpen()/updateNpvLayoutState() keep in sync with whether any
-*    of the three panels is genuinely open - flipped synchronously at
-*    click time by setAuthorizedPanel() rather than waiting for the
-*    guard's own mutation callback to react after the fact, so there's no
-*    window where the squeeze stays armed while Spotify is still mounting
-*    the panel.
+*    to 100vw runs completely unscoped, same as it always has here -
+*    SpotiwebJS scopes its equivalent behind html:not(.npv-open) to avoid
+*    forcing that 100vw width while a panel is genuinely open, but on
+*    mobile that width:100vw is exactly what makes NPV/Queue/Connect take
+*    over the whole viewport instead of docking at their native
+*    sidebar-panel size, so it's kept unscoped on purpose. (It was briefly
+*    scoped behind html:not(.fuckd-panel-open) during this rewrite - a
+*    class isAnyPanelOpen()/updateNpvLayoutState() still keep in sync with
+*    whether any of the three panels is genuinely open, in case something
+*    else needs it - but that regressed NPV/Queue/Connect back to their
+*    docked native width the moment they opened, so the CSS block itself
+*    was reverted to unscoped; only the JS class-tracking stayed.)
 * c) Closing the panel via its own in-panel X button - Spotify's native
 *    close control - never ran through closeNowPlay(), the only place that
 *    used to clear the authorized flags, so the panel closed for real but
@@ -2878,15 +2879,16 @@
 body{min-width:100%!important;min-height:100%!important}
 .os-scrollbar{--os-size:6px!important}
 .contentSpacing{padding:0}
-/* Scoped behind html:not(.fuckd-panel-open) (Sixteenth SpotiwebJS change, ported here) -
-   unscoped, this always crushes #main-view's dock region to 0/100vw, which also crushes
-   NPV's own panel the moment it's legitimately opened, since NPV shares that same freed
-   space. isAnyPanelOpen()/updateNpvLayoutState() flip .fuckd-panel-open on <html> whenever
-   NPV, Queue, or Connect is genuinely open, so the squeeze below only ever runs while all
-   three are closed. */
-html:not(.fuckd-panel-open) div[data-testid=root]{--panel-gap:0!important}
-html:not(.fuckd-panel-open) #main-view+div,html:not(.fuckd-panel-open) #main-view+div>div{overflow:hidden!important;width:auto!important}
-html:not(.fuckd-panel-open) #main-view+div>div>div>div:nth-child(2)>div{width:100vw!important}
+/* Deliberately left unscoped (reverted from the html:not(.fuckd-panel-open) scoping
+   SpotiwebJS's Sixteenth change used) - matches the old behavior of this script, where
+   NPV/Queue/Connect take over the whole viewport instead of docking at their native
+   sidebar-panel size/position. The scoped version stopped forcing width:100vw the moment
+   a panel was genuinely open, so it fell back to Spotify's native docked width - the
+   .fuckd-panel-open class (still set/tracked by isAnyPanelOpen()/updateNpvLayoutState(),
+   in case something else needs it later) is simply no longer read by this block. */
+div[data-testid=root]{--panel-gap:0!important}
+#main-view+div,#main-view+div>div{overflow:hidden!important;width:auto!important}
+#main-view+div>div>div>div:nth-child(2)>div{width:100vw!important}
 /* npBtn's "active" look (Seventeenth/Eighteenth SpotiwebJS changes, ported here):
    position:relative anchors the ::after dot, since a plain <button> is position:static by
    default and the cloned lyBtn classes don't supply that. The :not(.active) rules pin the
