@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile Stable
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.17
+// @version      7.18
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -612,6 +612,89 @@
 *    rather than a guessed static px value. v7.16 left this button
 *    unproxied entirely, so it simply vanished under the blanket compact-
 *    mode hide rule along with the rest of the buttons row.
+*
+* RESOLVED (v7.18) - Now Playing View's guard system ported over to full
+* parity with SpotiwebJS's Sixteenth-Eighteenth changes, fixing gaps that
+* only ever surfaced once Queue or Connect (not NPV) was the panel actually
+* in play, plus giving npBtn a working visual "is NPV open" indicator for
+* the first time:
+* a) Queue and Connect used to get a second-class version of the guard - a
+*    time-boxed otherPanelOpening flag that expired on a fixed 500ms timer
+*    instead of on a confirmed close. Since npvGuardObserver's
+*    childList/subtree observation keeps firing on unrelated DOM churn for
+*    as long as Spotify's app keeps mutating - Connect's device-discovery
+*    mount is the slowest of the three to settle - any callback landing
+*    after the 500ms window had already expired found no record that the
+*    open was authorized and closed it: exactly the "unauthorized native
+*    open" case the guard exists to catch, just triggered by our own flag
+*    lapsing rather than an actual stray toggle. userOpenedQueue and
+*    userOpenedConnect are now full authorized-opener flags, set/cleared
+*    only via the new setAuthorizedPanel(), which persist until a real
+*    close is confirmed, no timer involved - structurally identical to how
+*    userOpenedNPV already worked. isAnyPanelAuthorized() (true if any of
+*    the three is set) and isAnyPanelOpen() (read off the shared panel's
+*    [inert] attribute, which all three panel types flip identically)
+*    replace label-matching as what the guard (renamed panelGuardObserver)
+*    actually gates its close decision on, since the shared panel
+*    container can still read Spotify's generic "Now playing view" default
+*    aria-label for the very first tick after Queue or Connect opens,
+*    before settling to the real value - checking that label on that tick
+*    would misread a legitimate Queue/Connect open as an unauthorized NPV
+*    open.
+* b) The CSS block that hides Spotify's native NPV toggle by squeezing
+*    #main-view's dock region to zero and force-expanding the freed space
+*    to 100vw ran completely unscoped here - unlike SpotiwebJS, which had
+*    already learned to scope it behind html:not(.npv-open). That meant
+*    the squeeze stayed armed even while NPV, Queue, or Connect was
+*    legitimately open, crushing the panel Spotify was actively trying to
+*    show. It's now scoped behind html:not(.fuckd-panel-open), a class
+*    isAnyPanelOpen()/updateNpvLayoutState() keep in sync with whether any
+*    of the three panels is genuinely open - flipped synchronously at
+*    click time by setAuthorizedPanel() rather than waiting for the
+*    guard's own mutation callback to react after the fact, so there's no
+*    window where the squeeze stays armed while Spotify is still mounting
+*    the panel.
+* c) Closing the panel via its own in-panel X button - Spotify's native
+*    close control - never ran through closeNowPlay(), the only place that
+*    used to clear the authorized flags, so the panel closed for real but
+*    the guard kept believing it was still authorized; every later
+*    unrelated native open (another playlist's play button, playing a
+*    search result) was then wrongly trusted and never auto-closed.
+*    panelGuardObserver now also detects the close side reactively: a
+*    lastPanelOpen flag tracks isAnyPanelOpen()'s value across callbacks,
+*    and only a genuine open-to-closed transition (panel now reads closed,
+*    lastPanelOpen was true, an authorized flag is still true) clears the
+*    flags - distinguishing a real X-button close from the ordinary tick
+*    or two between an authorized click and Spotify's own opening
+*    transition, which briefly look the same but aren't.
+* d) On a cold page load, the first native click on the Queue or Connect
+*    button could still get auto-closed because npvSetupInterval's polling
+*    loop stopped as soon as npBtn and the album-art listener were wired,
+*    without waiting for setupOtherPanelTriggers() to actually find and
+*    attach capture-phase listeners to the Queue/Connect buttons - those
+*    two can take longer to become reliably queryable than the player-bar
+*    elements the poll was checking. The clear condition now also requires
+*    both buttons' listeners to be attached before stopping, alongside
+*    this file's own compact-mode stop conditions.
+* e) npBtn now reliably shows a green "active" look - icon color plus a
+*    small bottom dot - whenever NPV specifically is genuinely open, and
+*    only then; previously it never visually reflected NPV state at all.
+*    syncNpBtnVisualState() toggles a self-owned .active class on npBtn
+*    based on userOpenedNPV (not isNpvOpen(), for the same stale-label
+*    reason as (a) above), kept in sync by the same panelGuardObserver
+*    callback that drives everything else. The .active look is styled
+*    entirely by this script's own CSS, pinned with !important, rather
+*    than left to whatever hashed Encore classes happen to be riding along
+*    on npBtn from its one-time clone of the lyrics button - those classes
+*    are Spotify's own internal build output and can be renamed on any
+*    deploy, and if npBtn happened to be cloned at the exact moment the
+*    lyrics button was transiently carrying Spotify's own "open" state
+*    classes (a hydration race), Spotify's stylesheet would style npBtn
+*    off of that instead of anything this script controls. The only state
+*    a leaked class can ever contradict is the resting one - if NPV
+*    genuinely was open at clone time, a leaked class and a later .active
+*    toggle both agree the dot should be green rather than fighting over
+*    it - so only `.npbtn:not(.active)` needs the !important override.
   */
 
 (function() {
@@ -631,25 +714,54 @@
     let userOpenedNPV = false;  // NPV guard: true right after an authorized open (our npBtn -
     // see setupNpvButton - or a real click on the player-bar album art, see
     // setupNpvWidgetTrigger) successfully opens the Now Playing view. closeNowPlay() resets
-    // this to false on every close, and npvGuardObserver auto-closes the panel any time it
-    // becomes visible while this is false - i.e. NPV can only ever be opened via one of those
-    // two authorized paths, never via the unreliable native toggle button
+    // this to false on every close, and panelGuardObserver (renamed from npvGuardObserver once
+    // it grew to cover Queue/Connect too - see below) auto-closes the panel any time it becomes
+    // visible while none of the three flags below is set - i.e. NPV can only ever be opened via
+    // one of those two authorized paths, never via the unreliable native toggle button
     // (unreliable/often absent - see clickNP) or programmatically by anything else.
-    let otherPanelOpening = false;  // Queue/Connect guard: true for a short window after a
-    // Queue or Connect click, set via capture-phase listener (same trick as the album-art
-    // authorized-opener - see setupOtherPanelTriggers) before Spotify's own handler runs.
-    // Needed because npvGuardObserver's childList/subtree observation (below) fires on every
-    // DOM mutation anywhere in document.body, not just the one aria-hidden flip - Spotify's
-    // app mutates constantly, so a single click produces a burst of guard-callback
-    // invocations. The flag can't be cleared after the first of those (that reopens the same
-    // race it's meant to close), so markOtherPanelOpening() below lets it expire on its own
-    // short timer instead, covering the whole opening transition regardless of how many
-    // mutations fire during it.
-    let otherPanelOpeningTimer = null;
-    function markOtherPanelOpening() {
-        otherPanelOpening = true;
-        clearTimeout(otherPanelOpeningTimer);
-        otherPanelOpeningTimer = setTimeout(() => { otherPanelOpening = false; }, 500);
+    //
+    // Queue and Connect are full authorized-opener types, structurally identical to NPV, rather
+    // than the old time-boxed otherPanelOpening flag that used to cover them: a fixed timer
+    // window has no way to know whether the panel had actually finished opening by the time it
+    // expired - Connect's device-discovery mount in particular can keep mutating the DOM well
+    // past a short window - and once the timer lapsed mid-mutation the guard had no record the
+    // open was authorized and closed it anyway, exactly the "unauthorized native open" case it
+    // exists to catch, just triggered by our own flag lapsing rather than by a real stray
+    // toggle. userOpenedQueue/userOpenedConnect instead persist until a real close is confirmed
+    // (closeNowPlay() below clears all three together via setAuthorizedPanel(null)), no timer
+    // involved.
+    let userOpenedQueue = false;
+    let userOpenedConnect = false;
+    // setAuthorizedPanel() is the single place that sets/clears all three flags - every trigger
+    // (npBtn, album art, Queue button, Connect button) calls it with the panel it's about to
+    // open, or null if this click is closing whichever one is currently open, so at most one of
+    // the three is ever true at once, mirroring the "only one of NPV/Queue/Connect can be
+    // genuinely open at a time" invariant of the shared panel container itself. Called
+    // synchronously, before Spotify's own click handling runs (same "beat the mutation
+    // microtask" timing clickNP() already needed - see its own comment), it also flips
+    // .fuckd-panel-open on immediately when opening, rather than waiting for
+    // panelGuardObserver's mutation callback to react after the fact - that class drives the
+    // native-toggle-hiding CSS squeeze (see injectCSS below), and reacting to the mutation alone
+    // would leave a real window, while Spotify is actively mounting the panel into the shared
+    // slot, where that squeeze stays armed and crushes the panel Spotify is trying to show.
+    function setAuthorizedPanel(which) { // which: 'npv' | 'queue' | 'connect' | null
+        userOpenedNPV = which === 'npv';
+        userOpenedQueue = which === 'queue';
+        userOpenedConnect = which === 'connect';
+        if (which) {
+            document.documentElement.classList.add('fuckd-panel-open');
+            dbg('[PanelGuard] setAuthorizedPanel: class forced on', 'html', { which });
+        }
+    }
+    // True whenever ANY of the three panel types was opened through an authorized trigger and
+    // hasn't been closed since. Deliberately doesn't care WHICH of the three: the shared
+    // #Desktop_PanelContainer_Id's aria-label can still read Spotify's generic "Now playing
+    // view" default for the very first mutation tick after Queue or Connect opens, before it
+    // settles to the real "Queue"/"Connect to a device" value a moment later, so label-matching
+    // isNpvOpen()/isQueueOpen()/isConnectOpen() checks are not a reliable way to ask "was THIS
+    // open authorized" on that tick - only the flags themselves are.
+    function isAnyPanelAuthorized() {
+        return userOpenedNPV || userOpenedQueue || userOpenedConnect;
     }
 
     // --- Bottom nav / library-overlay-persistence state (v6.7) ---
@@ -1377,7 +1489,7 @@
      * From r0/e.java line 200: window.closeNowPlay=function(){...}
      */
     window.closeNowPlay = function(source = 'unknown') {
-        userOpenedNPV = false; // NPV guard: any close (any source) disarms the "user opened it" flag
+        setAuthorizedPanel(null); // any close (any source) disarms all three "user opened it" flags
         const panelContainer = document.querySelector('#Desktop_PanelContainer_Id');
         if (!panelContainer) {
             dbg('closeNowPlay: no-op - #Desktop_PanelContainer_Id not found', '#Desktop_PanelContainer_Id', { source });
@@ -1406,25 +1518,50 @@
         const panelContainer = document.querySelector('#Desktop_PanelContainer_Id');
         if (!panelContainer) return false;
         if (panelContainer.parentNode.parentNode.ariaHidden !== 'false') return false;
-        // #Desktop_PanelContainer_Id is shared by NPV, Queue, and (possibly)
-        // Connect to a Device - all three flip the same ariaHidden flag, so
-        // checking that alone can't tell them apart. Confirmed against live
-        // markup: the <aside id="Desktop_PanelContainer_Id"> element ITSELF
-        // carries aria-label="Now playing view" + class "NowPlayingView" when
-        // showing NPV, vs aria-label="Queue" (no NowPlayingView class) for
-        // Queue - it's an attribute/class on the container, not a descendant,
-        // so we check panelContainer directly rather than querySelector-ing
-        // into it.
+        // #Desktop_PanelContainer_Id is shared by NPV, Queue, and Connect to a Device - all
+        // three flip the same ariaHidden flag, so checking that alone can't tell them apart.
+        // Confirmed against live markup: the <aside id="Desktop_PanelContainer_Id"> element
+        // ITSELF carries aria-label="Now playing view" + class "NowPlayingView" when showing
+        // NPV, vs aria-label="Queue" (no NowPlayingView class) for Queue - it's an
+        // attribute/class on the container, not a descendant, so we check panelContainer
+        // directly rather than querySelector-ing into it.
         return panelContainer.getAttribute('aria-label') === 'Now playing view'
             || panelContainer.classList.contains('NowPlayingView');
+    }
+
+    // npBtn's green "active" look (icon color + bottom dot, see the .npbtn CSS in injectCSS
+    // below) is driven off userOpenedNPV rather than isNpvOpen(), for the same stale-label
+    // reason isAnyPanelAuthorized() above can't gate off label-matching either: isNpvOpen()'s
+    // aria-label check can't reliably tell "NPV specifically" apart from a freshly-opening
+    // Queue/Connect on the first tick.
+    function syncNpBtnVisualState() {
+        const npBtn = document.querySelector('.npbtn');
+        if (!npBtn) return;
+        npBtn.classList.toggle('active', userOpenedNPV);
+    }
+
+    // Same shared-container pattern as isNpvOpen() above, checking the container's own
+    // aria-label for the other two panel types ("Queue" and "Connect to a device"
+    // respectively, with no NPV-style extra class to fall back on since those don't carry one).
+    function isQueueOpen() {
+        const panelContainer = document.querySelector('#Desktop_PanelContainer_Id');
+        if (!panelContainer) return false;
+        if (panelContainer.parentNode.parentNode.ariaHidden !== 'false') return false;
+        return panelContainer.getAttribute('aria-label') === 'Queue';
+    }
+    function isConnectOpen() {
+        const panelContainer = document.querySelector('#Desktop_PanelContainer_Id');
+        if (!panelContainer) return false;
+        if (panelContainer.parentNode.parentNode.ariaHidden !== 'false') return false;
+        return panelContainer.getAttribute('aria-label') === 'Connect to a device';
     }
 
     /**
      * clickNP - Toggle the Now Playing view via the same toggle button
      * closeNowPlay() already uses (#Desktop_PanelContainer_Id's parent's
-     * parent's next-sibling button). NPV guard: sets userOpenedNPV based on
+     * parent's next-sibling button). NPV guard: sets the authorized-panel state based on
      * the state this click is *about* to produce, BEFORE clicking - not
-     * after. npvGuardObserver's MutationObserver callback runs as a
+     * after. panelGuardObserver's MutationObserver callback runs as a
      * microtask, which fires before a setTimeout(0) macrotask ever gets a
      * chance to run, so setting the flag after the click loses the race:
      * the guard sees ariaHidden flip to visible while the flag is still
@@ -1441,37 +1578,111 @@
         const panelContainer = document.querySelector('#Desktop_PanelContainer_Id');
         const toggleBtn = panelContainer?.parentNode.parentNode.nextElementSibling?.querySelector('button');
         if (!toggleBtn) {
-            dbg('clickNP: no-op - toggle button not found', '#Desktop_PanelContainer_Id parent parent nextElementSibling button', { source });
+            dbg('[PanelGuard] clickNP: no-op - toggle button not found', '#Desktop_PanelContainer_Id parent parent nextElementSibling button', { source });
             return;
         }
         const willOpen = !isNpvOpen();
-        userOpenedNPV = willOpen; // set BEFORE the click - see comment above
-        dbg('clickNP: clicking toggle', '#Desktop_PanelContainer_Id parent parent nextElementSibling button', { source, willOpen });
+        setAuthorizedPanel(willOpen ? 'npv' : null); // set BEFORE the click - see comment above
+        dbg('[PanelGuard] clickNP: clicking toggle', '#Desktop_PanelContainer_Id parent parent nextElementSibling button', { source, willOpen });
         toggleBtn.click();
     }
 
-    // --- NowPlayingView guard: only allow opens via an authorized path -
-    // npBtn (clickNP, setupNpvButton) or the native album art click
-    // (setupNpvWidgetTrigger) ---
-    // Anything else that makes the panel visible - Spotify itself, another
-    // script, a stray native control - gets auto-closed, since userOpenedNPV
-    // only ever becomes true via one of those two paths.
-    const npvGuardObserver = new MutationObserver(() => {
-        if (isNpvOpen() && !userOpenedNPV && !otherPanelOpening) {
-            const panelContainer = document.querySelector('#Desktop_PanelContainer_Id');
-            dbg('NPV guard: panel opened without npBtn click - closing', '#Desktop_PanelContainer_Id', {
-                'panelContainer aria-label': panelContainer?.getAttribute('aria-label') ?? null
-            });
-            window.closeNowPlay('npv-guard-autoclose');
-        }
-    });
-    observeBody(npvGuardObserver, { childList: true, subtree: true, attributes: true, attributeFilter: ['aria-hidden'] });
+    // Tracks whether ANY of the three views sharing #Desktop_PanelContainer_Id - NPV, Queue, or
+    // Connect - is currently open, as a class on <html> (fuckd-panel-open). Driven off the
+    // [inert] attribute directly via closest() rather than the container's own aria-hidden/
+    // aria-label - confirmed via live DOM capture that all three panel types flip the same
+    // [inert] attribute on the same wrapper when opened, so this one check works uniformly for
+    // all three, unlike isNpvOpen()/isQueueOpen()/isConnectOpen() above, which only ever
+    // recognize their own specific panel and stay label-based for that reason (still used for
+    // logging/diagnostics and by clickNP()/the album-art/Queue/Connect triggers to compute
+    // willOpen, just not to gate panelGuardObserver's close-or-not decision below).
+    function isAnyPanelOpen() {
+        const panelContainer = document.querySelector('#Desktop_PanelContainer_Id');
+        if (!panelContainer) return false;
+        return !panelContainer.closest('[inert]');
+    }
+    function updateNpvLayoutState() {
+        document.documentElement.classList.toggle('fuckd-panel-open', isAnyPanelOpen());
+        syncNpBtnVisualState();
+    }
+    updateNpvLayoutState(); // reflect default (closed) state before the panel even exists
 
-    // On load, close it if it's already open before any npBtn click has happened.
-    setTimeout(() => {
-        if (isNpvOpen() && !userOpenedNPV) {
-            window.closeNowPlay('npv-guard-initial');
+    // --- NowPlayingView/Queue/Connect guard: only allow opens via an authorized path - npBtn
+    // (clickNP)/album art for NPV, or the Queue/Connect buttons for those two (see
+    // setupOtherPanelTriggers) --- Anything else that makes the shared panel container visible
+    // gets auto-closed, since userOpenedNPV/userOpenedQueue/userOpenedConnect only ever become
+    // true via setAuthorizedPanel(), called from one of those four triggers.
+    //
+    // Gates on isAnyPanelOpen() + isAnyPanelAuthorized() (any one of the three flags), not on
+    // isNpvOpen()/isQueueOpen()/isConnectOpen() label-matching against a specific panel type -
+    // see isAnyPanelAuthorized()'s own comment above for why those three checks can't reliably
+    // tell "was this specific open authorized" apart on the first tick. isNpvOpen()/
+    // isQueueOpen()/isConnectOpen() are still called below, but only to report which panel it
+    // turned out to be in the debug log, not to decide whether to close it.
+    //
+    // Also tracks the panel's open state across callbacks (lastPanelOpen below) so the
+    // stale-flag branch a few lines down only fires on a genuine open->closed TRANSITION - see
+    // that branch's own comment for why a plain "currently reads closed" check would be wrong.
+    let lastPanelOpen = false;
+    let lastLoggedPanelState = null;
+    const panelGuardObserver = new MutationObserver(() => {
+        const anyOpenNow = isAnyPanelOpen();
+        if (anyOpenNow) {
+            if (!isAnyPanelAuthorized()) {
+                const panelContainer = document.querySelector('#Desktop_PanelContainer_Id');
+                dbg('[PanelGuard] autoclose: panel opened without an authorized trigger click - closing', '#Desktop_PanelContainer_Id', {
+                    'panelContainer aria-label': panelContainer?.getAttribute('aria-label') ?? null,
+                    isNpvOpen: isNpvOpen(), isQueueOpen: isQueueOpen(), isConnectOpen: isConnectOpen()
+                });
+                window.closeNowPlay('panel-guard-autoclose');
+            }
+        } else if (lastPanelOpen && isAnyPanelAuthorized()) {
+            // The panel just transitioned from open to closed (lastPanelOpen was true,
+            // isAnyPanelOpen() now reads false), but one of the three authorized flags is
+            // still true. That only happens when something closed the panel WITHOUT going
+            // through closeNowPlay() - the confirmed real-world case is the panel's own
+            // in-panel X/close button, which triggers Spotify's native close handler directly
+            // and never touches any of our code, so setAuthorizedPanel(null) never ran.
+            // Without this branch the stale `true` flag persists indefinitely and the guard
+            // wrongly treats the NEXT open - even a totally unrelated native one, e.g. clicking
+            // another playlist's play button or playing a search result, both of which
+            // auto-open NPV on their own - as still-authorized, and never auto-closes it.
+            //
+            // Requiring `lastPanelOpen` (true only once the panel has been genuinely seen
+            // open, rather than just checking `!isAnyPanelOpen() && isAnyPanelAuthorized()` on
+            // its own) matters because that plain check would also match the very FIRST
+            // callback tick(s) right after an authorized click, before Spotify's (multi-tick)
+            // opening transition had made the panel visible yet - "hasn't opened yet" would
+            // get misread as "closed via X button", clearing the just-set authorized flag
+            // mid-open, which would then make the panel's real opening tick a moment later
+            // look unauthorized to the branch above and get it closed right after being told
+            // to open. The pre-open ticks correctly fall through instead (lastPanelOpen is
+            // still false, since the panel was never open before this click), and only a real
+            // open->closed transition matches.
+            dbg('[PanelGuard] stale-flag: panel closed via a path that bypassed closeNowPlay() (e.g. in-panel X button) - clearing stale authorized flag', 'html', {
+                userOpenedNPV, userOpenedQueue, userOpenedConnect
+            });
+            setAuthorizedPanel(null);
         }
+        lastPanelOpen = anyOpenNow;
+        const currentPanelState = `open:${anyOpenNow}|npv:${userOpenedNPV}|queue:${userOpenedQueue}|connect:${userOpenedConnect}`;
+        if (currentPanelState !== lastLoggedPanelState) {
+            dbg('[PanelGuard] state changed', 'html', { isNpvOpen: isNpvOpen(), isQueueOpen: isQueueOpen(), isConnectOpen: isConnectOpen(), isAnyPanelOpen: anyOpenNow });
+            lastLoggedPanelState = currentPanelState;
+        }
+        updateNpvLayoutState();
+    });
+    observeBody(panelGuardObserver, { childList: true, subtree: true, attributes: true, attributeFilter: ['aria-hidden', 'inert'] });
+
+    // On load, close it if it's already open before any authorized trigger has fired.
+    setTimeout(() => {
+        if (isAnyPanelOpen() && !isAnyPanelAuthorized()) window.closeNowPlay('panel-guard-initial');
+        const initialPanelState = `open:${isAnyPanelOpen()}|npv:${userOpenedNPV}|queue:${userOpenedQueue}|connect:${userOpenedConnect}`;
+        if (initialPanelState !== lastLoggedPanelState) {
+            dbg('[PanelGuard] initial: syncing fuckd-panel-open layout class', 'html', { isNpvOpen: isNpvOpen(), isAnyPanelOpen: isAnyPanelOpen() });
+            lastLoggedPanelState = initialPanelState;
+        }
+        updateNpvLayoutState();
     }, 1000);
 
     // ==========================================================================
@@ -2179,7 +2390,7 @@
         // is unreliable/often absent. This is the only *added* click path -
         // see setupNpvWidgetTrigger() below for the other legitimate native
         // path (the player-bar album art) that the guard is also taught to
-        // allow, plus clickNP()/npvGuardObserver above closeNowPlay().
+        // allow, plus clickNP()/panelGuardObserver above closeNowPlay().
         const setupNpvButton = () => {
             if (document.querySelector('.npbtn')) return; // already inserted
             const lyBtn = document.querySelector('button[data-testid="lyrics-button"]:not(.fuckd-npv)');
@@ -2191,6 +2402,14 @@
             // npBtn automatically gets the same size/padding/hover/scale as every
             // other player-bar button, instead of rendering as an unstyled native
             // <button> (which is what was making it look like a thin line before).
+            // No defensive strip of lyBtn's hashed "open" state classes needed here: if
+            // lyBtn happens to be transiently carrying them at clone time (Spotify's own
+            // hydration race), they ride along onto npBtn same as any other class, but the
+            // `.npbtn:not(.active)` CSS in injectCSS below pins npBtn's resting-state color
+            // and dot directly with !important, so a leaked class has nothing left it's
+            // able to paint - a literal-name denylist would only work until Spotify renames
+            // those hashed classes on some future deploy, where this property-level defense
+            // doesn't depend on the names staying the same at all.
             npBtn.className = lyBtn.className.replace('fuckd-npv', '').trim() + ' npbtn';
             npBtn.setAttribute('aria-label', 'Now Playing view');
             npBtn.title = 'Now Playing view';
@@ -2200,28 +2419,36 @@
             npBtn.innerHTML = `<svg data-encore-id="icon" role="img" aria-hidden="true" viewBox="0 0 16 16" style="width:16px;height:16px;fill:currentColor;"><rect x="1.25" y="0.75" width="13.5" height="14.5" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M6 4.5v7l5.5-3.5z" fill="currentColor"/></svg>`;
             npBtn.addEventListener('click', () => clickNP('npBtn-click'));
             lyBtn.parentNode.insertBefore(npBtn, lyBtn);
+            syncNpBtnVisualState(); // set the correct initial look immediately, in case NPV is
+            // (unusually) already open-and-authorized at insertion time.
 
-            // Make sure NPV starts closed - at this point only npBtn is wired
-            // as an authorized opener (setupNpvWidgetTrigger runs separately).
-            if (isNpvOpen() && !userOpenedNPV) window.closeNowPlay('npv-guard-init');
+            // Make sure nothing is left open from before npBtn/album-art/Queue/Connect were
+            // wired up. Uses the same isAnyPanelOpen()/isAnyPanelAuthorized() combo as
+            // panelGuardObserver (not isNpvOpen()) since this can run while a fresh Queue/
+            // Connect open is still showing the stale default aria-label described in
+            // isAnyPanelAuthorized()'s comment above - checking isNpvOpen() here instead could
+            // get fooled by that same stale label and wrongly close the Queue/Connect panel the
+            // person just legitimately opened.
+            if (isAnyPanelOpen() && !isAnyPanelAuthorized()) window.closeNowPlay('panel-guard-init');
 
-            dbg('setupNpvButton: button inserted', 'button[data-testid="lyrics-button"]', {});
+            dbg('[PanelGuard] setupNpvButton: button inserted', 'button[data-testid="lyrics-button"]', {});
         };
 
         // NPV guard: the player-bar album art (div[data-testid=now-playing-widget]
         // >div:first-child) natively TOGGLES the Now Playing view on click - this is
         // a real, reliable Spotify affordance, separate from the unreliable native
-        // toggle button npBtn above works around. Without this, npvGuardObserver
-        // (which only trusts opens that went through clickNP()) would see the
+        // toggle button npBtn above works around. Without this, panelGuardObserver
+        // (which only trusts opens that went through an authorized trigger) would see the
         // native open and immediately undo it, making the click appear to do
-        // nothing. A capture-phase listener sets userOpenedNPV to match what this
-        // click is about to do - open or close, computed from isNpvOpen() same as
+        // nothing. A capture-phase listener sets the authorized-panel state to match
+        // what this click is about to do - open or close, computed from isNpvOpen() same as
         // clickNP() - strictly before Spotify's own bubble-phase handler runs, so
-        // by the time npvGuardObserver's mutation microtask fires, userOpenedNPV
+        // by the time panelGuardObserver's mutation microtask fires, the flag
         // already reflects the correct state. This must mirror both directions
         // (not just set true): since it's a native toggle, the closing click never
         // goes through our closeNowPlay() (which is the only other place that
-        // resets the flag), so an unconditional `true` here would leave the flag
+        // resets the flag, aside from panelGuardObserver's own stale-flag backstop), so an
+        // unconditional `true` here would leave the flag
         // stuck true after a close and cause the guard to wrongly trust the next
         // unrelated native open. Nothing is clicked synthetically here (unlike
         // clickNP()), so there's no risk of a second, self-inflicted toggle undoing
@@ -2233,43 +2460,51 @@
             artEl.addEventListener('click', () => {
                 // Album art is a native toggle - a click can either open OR close NPV
                 // depending on current state, unlike npBtn where clickNP() computes this
-                // itself. Must mirror that here: if we unconditionally set true, the
+                // itself. Must mirror that here: if we unconditionally authorized 'npv', the
                 // *closing* click (native, closeNowPlay() never runs for this path) leaves
                 // userOpenedNPV stuck true, so the guard wrongly trusts the next unrelated
                 // native open (e.g. playlist play button auto-opening NPV).
                 const willOpen = !isNpvOpen();
-                userOpenedNPV = willOpen;
-                dbg('npvWidget: album art clicked', 'div[data-testid="now-playing-widget"]>div:first-child', {
+                setAuthorizedPanel(willOpen ? 'npv' : null);
+                dbg('[PanelGuard] npvWidget: album art clicked', 'div[data-testid="now-playing-widget"]>div:first-child', {
                     willOpen,
                     note: willOpen
-                        ? 'userOpenedNPV set true before Spotify\'s own click handling runs, so npvGuardObserver allows this open'
-                        : 'panel was open - this click closes it natively (closeNowPlay() never runs for this path), so userOpenedNPV reset to false here to keep guard state in sync'
+                        ? 'authorized panel set to npv before Spotify\'s own click handling runs, so panelGuardObserver allows this open'
+                        : 'panel was open - this click closes it natively (closeNowPlay() never runs for this path), so the authorized-panel flags are cleared here to keep guard state in sync'
                 });
             }, { capture: true });
-            dbg('setupNpvWidgetTrigger: listener attached', 'div[data-testid="now-playing-widget"]>div:first-child', {});
+            dbg('[PanelGuard] setupNpvWidgetTrigger: listener attached', 'div[data-testid="now-playing-widget"]>div:first-child', {});
         };
 
-        // Same authorized-opener trick as setupNpvWidgetTrigger above, but for Queue and
-        // Connect - marks otherPanelOpening=true the instant the click lands (capture
-        // phase, before Spotify's own handler runs), so npvGuardObserver's mutation
-        // callback sees it already set and doesn't mistake the shared panel's still-stale
-        // "Now playing view" label for an unauthorized NPV open.
+        // Queue and Connect are full authorized-opener types, same pattern as the album art
+        // trigger above - compute willOpen from each panel's own isQueueOpen()/isConnectOpen()
+        // check, and call setAuthorizedPanel() synchronously in a capture-phase listener before
+        // Spotify's own handler runs. This replaces the old time-boxed otherPanelOpening flag
+        // (see userOpenedQueue/userOpenedConnect's own declaration comment for why that flag's
+        // fixed timer window was the actual cause of Queue/Connect auto-closing on a cold first
+        // click) - these two buttons are also real native toggles like the album art, so both
+        // directions need to be computed here for the same reason: an unconditional `true`
+        // would leave the flag stuck after a close.
         const setupOtherPanelTriggers = () => {
             const queueBtn = document.querySelector('button[data-testid="control-button-queue"]:not(.fuckd-other-panel)');
             if (queueBtn) {
                 queueBtn.classList.add('fuckd-other-panel');
                 queueBtn.addEventListener('click', () => {
-                    markOtherPanelOpening();
-                    dbg('otherPanel: Queue button clicked', 'button[data-testid="control-button-queue"]', {});
+                    const willOpen = !isQueueOpen();
+                    setAuthorizedPanel(willOpen ? 'queue' : null);
+                    dbg('[PanelGuard] otherPanel: Queue button clicked', 'button[data-testid="control-button-queue"]', { willOpen });
                 }, { capture: true });
+                dbg('[PanelGuard] setupOtherPanelTriggers: Queue listener attached', 'button[data-testid="control-button-queue"]', {});
             }
             const connectBtn = document.querySelector('button[aria-label="Connect to a device"]:not(.fuckd-other-panel)');
             if (connectBtn) {
                 connectBtn.classList.add('fuckd-other-panel');
                 connectBtn.addEventListener('click', () => {
-                    markOtherPanelOpening();
-                    dbg('otherPanel: Connect button clicked', 'button[aria-label="Connect to a device"]', {});
+                    const willOpen = !isConnectOpen();
+                    setAuthorizedPanel(willOpen ? 'connect' : null);
+                    dbg('[PanelGuard] otherPanel: Connect button clicked', 'button[aria-label="Connect to a device"]', { willOpen });
                 }, { capture: true });
+                dbg('[PanelGuard] setupOtherPanelTriggers: Connect listener attached', 'button[aria-label="Connect to a device"]', {});
             }
         };
 
@@ -2595,9 +2830,20 @@
         // player-bar album art take longer than 2s to render (the same class of
         // delay firstFuck's own indefinite polling exists to handle), they'd
         // silently never get wired at all. Ported SpotiwebJS's npvSetupInterval
-        // pattern instead: poll every second until both are confirmed present,
-        // then stop. Both setup functions already no-op harmlessly once
-        // already-inserted, so repeated calls are safe.
+        // pattern instead: poll every second until all are confirmed present,
+        // then stop. All setup functions already no-op harmlessly once
+        // already-inserted, so repeated calls are safe. The clear condition below
+        // used to check only .npbtn/.fuckd-npv-art - never the Queue/Connect
+        // listeners setupOtherPanelTriggers() adds. npBtn is our own element, created
+        // the instant the native lyrics button exists, so it (and the album art,
+        // generally present at the same time) are often wired on an earlier tick than
+        // Queue/Connect's aria-label/data-testid become reliably queryable. If that
+        // happens, the old condition was already satisfied and clearInterval() fired -
+        // permanently stopping the poll before setupOtherPanelTriggers() ever got
+        // another chance to find and wire Queue/Connect, leaving them stuck relying on
+        // Spotify's own native (unauthorized, per panelGuardObserver) click handling
+        // for the rest of the session. Now requires all four - npBtn, album art, Queue
+        // button, and Connect button - to be wired before stopping.
         setupNpvButton();
         setupNpvWidgetTrigger();
         setupOtherPanelTriggers();
@@ -2610,7 +2856,11 @@
             tryRestoreCompact();
             cleanupOrphans();
             const compactRestoreDone = !compactModeEnabled() || document.getElementById('spf-compact-libaction');
-            if (document.querySelector('.npbtn') && document.querySelector('.fuckd-npv-art') && document.querySelector('.spf-compact-ready') && compactRestoreDone) {
+            if (document.querySelector('.npbtn') && document.querySelector('.fuckd-npv-art')
+                && document.querySelector('button[data-testid="control-button-queue"].fuckd-other-panel')
+                && document.querySelector('button[aria-label="Connect to a device"].fuckd-other-panel')
+                && document.querySelector('.spf-compact-ready') && compactRestoreDone) {
+                dbg('[PanelGuard] npvSetupInterval: all four triggers wired - stopping poll', 'setInterval', {});
                 clearInterval(npvSetupInterval);
             }
         }, 1000);
@@ -2628,9 +2878,32 @@
 body{min-width:100%!important;min-height:100%!important}
 .os-scrollbar{--os-size:6px!important}
 .contentSpacing{padding:0}
-div[data-testid=root]{--panel-gap:0!important}
-#main-view+div,#main-view+div>div{overflow:hidden!important;width:auto}
-#main-view+div>div>div>div:nth-child(2)>div{width:100vw!important}
+/* Scoped behind html:not(.fuckd-panel-open) (Sixteenth SpotiwebJS change, ported here) -
+   unscoped, this always crushes #main-view's dock region to 0/100vw, which also crushes
+   NPV's own panel the moment it's legitimately opened, since NPV shares that same freed
+   space. isAnyPanelOpen()/updateNpvLayoutState() flip .fuckd-panel-open on <html> whenever
+   NPV, Queue, or Connect is genuinely open, so the squeeze below only ever runs while all
+   three are closed. */
+html:not(.fuckd-panel-open) div[data-testid=root]{--panel-gap:0!important}
+html:not(.fuckd-panel-open) #main-view+div,html:not(.fuckd-panel-open) #main-view+div>div{overflow:hidden!important;width:auto!important}
+html:not(.fuckd-panel-open) #main-view+div>div>div>div:nth-child(2)>div{width:100vw!important}
+/* npBtn's "active" look (Seventeenth/Eighteenth SpotiwebJS changes, ported here):
+   position:relative anchors the ::after dot, since a plain <button> is position:static by
+   default and the cloned lyBtn classes don't supply that. The :not(.active) rules pin the
+   resting icon color and turn the dot off with !important - not to fight anything of ours,
+   but to override Spotify's own hashed "open"-state classes on the off chance they were
+   riding along on lyBtn's className at the exact moment it was cloned into npBtn (see
+   setupNpvButton's own comment on that hydration race). That race can only ever coincide
+   with NPV genuinely being open at clone time, in which case a leaked class and .active's
+   own rules already agree the icon should be green - the resting state is the only one a
+   leaked class could ever contradict, which is exactly the one pinned here. */
+.npbtn{position:relative}
+.npbtn:not(.active){color:var(--text-subdued,#b3b3b3)!important}
+.npbtn:not(.active)::after{content:none!important}
+.npbtn:not(.active):hover,.npbtn:not(.active):focus{color:var(--text-base,#fff)!important}
+.npbtn.active{color:#1db954}
+.npbtn.active:hover,.npbtn.active:focus{color:#1db954!important}
+.npbtn.active::after{content:"";background-color:#1db954;border-radius:50%;width:4px;height:4px;display:block;position:absolute;bottom:0;left:50%;transform:translate(-50%)}
 div[data-encore-id=banner],#global-nav-bar>div:first-of-type,#global-nav-bar a[href="/download"],button[data-testid=fullscreen-mode-button],button[data-testid=pip-toggle-button],div.main-view-container__mh-footer-container{display:none!important}
 section[data-testid=artist-page]>div>div:first-child:not([data-encore-id]){height:25vh}
 div[data-testid=tracklist-row]{padding:0 10px 0 0;grid-gap:0}
