@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.20
+// @version      7.20.1
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -755,6 +755,32 @@
 * .e-10451-button-primary__inner -> .e-10750-button-primary__inner.
 * Nothing else in the rule changed. If this drifts again, re-inspect the
 * live button's inner <span> class rather than assuming the hash pattern.
+*
+* RESOLVED (v7.20.1) - v7.20's fix for the above was itself still pinned to
+* a hash (.e-10750-button-primary__inner), so the exact same drift could
+* silently break it again on Spotify's next build - it already had once,
+* going from e-10451 to e-10750. Replaced the hash-scoped child selector
+* with a plain wildcard descendant selector scoped to #spf-compact-play
+* (the id moveOut() assigns, entirely under this script's own control,
+* never Spotify's):
+*   #spf-compact-play .e-10750-button-primary__inner{background:transparent!important}
+*   -> #spf-compact-play *{background:transparent!important}
+* This clears background on every element inside the button regardless of
+* how many wrapper spans Spotify nests or what hash their classes carry -
+* only the id anchor matters now, and that one's ours. Same technique the
+* script already relies on elsewhere for exactly this reason - NPV
+* detection (isNpvOpen(), see v7.18) reads Spotify's own aria-label
+* ("Now playing view") rather than any hashed class, since aria-label is
+* a semantic/accessibility attribute Spotify has no reason to rotate the
+* way it rotates CSS module hashes. No live attribute here was similarly
+* stable enough to key off of (the button's own data-encore-id=
+* "buttonPrimary" only identifies the component type, not which element
+* inside it holds the background) - the id-scoped wildcard was the
+* closest equivalent: durable for the same reason (nothing here depends
+* on Spotify's build output), just via DOM structure instead of a
+* semantic attribute. svg/svg path's fill:#fff!important rule is
+* unaffected either way - fill isn't a background, and both were already
+* hash-independent.
 */
 
 (function() {
@@ -3619,7 +3645,7 @@ div[data-testid=now-playing-widget]>div:nth-child(2)>div:nth-child(2):not(:has(s
   min-width:0!important;
   color:#fff!important
 }
-#spf-compact-play .e-10750-button-primary__inner{
+#spf-compact-play *{
   background:transparent!important
 }
 #spf-compact-play svg,
@@ -4091,3 +4117,4 @@ div[data-testid=now-playing-widget]>div:nth-child(2)>div:nth-child(2):not(:has(s
     }
 
 })();
+
