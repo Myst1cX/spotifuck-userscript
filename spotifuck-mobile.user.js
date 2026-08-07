@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.18.d
+// @version      7.20
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -697,7 +697,7 @@
 *    toggle both agree the dot should be green rather than fighting over
 *    it - so only `.npbtn:not(.active)` needs the !important override.
 *
-* RESOLVED (v7.18.c) - forceEnglish() now skips entirely when running
+* RESOLVED (v7.19) - forceEnglish() now skips entirely when running
 * inside the Spotify Web wrapper app, rather than always running alongside
 * that app's own native locale force:
 * The app's item 22 added Locale.setDefault(new Locale("en")) to its
@@ -727,7 +727,7 @@
 * native fix to cover it too rather than running a second, JS-layer spoof
 * alongside it indefinitely.
 *
-* RESOLVED (v7.18.d) - Compact mode's Play/Pause button (#spf-compact-play)
+* RESOLVED (v7.20) - Compact mode's Play/Pause button (#spf-compact-play)
 * showed a stray white circle behind the icon again.
 * #spf-compact-play is the real Encore Primary play/pause button, moved
 * into the compact strip as-is (not a synthetic proxy) - see moveOut() -
