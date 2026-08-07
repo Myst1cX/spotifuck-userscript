@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.18.b
+// @version      7.18.c
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -696,7 +696,37 @@
 *    genuinely was open at clone time, a leaked class and a later .active
 *    toggle both agree the dot should be green rather than fighting over
 *    it - so only `.npbtn:not(.active)` needs the !important override.
-  */
+*
+* RESOLVED (v7.18.c) - forceEnglish() now skips entirely when running
+* inside the Spotify Web wrapper app, rather than always running alongside
+* that app's own native locale force:
+* The app's item 22 added Locale.setDefault(new Locale("en")) to its
+* MainActivity's onCreate()/onResume(), which makes Chromium WebView derive
+* Accept-Language: en for every request it makes (main frame, iframes,
+* XHR/fetch, all of it) at the HTTP layer - including the hidden
+* open.spotify.com/preferences iframe forceEnglishAccountSetting() creates,
+* whose false "not English" read (caused by WebViewClient's onPageFinished/
+* onPageStarted firing main-frame-only, per Android's own docs, so this
+* script's own navigator.language spoof never reached that iframe) was the
+* actual source of the reload-on-login bug this script's own account-
+* setting-flip retry logic exists to work around. That native fix
+* structurally can't be affected by injection frame-scope at all, since
+* it's applied at WebView creation time, before any page - main or iframe -
+* even starts loading.
+* window.AndBridge only ever exists inside this app's WebView
+* (addJavascriptInterface-only, never present in a real browser or
+* userscript-manager context), so its presence is a reliable "the native
+* fix is active" signal. forceEnglish() now checks for it first and returns
+* immediately if found - skipping the navigator.language/languages spoof,
+* the www.spotify.com region-path redirect, and the account-setting flip
+* together, rather than just the specific flip that was confirmed broken.
+* navigator.language isn't separately confirmed redundant here (the item 22
+* investigation specifically tested Accept-Language, not this property),
+* but Chromium's per-request Accept-Language and navigator.language both
+* derive from the same embedder-supplied locale list, so this trusts the
+* native fix to cover it too rather than running a second, JS-layer spoof
+* alongside it indefinitely.
+*/
 
 (function() {
     'use strict';
@@ -971,6 +1001,25 @@
      * Runs at document-start, before Spotify's own scripts get a chance to read navigator.language.
      */
     function forceEnglish() {
+        // Item 22 (native app side) added Locale.setDefault(new Locale("en")) in
+        // MainActivity's onCreate()/onResume(), which makes Chromium WebView derive
+        // Accept-Language: en for every request (main frame, iframes, XHR/fetch, all of
+        // it) at the HTTP layer - structurally covers what this whole function exists to
+        // work around at the JS layer, including the account-setting iframe flip below
+        // (forceEnglishAccountSetting()) that was the actual source of the reload-on-login
+        // bug that native fix was built for. window.AndBridge only exists inside this
+        // app's WebView (added by addJavascriptInterface, never present in a real
+        // browser/userscript-manager context), so its presence is a reliable signal the
+        // native fix is active. Skip everything below entirely rather than just the
+        // account-setting flip - navigator.language/languages isn't separately confirmed
+        // redundant, but Chromium's per-request Accept-Language and navigator.language
+        // both derive from the same embedder-supplied locale list, so trusting the native
+        // fix to cover it too rather than keeping a second, JS-layer spoof running
+        // alongside it.
+        if (window.AndBridge && typeof window.AndBridge.isLoggedIn === 'function') {
+            dbg('forceEnglish: skipping entirely', 'window.AndBridge present', { reason: 'native app-layer ForceEn (item 22) already active - Accept-Language covers this at the HTTP layer' });
+            return;
+        }
         dbg('forceEnglish: spoofing navigator.language', 'navigator.language/languages', { value: 'en-US' });
         try {
             Object.defineProperty(navigator, 'language', { get: () => 'en-US', configurable: true });
