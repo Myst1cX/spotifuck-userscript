@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.18.c
+// @version      7.18.d
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -726,6 +726,35 @@
 * derive from the same embedder-supplied locale list, so this trusts the
 * native fix to cover it too rather than running a second, JS-layer spoof
 * alongside it indefinitely.
+*
+* RESOLVED (v7.18.d) - Compact mode's Play/Pause button (#spf-compact-play)
+* showed a stray white circle behind the icon again.
+* #spf-compact-play is the real Encore Primary play/pause button, moved
+* into the compact strip as-is (not a synthetic proxy) - see moveOut() -
+* so it keeps Spotify's own "filled white circle" chrome unless explicitly
+* stripped. That chrome lives on an inner <span class="e-#####-button-
+* primary__inner">, not on the <button> itself, so #spf-compact-play's own
+* background:transparent!important never touched it - the inner span
+* needed its own targeted rule, background:transparent!important on
+* #spf-compact-play .e-#####-button-primary__inner.
+* The #### is Spotify's own Encore build-hash prefix, which rotates
+* independently of any actual visual/behavioral change on Spotify's end -
+* the same kind of drift already hit the app-side settings-panel selector
+* (item 22's addendum, .qV_CxbowaNkMarye -> .Z6yfNoSJ6OjiEBGI5Osr). That
+* rule was still hardcoded to a stale e-10451- from whenever it was last
+* written; once Spotify's build moved on, the rule silently stopped
+* matching - background:transparent!important still applied to the outer
+* button and svg fill was still forced white (both still worked, since
+* neither of those depended on the hash), but the inner span's own white
+* background was no longer overridden, so the circle came back on its own
+* while everything else stayed fixed.
+* Confirmed the current hash directly from a live outerHTML dump of the
+* button (not guessed): '.e-10750-legacy-button-primary'/'.e-10750-
+* button-primary__inner'/'.e-10750-button__icon-wrapper' on the real
+* on-screen element all agreed, so the one selector was updated
+* .e-10451-button-primary__inner -> .e-10750-button-primary__inner.
+* Nothing else in the rule changed. If this drifts again, re-inspect the
+* live button's inner <span> class rather than assuming the hash pattern.
 */
 
 (function() {
@@ -3590,7 +3619,7 @@ div[data-testid=now-playing-widget]>div:nth-child(2)>div:nth-child(2):not(:has(s
   min-width:0!important;
   color:#fff!important
 }
-#spf-compact-play .e-10451-button-primary__inner{
+#spf-compact-play .e-10750-button-primary__inner{
   background:transparent!important
 }
 #spf-compact-play svg,
