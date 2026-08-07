@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.20.1
+// @version      7.21
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -781,6 +781,18 @@
 * semantic attribute. svg/svg path's fill:#fff!important rule is
 * unaffected either way - fill isn't a background, and both were already
 * hash-independent.
+*
+* RESOLVED (v7.21) - forceEnglish()'s v7.19 window.AndBridge guard was
+* skipping the account-setting flip (forceEnglishAccountSetting(), reached
+* via runIntlCorrectionOnceReady()) too, not just the navigator.language
+* spoof and www.spotify.com region redirect it was actually meant for.
+* v7.19's reasoning was that item 22's native Locale.setDefault("en") makes
+* Accept-Language: en cover every request the WebView makes, including the
+* hidden open.spotify.com/preferences iframe forceEnglishAccountSetting()
+* loads - so the account setting would read as English anyway. That's
+* true, but skipping the flip inside the app allows user to change their 
+* interface language and reload the page which we don't want because we use
+* certain English selectors to accomplish some of the modifications.
 */
 
 (function() {
@@ -1059,22 +1071,30 @@
         // Item 22 (native app side) added Locale.setDefault(new Locale("en")) in
         // MainActivity's onCreate()/onResume(), which makes Chromium WebView derive
         // Accept-Language: en for every request (main frame, iframes, XHR/fetch, all of
-        // it) at the HTTP layer - structurally covers what this whole function exists to
-        // work around at the JS layer, including the account-setting iframe flip below
-        // (forceEnglishAccountSetting()) that was the actual source of the reload-on-login
-        // bug that native fix was built for. window.AndBridge only exists inside this
-        // app's WebView (added by addJavascriptInterface, never present in a real
-        // browser/userscript-manager context), so its presence is a reliable signal the
-        // native fix is active. Skip everything below entirely rather than just the
-        // account-setting flip - navigator.language/languages isn't separately confirmed
+        // it) at the HTTP layer - covering the navigator.language/languages spoof and
+        // the www.spotify.com region-path redirect just below. window.AndBridge only
+        // exists inside this app's WebView (added by addJavascriptInterface, never
+        // present in a real browser/userscript-manager context), so its presence is a
+        // reliable signal the native fix is active for those two. Skip just those two
+        // when it's present - navigator.language/languages isn't separately confirmed
         // redundant, but Chromium's per-request Accept-Language and navigator.language
-        // both derive from the same embedder-supplied locale list, so trusting the native
-        // fix to cover it too rather than keeping a second, JS-layer spoof running
-        // alongside it.
-        if (window.AndBridge && typeof window.AndBridge.isLoggedIn === 'function') {
-            dbg('forceEnglish: skipping entirely', 'window.AndBridge present', { reason: 'native app-layer ForceEn (item 22) already active - Accept-Language covers this at the HTTP layer' });
-            return;
-        }
+        // both derive from the same embedder-supplied locale list, so trusting the
+        // native fix to cover it too rather than keeping a second, JS-layer spoof
+        // running alongside it.
+        //
+        // v7.19 originally had this guard cover the account-setting iframe flip
+        // (forceEnglishAccountSetting(), below via runIntlCorrectionOnceReady()) too,
+        // on the theory that Accept-Language: en on that hidden iframe's request would
+        // make Spotify itself report the account language as English and avoid the
+        // false "not English" read that caused the reload-on-login bug. In practice
+        // the whole WebView is indeed rendered in English, but skipping the flip inside
+        // the app allows user to change their interface language and reload the page which 
+        // we don't want because we use certain English selectors to accomplish some of the modifications.
+        
+        const nativeForceEnActive = window.AndBridge && typeof window.AndBridge.isLoggedIn === 'function';
+        if (nativeForceEnActive) {
+            dbg('forceEnglish: skipping navigator.language spoof + region redirect', 'window.AndBridge present', { reason: 'native app-layer ForceEn (item 22) already active - Accept-Language covers these at the HTTP layer; account-setting flip below still runs' });
+        } else {
         dbg('forceEnglish: spoofing navigator.language', 'navigator.language/languages', { value: 'en-US' });
         try {
             Object.defineProperty(navigator, 'language', { get: () => 'en-US', configurable: true });
@@ -1122,6 +1142,7 @@
                 }
             }
             }
+        }
         }
 
         // The /intl-xx/ URL check and account-setting flip used to run right
@@ -4117,4 +4138,3 @@ div[data-testid=now-playing-widget]>div:nth-child(2)>div:nth-child(2):not(:has(s
     }
 
 })();
-
