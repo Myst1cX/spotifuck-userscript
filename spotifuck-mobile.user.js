@@ -7,7 +7,6 @@
 // @match        *://open.spotify.com/*
 // @match        *://www.spotify.com/*
 // @match        *://payments.spotify.com/*
-// @grant        GM_addStyle
 // @grant        GM_registerMenuCommand
 // @grant        GM_setValue
 // @grant        GM_getValue
