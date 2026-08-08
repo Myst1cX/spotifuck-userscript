@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.21
+// @version      7.22
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -792,6 +792,15 @@
 * true, but skipping the flip inside the app allows user to change their 
 * interface language and reload the page which we don't want because we use
 * certain English selectors to accomplish some of the modifications.
+*
+* RESOLVED (v7.22) - forceEnglish()'s www.spotify.com region-path redirect
+* is no longer skipped under the window.AndBridge (native ForceEn) guard -
+* only the navigator.language/languages spoof still is. Item 22's native
+* Locale.setDefault("en") is process-wide but there's no way to confirm
+* every page rendered inside the app's WebView (e.g. an Accounts/login page)
+* actually went through MainActivity's onCreate()/onResume() first, so this
+* redirect now runs unconditionally as a cheap safety net - opening pages
+* like Accounts inside the WebView should now land in English.
 */
 
 (function() {
@@ -1070,16 +1079,27 @@
         // Item 22 (native app side) added Locale.setDefault(new Locale("en")) in
         // MainActivity's onCreate()/onResume(), which makes Chromium WebView derive
         // Accept-Language: en for every request (main frame, iframes, XHR/fetch, all of
-        // it) at the HTTP layer - covering the navigator.language/languages spoof and
-        // the www.spotify.com region-path redirect just below. window.AndBridge only
-        // exists inside this app's WebView (added by addJavascriptInterface, never
-        // present in a real browser/userscript-manager context), so its presence is a
-        // reliable signal the native fix is active for those two. Skip just those two
-        // when it's present - navigator.language/languages isn't separately confirmed
-        // redundant, but Chromium's per-request Accept-Language and navigator.language
-        // both derive from the same embedder-supplied locale list, so trusting the
-        // native fix to cover it too rather than keeping a second, JS-layer spoof
-        // running alongside it.
+        // it) at the HTTP layer - covering the navigator.language/languages spoof below.
+        // window.AndBridge only exists inside this app's WebView (added by
+        // addJavascriptInterface, never present in a real browser/userscript-manager
+        // context), so its presence is a reliable signal the native fix is active for
+        // that. Skip just the navigator.language/languages spoof when it's present -
+        // Chromium's per-request Accept-Language and navigator.language both derive
+        // from the same embedder-supplied locale list, so trusting the native fix to
+        // cover it rather than keeping a second, JS-layer spoof running alongside it.
+        //
+        // The www.spotify.com region-path redirect below (and the account-setting
+        // flip further down) deliberately do NOT get skipped here, even though
+        // Locale.setDefault() is process-wide and should in principle cover any
+        // WebView created anywhere in the app: we don't have a way to independently
+        // confirm every code path that can render a Spotify page (e.g. an
+        // account/auth flow that Spotify or Android itself hands off somewhere the
+        // native override wasn't in effect first) actually goes through
+        // MainActivity's own onCreate()/onResume() before rendering. window.AndBridge
+        // being present tells us the native fix *should* be active, not that it
+        // definitely covers the specific page currently loaded - so this redirect
+        // stays unconditional as a cheap, harmless-if-redundant safety net rather
+        // than trusting that guarantee.
         //
         // v7.19 originally had this guard cover the account-setting iframe flip
         // (forceEnglishAccountSetting(), below via runIntlCorrectionOnceReady()) too,
@@ -1092,19 +1112,23 @@
         
         const nativeForceEnActive = window.AndBridge && typeof window.AndBridge.isLoggedIn === 'function';
         if (nativeForceEnActive) {
-            dbg('forceEnglish: skipping navigator.language spoof + region redirect', 'window.AndBridge present', { reason: 'native app-layer ForceEn (item 22) already active - Accept-Language covers these at the HTTP layer; account-setting flip below still runs' });
+            dbg('forceEnglish: skipping navigator.language spoof', 'window.AndBridge present', { reason: 'native app-layer ForceEn (item 22) already active - Accept-Language covers navigator.language at the HTTP layer; region-path redirect below still runs unconditionally, account-setting flip below still runs' });
         } else {
         dbg('forceEnglish: spoofing navigator.language', 'navigator.language/languages', { value: 'en-US' });
         try {
             Object.defineProperty(navigator, 'language', { get: () => 'en-US', configurable: true });
             Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'], configurable: true });
         } catch (e) {}
+        }
 
         if (location.hostname === 'www.spotify.com') {
             // Gated behind the same www.spotify.com toggle
             // (premiumSpoofEnabledHere()) as everything else scoped to this
             // host, so turning "Visual Premium Spoof (www.spotify.com)" off
-            // also stops this redirect instead of leaving it always-on.
+            // also stops this redirect instead of leaving it always-on. NOT
+            // gated behind nativeForceEnActive/window.AndBridge - see comment
+            // above forceEnglish() for why this one stays unconditional even
+            // inside the app.
             if (!premiumSpoofEnabledHere()) {
                 dbg('forceEnglish: skipping region-path redirect', location.pathname, { reason: 'Visual Premium Spoof (www.spotify.com) is off' });
             } else {
@@ -1141,7 +1165,6 @@
                 }
             }
             }
-        }
         }
 
         // The /intl-xx/ URL check and account-setting flip used to run right
