@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.24.91.soon
+// @version      7.24.92.soon
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -3258,10 +3258,31 @@ div[data-testid=main-view],
   }
 }
 
-/* TOAST STAGE 1 (z-index only, no repositioning): Spotify's toasts are notistack
-   snackbars; raise the container above our fixed player (9998) + nav (9999). */
-.notistack-SnackbarContainer{
-  z-index:2147483647!important;
+/* Toasts ("Added to queue", etc.) are notistack snackbars:
+   .notistack-SnackbarContainer > .notistack-Snackbar > div[role=alert][aria-live]
+   (selectors from the desktop ToastFix). Spotify anchors them to the viewport
+   bottom, i.e. under our fixed player (z 9998) + nav (z 9999). Raising the
+   container's z-index above the bars blanked them (an opaque layer inside it),
+   so z-index is deliberately NOT touched: the toast is instead moved up to sit
+   just above player + nav, where it never overlaps them. The offset follows
+   --sp-np-bar-height live (minimized / expanded / hidden). transform:none keeps
+   position:fixed relative to the screen, not to a transformed wrapper. */
+.notistack-SnackbarContainer,
+.notistack-Snackbar{
+  transform:none!important;
+  pointer-events:none!important;
+}
+div[role="alert"][aria-live]{
+  position:fixed!important;
+  left:50%!important;
+  right:auto!important;
+  top:auto!important;
+  bottom:calc(var(--sp-np-bar-height, 0px) + 56px + 10px)!important;
+  transform:translateX(-50%)!important;
+  width:max-content!important;
+  max-width:calc(100vw - 24px)!important;
+  margin:0!important;
+  pointer-events:auto!important;
 }
 
 #sp-bottom-nav{
