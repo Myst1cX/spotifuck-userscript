@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.24.92.soon
+// @version      7.24.95.soon
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -2264,6 +2264,66 @@
         }
     }
 
+    // ===== TEMP TOAST PROBE - remove once the widening element is known =====
+    // While a toast shows, something is wider than the viewport, so the WebView
+    // (wide viewport on) widens its layout viewport and the fixed bars drift
+    // off-screen. On each toast this prints viewport metrics plus the elements
+    // whose right edge is past the viewport. Tap the green box to dismiss it.
+    function setupToastProbe() {
+        if (window.__spToastProbe || !document.body) return;
+        window.__spToastProbe = true;
+        const label = el => {
+            const cls = (typeof el.className === 'string' ? el.className : '').trim().split(/\s+/).slice(0, 2).join('.');
+            const tid = el.getAttribute('data-testid');
+            return el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + (cls ? '.' + cls : '') + (tid ? '[' + tid + ']' : '');
+        };
+        const rect = el => { const r = el.getBoundingClientRect(); return 'L' + Math.round(r.left) + ' R' + Math.round(r.right) + ' T' + Math.round(r.top) + ' B' + Math.round(r.bottom) + ' W' + Math.round(r.width); };
+        const report = () => {
+            const de = document.documentElement, cw = de.clientWidth, vv = window.visualViewport;
+            const lines = [
+                'inner ' + window.innerWidth + 'x' + window.innerHeight + ' client ' + cw + ' scrollW ' + de.scrollWidth + ' bodyScrollW ' + document.body.scrollWidth,
+                'vv scale ' + (vv ? vv.scale.toFixed(2) + ' w ' + Math.round(vv.width) : 'n/a') + ' dpr ' + window.devicePixelRatio,
+                'meta: ' + ((document.querySelector('meta[name=viewport]') || {}).content || '(none)')
+            ];
+            const wide = [];
+            document.querySelectorAll('body *').forEach(el => {
+                if (el.closest('#sp-toast-probe')) return;
+                const r = el.getBoundingClientRect();
+                if (r.width > 0 && r.right > cw + 1) wide.push({ el, right: r.right });
+            });
+            wide.sort((x, y) => y.right - x.right);
+            lines.push('wider than ' + cw + ': ' + wide.length);
+            wide.slice(0, 8).forEach(w => {
+                const cs = getComputedStyle(w.el);
+                lines.push(label(w.el) + ' ' + cs.position + (cs.transform !== 'none' ? ' TRANSFORM' : '') + ' ' + rect(w.el) + (w.el.closest('.notistack-SnackbarContainer') ? ' [in toast]' : ''));
+            });
+            const c = document.querySelector('.notistack-SnackbarContainer');
+            if (c) lines.push('container ' + getComputedStyle(c).position + ' z' + getComputedStyle(c).zIndex + ' ' + rect(c));
+            const t = document.querySelector('div[role="alert"][aria-live]');
+            if (t) lines.push('toast ' + getComputedStyle(t).position + ' ' + rect(t));
+            let box = document.getElementById('sp-toast-probe');
+            if (!box) {
+                box = document.createElement('div');
+                box.id = 'sp-toast-probe';
+                box.style.cssText = 'position:fixed;top:0;left:0;max-width:100vw;box-sizing:border-box;z-index:2147483647;background:rgba(0,0,0,.9);color:#0f0;font:10px/1.3 monospace;white-space:pre-wrap;padding:6px;max-height:55vh;overflow:auto;pointer-events:auto';
+                box.addEventListener('click', () => box.remove());
+                document.body.appendChild(box);
+            }
+            box.textContent = lines.join('\n');
+        };
+        new MutationObserver(muts => {
+            for (const m of muts) {
+                for (const n of m.addedNodes) {
+                    if (n.nodeType === 1 && (n.matches('div[role="alert"][aria-live]') || n.querySelector('div[role="alert"][aria-live]'))) {
+                        setTimeout(report, 500);
+                        return;
+                    }
+                }
+            }
+        }).observe(document.body, { childList: true, subtree: true });
+    }
+    // ===== END TEMP TOAST PROBE =====
+
     // enhance-badge (Smart Shuffle indicator) vertical alignment - see the
     // "Badge vertical alignment" CSS comment above (search enhance-badge)
     // for the full diagnosis. Short version: native Spotify centers the
@@ -3823,6 +3883,7 @@ div[data-testid=now-playing-widget]>div:nth-child(2)>div:nth-child(2):not(:has(s
                 lastNavPath = location.pathname;
                 updateBodyClass();
                 createBottomNav();
+                setupToastProbe(); // TEMP
                 hookHistory();
                 prewarmLibrarySidebar();
             }
