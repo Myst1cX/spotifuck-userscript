@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.25
+// @version      7.25.1
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -901,18 +901,18 @@
 * takes over. Independent of the entrance, a new toast now takes its stack
 * slot immediately, so it no longer flashes on top of the previous toast for a
 * moment before moving up.
-* i) Dark pill look (on by default; the PILL flag at the top of setupToastStack()
-* turns it off, back to Spotify's own toast look): toasts are a rounded dark
-* blurred pill with a thin border and shadow, bold white single-line text
-* (cut off with an ellipsis when long), a round cover image, and pill-shaped
-* action buttons (e.g. Undo) with an accent tint on hover. The tint uses the
-* --spl-accent-rgb CSS variable (an "R,G,B" string) when the host app injects
-* it (Spotilol's AccentTheme does), and falls back to Spotify green (29,185,84,
-* the same as #1DB954) when it doesn't - the Spotifuck wrapper doesn't inject
-* it, so here it is always green. Additions over the original: the pill can
-* shrink long titles with an ellipsis instead of growing wider than the
-* screen. The 56px stacking step fits a pill with buttons (about 54px tall),
-* leaving only a thin gap between stacked toasts.
+* i) Toast look, three choices (the TOAST_STYLE setting at the top of
+* setupToastStack(); default 'amoled'):
+*   'amoled' - rounded pure black (#000) pill with the same thin #666 outline
+*              as the player and nav bars, so it matches the AMOLED look.
+*   'dark'   - the same pill in dark grey with a blurred backdrop and a faint
+*              outline (the original ToastFix look).
+*   'normal' - Spotify's own toast look, no styling from us.
+* Both pill looks have a shadow, bold white single-line text (cut off with an
+* ellipsis when long), a round cover image, and pill-shaped action buttons
+* (e.g. Undo) that tint Spotify green (29,185,84) on hover. The 56px stacking
+* step fits a pill with buttons (about 54px tall), leaving only a thin gap
+* between stacked toasts.
 */
 // Credits to lyssadev/Spotilol for ToastFix
 
@@ -2353,8 +2353,11 @@
         const GRACE = 600;      // ms after a toast appears before "hidden" styles count as an exit
         const SWIPE_MIN = 72;   // px
         const ENTRANCE = true;  // entrance animation (slide up + fade in); false = off
-        const PILL = true;      // dark pill toast look; false = Spotify's own toast look
-        if (PILL) document.documentElement.classList.add('sp-toast-pill');
+        // Toast look: 'amoled' = pure-black pill matching the bars | 'dark' = dark-grey blurred
+        // pill (the ToastFix look) | 'normal' = Spotify's own toast. Anything else = 'normal'.
+        const TOAST_STYLE = 'amoled';
+        if (TOAST_STYLE === 'dark' || TOAST_STYLE === 'amoled') document.documentElement.classList.add('sp-toast-pill');
+        if (TOAST_STYLE === 'amoled') document.documentElement.classList.add('sp-toast-amoled');
         let timer = null;
 
         const state = el => {   // 'vis' | 'faded' | 'hidden'
@@ -3568,10 +3571,11 @@ div[role="alert"][aria-live]{
   pointer-events:auto!important;
   touch-action:none!important;
 }
-/* Dark pill look (ToastFix, see credits at the top). Only active while the PILL flag
-   in setupToastStack() is true (it adds html.sp-toast-pill). The min-width:0 /
-   max-width:100% lines are additions: they let long titles shrink with an ellipsis
-   instead of pushing the pill wider than the screen. */
+/* Pill toasts (ToastFix look, see credits at the top). Picked by TOAST_STYLE in
+   setupToastStack(), which puts html.sp-toast-pill on <html> for 'dark' and
+   'amoled' (nothing for 'normal' = Spotify's own look), plus html.sp-toast-amoled
+   for 'amoled'. The base below is the dark-grey blurred pill; the .sp-toast-amoled
+   rule after it turns it pure black. */
 html.sp-toast-pill div[role="alert"][aria-live] [data-encore-id="box"]{
   background:rgba(24,24,24,.92)!important;
   -webkit-backdrop-filter:blur(14px)!important;
@@ -3584,8 +3588,14 @@ html.sp-toast-pill div[role="alert"][aria-live] [data-encore-id="box"]{
   display:inline-flex!important;
   align-items:center!important;
   gap:10px!important;
-  max-width:100%!important;
-  box-sizing:border-box!important;
+}
+/* AMOLED variant: solid #000 with the same #666 outline as the player and nav bars
+   (blur is pointless on solid black). */
+html.sp-toast-pill.sp-toast-amoled div[role="alert"][aria-live] [data-encore-id="box"]{
+  background:#000!important;
+  border:1px solid #666!important;
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
 }
 html.sp-toast-pill div[role="alert"][aria-live] img[data-testid="entity-image"]{
   border-radius:50%!important;
@@ -3598,7 +3608,6 @@ html.sp-toast-pill div[role="alert"][aria-live] [data-encore-id="text"]{
   letter-spacing:.2px!important;
   white-space:nowrap!important;
   max-width:56vw!important;
-  min-width:0!important;
   overflow:hidden!important;
   text-overflow:ellipsis!important;
 }
@@ -3617,7 +3626,7 @@ html.sp-toast-pill div[role="alert"][aria-live] button{
   margin-left:4px!important;
   transition:background .15s, transform .1s!important;
 }
-html.sp-toast-pill div[role="alert"][aria-live] button:hover{background:rgba(var(--spl-accent-rgb, 29,185,84),.3)!important}
+html.sp-toast-pill div[role="alert"][aria-live] button:hover{background:rgba(29,185,84,.3)!important}
 html.sp-toast-pill div[role="alert"][aria-live] button:active{transform:scale(.95)!important}
 
 #sp-bottom-nav{
