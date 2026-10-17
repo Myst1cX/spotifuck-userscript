@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.25
+// @version      7.25.h
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -893,6 +893,12 @@
 * Spotify already faded out on its own are left alone, so nothing pops back
 * in. These animate the separate CSS `translate` property because the toast
 * CSS forces `transform`, which would otherwise block them.
+* h) Entrance animation: a new toast now slides up about 16px while fading in,
+* with a small overshoot, over roughly 0.4s (it animates `translate` and
+* `scale` for the same reason as above). If you grab or swipe it while it's
+* still sliding in, the entrance is cancelled so your finger takes over. A
+* new toast also takes its stack slot immediately, so it no longer flashes on
+* top of the previous toast for a moment before moving up.
 */
 
 (function() {
@@ -2318,8 +2324,8 @@
         }
     }
 
-    // v7.25: toast stacking + swipe-to-dismiss + smooth exit (ported/trimmed from the
-    // desktop ToastFix). Each visible toast gets --sp-toast-idx (0 = oldest = lowest;
+    // v7.25: toast stacking + entrance + swipe-to-dismiss + smooth exit (ported/trimmed
+    // from the desktop ToastFix). Each visible toast gets --sp-toast-idx (0 = oldest = lowest;
     // the toast CSS lifts it idx * 56px). Swiping a toast sideways dismisses it; when
     // Spotify hides/removes one, a clone animates out instead of it vanishing. Our toast
     // CSS forces `transform`, so everything animates the separate `translate` property.
@@ -2338,6 +2344,22 @@
             if (cs.display === 'none' || el.getBoundingClientRect().height < 2) return 'hidden';
             if (cs.visibility === 'hidden' || parseFloat(cs.opacity) < 0.02) return 'faded';
             return 'vis';
+        };
+
+        // Entrance: slide up 16px + fade in with a slight overshoot (translate/scale, not
+        // transform - see above). Cancelled if the toast is grabbed or dismissed mid-entrance.
+        const enter = el => {
+            if (!el.animate) return;
+            try {
+                el.__spEnter = el.animate([
+                    { opacity: 0, translate: '0 16px', scale: 0.94 },
+                    { opacity: 1, translate: '0 -3px', scale: 1.02, offset: 0.6 },
+                    { opacity: 1, translate: '0 0', scale: 1 }
+                ], { duration: 380, easing: 'cubic-bezier(.2,.8,.2,1)' });
+            } catch (e) {}
+        };
+        const cancelEnter = el => {
+            try { if (el.__spEnter) { el.__spEnter.cancel(); el.__spEnter = null; } } catch (e) {}
         };
 
         // Animate a ghost (a clone, or a removed toast re-attached) out, then delete it.
@@ -2371,6 +2393,7 @@
         const takeover = el => {
             if (!el || el.__spGone) return;
             el.__spGone = true;
+            cancelEnter(el);
             try { if (el.__spObs) el.__spObs.disconnect(); } catch (e) {}
             try {
                 const g = el.cloneNode(true);
@@ -2412,6 +2435,7 @@
                 if (!drag) {
                     if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(t.clientY - sy)) {
                         drag = true;
+                        cancelEnter(el);
                         op0 = el.style.opacity;
                         el.style.setProperty('transition', 'none', 'important');
                     } else return;
@@ -2435,6 +2459,15 @@
             el.__spBorn = Date.now();
             wireSwipe(el);
             watchExit(el);
+            // Take the next free stack slot right away (restack only numbers toasts that are
+            // already visible, and this one is still fading in), so it doesn't flash on top of
+            // the previous toast first.
+            let taken = 0;
+            document.querySelectorAll(SEL).forEach(x => {
+                if (x !== el && !x.__spGone && !x.hasAttribute('data-sp-ghost') && state(x) === 'vis') taken++;
+            });
+            el.style.setProperty('--sp-toast-idx', String(taken));
+            enter(el);
         };
 
         // Spotify removed a toast we never took over: animate it out instead of a hard cut.
