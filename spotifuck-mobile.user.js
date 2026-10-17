@@ -918,11 +918,10 @@
 *   'normal' - Spotify's own colours (white toast), in the same pill shape.
 * The 56px stacking step fits a pill with buttons (about 53px tall), leaving
 * only a thin gap between stacked toasts.
-* Credits to lyssadev/Spotilol (ToastFix.kt)
 *
 * RESOLVED (v7.27) - The toast look (item i above) can now be picked inside the
-* Spotify Web app instead of by editing the script. Version 1.43 adds Settings >
-* "Toast look" (AMOLED / Dark / Normal; shown only in Spotifuck Mode: Mobile),
+* Spotifuck app instead of by editing the script. App v1.43 adds Settings >
+* "Toast notification style" (AMOLED / Dark / Normal; shown only in Spotifuck Mode: Mobile),
 * which stores the choice and exposes it as window.AndBridge.getToastStyle().
 * setupToastStack() now reads that first (accepting only 'amoled', 'dark' or
 * 'normal') and falls back to TOAST_STYLE_DEFAULT ('amoled') when
@@ -932,7 +931,7 @@
 * applies on the next load. To change the look outside the app, edit
 * TOAST_STYLE_DEFAULT.
 */
-
+// Credits to lyssadev/Spotilol for ToastFix
 
 (function() {
     'use strict';
@@ -2374,7 +2373,7 @@
         // Toast colours (the pill SHAPE is the same in all three): 'amoled' = pure black matching
         // the bars | 'dark' = dark-grey blurred (the ToastFix look) | 'normal' = Spotify's own
         // colours. Anything else = 'normal'.
-        // v7.27: inside the Spotifuck app the look is picked in its Settings ("Toast look",
+        // v7.27: inside the Spotifuck app the look is picked in its Settings ("Toast notification style",
         // Mobile mode only) and read here through window.AndBridge.getToastStyle(). Without
         // the app (plain browser + userscript manager) or on an older app without that
         // method, TOAST_STYLE_DEFAULT is used - edit it to change the look standalone.
