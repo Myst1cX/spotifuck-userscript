@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.25
+// @version      7.25.probetest
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -2358,7 +2358,7 @@
         // Toast colours (the pill SHAPE is the same in all three): 'amoled' = pure black matching
         // the bars | 'dark' = dark-grey blurred (the ToastFix look) | 'normal' = Spotify's own
         // colours. Anything else = 'normal'.
-        const TOAST_STYLE = 'amoled';
+        const TOAST_STYLE = 'normal';
         if (TOAST_STYLE === 'dark' || TOAST_STYLE === 'amoled') document.documentElement.classList.add('sp-toast-pill');
         if (TOAST_STYLE === 'amoled') document.documentElement.classList.add('sp-toast-amoled');
         let timer = null;
@@ -2536,6 +2536,63 @@
             }
         }).observe(document.body, { childList: true, subtree: true });
     }
+
+    // ===== TEMP TOAST DOM PROBE (probe test build only - not for release) =====
+    // About 0.6s after a toast appears, prints its element tree: tag, classes,
+    // data-testid / data-encore-id, size, background colour, corner radius, overflow.
+    // Used to find which element draws the black square behind the toast icon.
+    // Tap the green box to dismiss it; scroll inside it for the rest.
+    function setupToastDomProbe() {
+        if (window.__spToastDomProbe || !document.body) return;
+        window.__spToastDomProbe = true;
+        const SEL = 'div[role="alert"][aria-live]';
+        const desc = el => {
+            const cn = typeof el.className === 'string' ? el.className : ((el.className && el.className.baseVal) || '');
+            const cls = cn.trim().split(/\s+/).filter(Boolean).slice(0, 2).join('.');
+            const at = [el.getAttribute('data-testid'), el.getAttribute('data-encore-id')].filter(Boolean).join(',');
+            return el.tagName.toLowerCase() + (cls ? '.' + cls : '') + (at ? '[' + at + ']' : '');
+        };
+        const report = () => {
+            const lines = [];
+            const walk = (el, depth) => {
+                if (lines.length > 70 || depth > 9) return;
+                const cs = getComputedStyle(el), r = el.getBoundingClientRect();
+                let t = '  '.repeat(depth) + desc(el) + ' ' + Math.round(r.width) + 'x' + Math.round(r.height) +
+                    ' bg=' + cs.backgroundColor.replace(/\s/g, '') + (cs.backgroundImage !== 'none' ? '+img' : '') +
+                    ' br=' + cs.borderRadius + ' ov=' + cs.overflow;
+                if (el.tagName === 'IMG') t += ' src=' + (el.currentSrc || el.src || '').slice(0, 36);
+                if (!el.children.length && el.textContent.trim()) t += ' "' + el.textContent.trim().slice(0, 28) + '"';
+                lines.push(t);
+                for (const c of el.children) walk(c, depth + 1);
+            };
+            document.querySelectorAll(SEL).forEach(el => {
+                if (el.hasAttribute('data-sp-ghost')) return;
+                lines.push('--- toast ---');
+                walk(el, 0);
+            });
+            if (!lines.length) return;
+            let box = document.getElementById('sp-toast-dom-probe');
+            if (!box) {
+                box = document.createElement('div');
+                box.id = 'sp-toast-dom-probe';
+                box.style.cssText = 'position:fixed;top:0;left:0;max-width:100vw;box-sizing:border-box;z-index:2147483647;background:rgba(0,0,0,.92);color:#0f0;font:9px/1.25 monospace;white-space:pre;padding:6px;max-height:60vh;overflow:auto;pointer-events:auto';
+                box.addEventListener('click', () => box.remove());
+                document.body.appendChild(box);
+            }
+            box.textContent = lines.join('\n');
+        };
+        new MutationObserver(muts => {
+            for (const m of muts) {
+                for (const n of m.addedNodes) {
+                    if (n.nodeType === 1 && !n.hasAttribute('data-sp-ghost') && (n.matches(SEL) || n.querySelector(SEL))) {
+                        setTimeout(report, 600);
+                        return;
+                    }
+                }
+            }
+        }).observe(document.body, { childList: true, subtree: true });
+    }
+    // ===== END TEMP TOAST DOM PROBE =====
 
     // enhance-badge (Smart Shuffle indicator) vertical alignment - see the
     // "Badge vertical alignment" CSS comment above (search enhance-badge)
@@ -4180,6 +4237,7 @@ div[data-testid=now-playing-widget]>div:nth-child(2)>div:nth-child(2):not(:has(s
                 updateBodyClass();
                 createBottomNav();
                 setupToastStack();
+                setupToastDomProbe(); // TEMP (probe test build)
                 hookHistory();
                 prewarmLibrarySidebar();
             }
