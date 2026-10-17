@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.25.normaltest
+// @version      7.25.normaltest2
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -904,13 +904,16 @@
 * i) Toast look: one pill shape, three colour themes (the TOAST_STYLE setting at
 * the top of setupToastStack(); default 'amoled'). Every toast now has the same
 * shape: a rounded pill with a shadow, bold single-line title (cut off with an
-* ellipsis past 56% of the screen width), a round cover image, and pill-shaped
-* action buttons (e.g. Undo). TOAST_STYLE only changes the colours:
+* ellipsis past 56% of the screen width), and pill-shaped action buttons
+* (e.g. Undo). TOAST_STYLE changes the colours (and the cover image shape):
 *   'amoled' - pure black (#000) with the same thin #666 outline as the player
-*              and nav bars, white text, buttons tint Spotify green on hover.
+*              and nav bars, white text, round cover image, buttons tint
+*              Spotify green on hover.
 *   'dark'   - dark grey with a blurred backdrop and a faint outline, white
-*              text, same green hover tint (the original ToastFix colours).
-*   'normal' - Spotify's own colours (white toast), in the same pill shape.
+*              text, round cover image, same green hover tint (the original
+*              ToastFix colours).
+*   'normal' - Spotify's own colours (white toast) and Spotify's own cover
+*              image shape, in the same pill shape.
 * The 56px stacking step fits a pill with buttons (about 54px tall), leaving
 * only a thin gap between stacked toasts.
 */
@@ -3572,10 +3575,11 @@ div[role="alert"][aria-live]{
   pointer-events:auto!important;
   touch-action:none!important;
 }
-/* Toast SHAPE (ToastFix): the same in all three TOAST_STYLE looks - rounded pill, round
-   cover image, single-line bold title capped at 56vw with an ellipsis, pill-shaped
-   action buttons. Colours are NOT set here (see the theme rules below), so 'normal'
-   keeps Spotify's own colours with this shape. The 1px border is transparent here so
+/* Toast SHAPE (ToastFix): the same in all three TOAST_STYLE looks - rounded pill,
+   single-line bold title capped at 56vw with an ellipsis, pill-shaped action
+   buttons. The round cover image is pill-look only (see the theme rules). Colours
+   are NOT set here (see the theme rules below), so 'normal' keeps Spotify's own
+   colours with this shape. The 1px border is transparent here so
    the size is identical in every look; the dark themes colour it. */
 div[role="alert"][aria-live] [data-encore-id="box"]{
   border:1px solid transparent!important;
@@ -3585,10 +3589,6 @@ div[role="alert"][aria-live] [data-encore-id="box"]{
   display:inline-flex!important;
   align-items:center!important;
   gap:10px!important;
-}
-div[role="alert"][aria-live] img[data-testid="entity-image"]{
-  border-radius:50%!important;
-  object-fit:cover!important;
 }
 div[role="alert"][aria-live] [data-encore-id="text"]{
   font-weight:600!important;
@@ -3631,6 +3631,10 @@ html.sp-toast-pill.sp-toast-amoled div[role="alert"][aria-live] [data-encore-id=
   border-color:#666!important;
   -webkit-backdrop-filter:none!important;
   backdrop-filter:none!important;
+}
+html.sp-toast-pill div[role="alert"][aria-live] img[data-testid="entity-image"]{
+  border-radius:50%!important;
+  object-fit:cover!important;
 }
 html.sp-toast-pill div[role="alert"][aria-live] [data-encore-id="text"]{
   color:#fff!important;
