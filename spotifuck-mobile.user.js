@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.25.probetest
+// @version      7.26
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -840,7 +840,7 @@
 * .fuckd-npv-art marker moves to the container too, so the existing stop-check
 * needs no change.
 *
-* RESOLVED (v7.25) - The main navigation UI's bottom boundary was wrong: its
+* RESOLVED (v7.25 and 7.26) - The main navigation UI's bottom boundary was wrong: its
 * content ran underneath both the player bar (minimized or expanded) and the
 * bottom nav bar. It now stops above the bottom nav when the player is hidden,
 * and above the player when it's visible, following the player's minimized /
@@ -904,16 +904,19 @@
 * i) Toast look: one pill shape, three colour themes (the TOAST_STYLE setting at
 * the top of setupToastStack(); default 'amoled'). Every toast now has the same
 * shape: a rounded pill with a shadow, bold single-line title (cut off with an
-* ellipsis past 56% of the screen width), and pill-shaped action buttons (e.g.
-* Undo). The cover image / icon is left as Spotify draws it (rounding it, as
-* ToastFix does, left black square corners behind icons such as the Liked
-* Songs heart). TOAST_STYLE only changes the colours:
+* ellipsis past 56% of the screen width), a round cover image / icon, and
+* pill-shaped action buttons (e.g. Undo). The icon is rounded by rounding and
+* clipping Spotify's small square holder around it, not the image itself:
+* rounding only the image left the holder's dark grey (#282828) square corners
+* showing around it, e.g. behind the Liked Songs heart on the white toast. (This
+* needs a WebView with :has(), Chromium 105+; on older ones the icon just stays
+* square.) TOAST_STYLE only changes the colours:
 *   'amoled' - pure black (#000) with the same thin #666 outline as the player
 *              and nav bars, white text, buttons tint Spotify green on hover.
 *   'dark'   - dark grey with a blurred backdrop and a faint outline, white
 *              text, same green hover tint (the original ToastFix colours).
 *   'normal' - Spotify's own colours (white toast), in the same pill shape.
-* The 56px stacking step fits a pill with buttons (about 54px tall), leaving
+* The 56px stacking step fits a pill with buttons (about 53px tall), leaving
 * only a thin gap between stacked toasts.
 */
 // Credits to lyssadev/Spotilol for ToastFix
@@ -2358,7 +2361,7 @@
         // Toast colours (the pill SHAPE is the same in all three): 'amoled' = pure black matching
         // the bars | 'dark' = dark-grey blurred (the ToastFix look) | 'normal' = Spotify's own
         // colours. Anything else = 'normal'.
-        const TOAST_STYLE = 'normal';
+        const TOAST_STYLE = 'amoled';
         if (TOAST_STYLE === 'dark' || TOAST_STYLE === 'amoled') document.documentElement.classList.add('sp-toast-pill');
         if (TOAST_STYLE === 'amoled') document.documentElement.classList.add('sp-toast-amoled');
         let timer = null;
@@ -2536,63 +2539,6 @@
             }
         }).observe(document.body, { childList: true, subtree: true });
     }
-
-    // ===== TEMP TOAST DOM PROBE (probe test build only - not for release) =====
-    // About 0.6s after a toast appears, prints its element tree: tag, classes,
-    // data-testid / data-encore-id, size, background colour, corner radius, overflow.
-    // Used to find which element draws the black square behind the toast icon.
-    // Tap the green box to dismiss it; scroll inside it for the rest.
-    function setupToastDomProbe() {
-        if (window.__spToastDomProbe || !document.body) return;
-        window.__spToastDomProbe = true;
-        const SEL = 'div[role="alert"][aria-live]';
-        const desc = el => {
-            const cn = typeof el.className === 'string' ? el.className : ((el.className && el.className.baseVal) || '');
-            const cls = cn.trim().split(/\s+/).filter(Boolean).slice(0, 2).join('.');
-            const at = [el.getAttribute('data-testid'), el.getAttribute('data-encore-id')].filter(Boolean).join(',');
-            return el.tagName.toLowerCase() + (cls ? '.' + cls : '') + (at ? '[' + at + ']' : '');
-        };
-        const report = () => {
-            const lines = [];
-            const walk = (el, depth) => {
-                if (lines.length > 70 || depth > 9) return;
-                const cs = getComputedStyle(el), r = el.getBoundingClientRect();
-                let t = '  '.repeat(depth) + desc(el) + ' ' + Math.round(r.width) + 'x' + Math.round(r.height) +
-                    ' bg=' + cs.backgroundColor.replace(/\s/g, '') + (cs.backgroundImage !== 'none' ? '+img' : '') +
-                    ' br=' + cs.borderRadius + ' ov=' + cs.overflow;
-                if (el.tagName === 'IMG') t += ' src=' + (el.currentSrc || el.src || '').slice(0, 36);
-                if (!el.children.length && el.textContent.trim()) t += ' "' + el.textContent.trim().slice(0, 28) + '"';
-                lines.push(t);
-                for (const c of el.children) walk(c, depth + 1);
-            };
-            document.querySelectorAll(SEL).forEach(el => {
-                if (el.hasAttribute('data-sp-ghost')) return;
-                lines.push('--- toast ---');
-                walk(el, 0);
-            });
-            if (!lines.length) return;
-            let box = document.getElementById('sp-toast-dom-probe');
-            if (!box) {
-                box = document.createElement('div');
-                box.id = 'sp-toast-dom-probe';
-                box.style.cssText = 'position:fixed;top:0;left:0;max-width:100vw;box-sizing:border-box;z-index:2147483647;background:rgba(0,0,0,.92);color:#0f0;font:9px/1.25 monospace;white-space:pre;padding:6px;max-height:60vh;overflow:auto;pointer-events:auto';
-                box.addEventListener('click', () => box.remove());
-                document.body.appendChild(box);
-            }
-            box.textContent = lines.join('\n');
-        };
-        new MutationObserver(muts => {
-            for (const m of muts) {
-                for (const n of m.addedNodes) {
-                    if (n.nodeType === 1 && !n.hasAttribute('data-sp-ghost') && (n.matches(SEL) || n.querySelector(SEL))) {
-                        setTimeout(report, 600);
-                        return;
-                    }
-                }
-            }
-        }).observe(document.body, { childList: true, subtree: true });
-    }
-    // ===== END TEMP TOAST DOM PROBE =====
 
     // enhance-badge (Smart Shuffle indicator) vertical alignment - see the
     // "Badge vertical alignment" CSS comment above (search enhance-badge)
@@ -3635,9 +3581,7 @@ div[role="alert"][aria-live]{
    single-line bold title capped at 56vw with an ellipsis, pill-shaped action
    buttons. Colours are NOT set here (see the theme rules below), so 'normal' keeps
    Spotify's own colours with this shape. The 1px border is transparent here so the
-   size is identical in every look; the dark themes colour it. ToastFix also rounded
-   the cover image (img[data-testid=entity-image]); that is deliberately NOT ported:
-   it left black square corners behind icons such as the Liked Songs heart. */
+   size is identical in every look; the dark themes colour it. */
 div[role="alert"][aria-live] [data-encore-id="box"]{
   border:1px solid transparent!important;
   border-radius:9999px!important;
@@ -3646,6 +3590,18 @@ div[role="alert"][aria-live] [data-encore-id="box"]{
   display:inline-flex!important;
   align-items:center!important;
   gap:10px!important;
+}
+/* Round cover/icon: ToastFix rounded the <img> itself, which exposed the square corners
+   of Spotify's 24x24 image holder behind it (bg #282828, radius 2px, overflow hidden;
+   visible as dark corners on the white 'normal' toast). So the holder is rounded and
+   clipped instead (found by structure, its class names are scrambled; needs :has(),
+   Chromium 105+ - on older WebViews the rule is ignored and the icon stays square). */
+div[role="alert"][aria-live] div:has(> img[data-testid="entity-image"]){
+  border-radius:50%!important;
+  overflow:hidden!important;
+}
+div[role="alert"][aria-live] img[data-testid="entity-image"]{
+  object-fit:cover!important;
 }
 div[role="alert"][aria-live] [data-encore-id="text"]{
   font-weight:600!important;
@@ -4237,7 +4193,6 @@ div[data-testid=now-playing-widget]>div:nth-child(2)>div:nth-child(2):not(:has(s
                 updateBodyClass();
                 createBottomNav();
                 setupToastStack();
-                setupToastDomProbe(); // TEMP (probe test build)
                 hookHistory();
                 prewarmLibrarySidebar();
             }
