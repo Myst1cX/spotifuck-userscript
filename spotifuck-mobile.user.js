@@ -2355,7 +2355,7 @@
         const ENTRANCE = true;  // entrance animation (slide up + fade in); false = off
         // Toast look: 'amoled' = pure-black pill matching the bars | 'dark' = dark-grey blurred
         // pill (the ToastFix look) | 'normal' = Spotify's own toast. Anything else = 'normal'.
-        const TOAST_STYLE = 'normal';
+        const TOAST_STYLE = 'amoled';
         if (TOAST_STYLE === 'dark' || TOAST_STYLE === 'amoled') document.documentElement.classList.add('sp-toast-pill');
         if (TOAST_STYLE === 'amoled') document.documentElement.classList.add('sp-toast-amoled');
         let timer = null;
