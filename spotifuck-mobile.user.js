@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.24.6.TEST.UNDOCUMENTED.
+// @version      7.24.7.TEST.UNDOCUMENTED
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -2264,57 +2264,6 @@
         }
     }
 
-    // Generic lift for Spotify's own bottom toasts ("Added to Liked Songs",
-    // "Added to queue", ...). Spotify positions them against the viewport bottom
-    // assuming its native player bar, so with our fixed player (z 9998) + nav
-    // (z 9999) on top they end up hidden behind them. No toast selector is known,
-    // so: watch for newly added nodes, find the nearest position:fixed ancestor,
-    // and if it is small (<=120px tall) and overlaps the player+nav strip, tag it
-    // with data-sp-toast-lift (CSS in injectCSS moves it above that strip, live,
-    // via --sp-np-bar-height). Our own bars/overlay and menus/dialogs are skipped.
-    let toastLiftObserver = null;
-    function setupToastLift() {
-        if (toastLiftObserver || !document.body || typeof MutationObserver === 'undefined') return;
-        const SKIP = '#sp-bottom-nav,aside[data-testid=now-playing-bar],#Desktop_LeftSidebar_Id,[role=tooltip],[role=menu],[role=dialog],[role=listbox]';
-        const pending = new Set();
-        let scheduled = false;
-        function flush() {
-            scheduled = false;
-            const np = document.querySelector('aside[data-testid=now-playing-bar]');
-            const limit = window.innerHeight - (56 + (np ? np.offsetHeight : 0));
-            const seen = new Set();
-            let budget = 40;
-            pending.forEach(node => {
-                if (budget-- <= 0 || !node.isConnected) return;
-                for (let el = node; el && el !== document.body && el !== document.documentElement; el = el.parentElement) {
-                    if (seen.has(el)) break;
-                    seen.add(el);
-                    if (el.hasAttribute('data-sp-toast-lift') || el.matches(SKIP)) break;
-                    if (getComputedStyle(el).position !== 'fixed') continue;
-                    const r = el.getBoundingClientRect();
-                    if (r.height <= 120 && r.bottom > limit) {
-                        el.setAttribute('data-sp-toast-lift', '1');
-                        dbg('toastLift: lifted fixed element above player+nav', el.tagName, { bottom: r.bottom, limit });
-                    }
-                    break;
-                }
-            });
-            pending.clear();
-        }
-        toastLiftObserver = new MutationObserver(muts => {
-            for (const m of muts) {
-                for (const n of m.addedNodes) {
-                    if (n.nodeType === 1 && pending.size < 200) pending.add(n);
-                }
-            }
-            if (pending.size && !scheduled) {
-                scheduled = true;
-                requestAnimationFrame(flush);
-            }
-        });
-        toastLiftObserver.observe(document.body, { childList: true, subtree: true });
-    }
-
     // enhance-badge (Smart Shuffle indicator) vertical alignment - see the
     // "Badge vertical alignment" CSS comment above (search enhance-badge)
     // for the full diagnosis. Short version: native Spotify centers the
@@ -3293,6 +3242,20 @@ div[data-testid=main-view],
   }
 }
 
+/* App border: bound the whole app grid itself to end above the player + nav
+   (not just #main-view), so anything anchored to the app's bottom edge -
+   e.g. Spotify's "Added to queue" toasts - lands above them, not behind. */
+.Root__top-container{
+  height:calc(100dvh - var(--sp-np-bar-height, 0px) - 56px)!important;
+  max-height:calc(100dvh - var(--sp-np-bar-height, 0px) - 56px)!important;
+}
+@supports not (height: 100dvh) {
+  .Root__top-container{
+    height:calc(100vh - var(--sp-np-bar-height, 0px) - 56px)!important;
+    max-height:calc(100vh - var(--sp-np-bar-height, 0px) - 56px)!important;
+  }
+}
+
 /* Library overlay: switchLs() sets inline height:100% (full viewport), so its
    bottom ran underneath the player + bottom nav. Same bound as #main-view;
    !important beats the inline height. */
@@ -3305,14 +3268,6 @@ div[data-testid=main-view],
     height:calc(100vh - var(--sp-np-bar-height, 0px) - 56px)!important;
     max-height:calc(100vh - var(--sp-np-bar-height, 0px) - 56px)!important;
   }
-}
-
-/* Fixed toasts tagged by setupToastLift(): sit just above player + nav and above
-   the nav's z-index. Live via --sp-np-bar-height (minimized/expanded/hidden). */
-[data-sp-toast-lift]{
-  top:auto!important;
-  bottom:calc(var(--sp-np-bar-height, 0px) + 56px + 12px)!important;
-  z-index:10000!important;
 }
 
 #sp-bottom-nav{
@@ -3853,7 +3808,6 @@ div[data-testid=now-playing-widget]>div:nth-child(2)>div:nth-child(2):not(:has(s
                 lastNavPath = location.pathname;
                 updateBodyClass();
                 createBottomNav();
-                setupToastLift();
                 hookHistory();
                 prewarmLibrarySidebar();
             }
