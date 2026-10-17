@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.25.normaltest3
+// @version      7.25
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -904,8 +904,10 @@
 * i) Toast look: one pill shape, three colour themes (the TOAST_STYLE setting at
 * the top of setupToastStack(); default 'amoled'). Every toast now has the same
 * shape: a rounded pill with a shadow, bold single-line title (cut off with an
-* ellipsis past 56% of the screen width), a round cover image, and pill-shaped
-* action buttons (e.g. Undo). TOAST_STYLE only changes the colours:
+* ellipsis past 56% of the screen width), and pill-shaped action buttons (e.g.
+* Undo). The cover image / icon is left as Spotify draws it (rounding it, as
+* ToastFix does, left black square corners behind icons such as the Liked
+* Songs heart). TOAST_STYLE only changes the colours:
 *   'amoled' - pure black (#000) with the same thin #666 outline as the player
 *              and nav bars, white text, buttons tint Spotify green on hover.
 *   'dark'   - dark grey with a blurred backdrop and a faint outline, white
@@ -2356,7 +2358,7 @@
         // Toast colours (the pill SHAPE is the same in all three): 'amoled' = pure black matching
         // the bars | 'dark' = dark-grey blurred (the ToastFix look) | 'normal' = Spotify's own
         // colours. Anything else = 'normal'.
-        const TOAST_STYLE = 'normal';
+        const TOAST_STYLE = 'amoled';
         if (TOAST_STYLE === 'dark' || TOAST_STYLE === 'amoled') document.documentElement.classList.add('sp-toast-pill');
         if (TOAST_STYLE === 'amoled') document.documentElement.classList.add('sp-toast-amoled');
         let timer = null;
@@ -3572,11 +3574,13 @@ div[role="alert"][aria-live]{
   pointer-events:auto!important;
   touch-action:none!important;
 }
-/* Toast SHAPE (ToastFix): the same in all three TOAST_STYLE looks - rounded pill, round
-   cover image, single-line bold title capped at 56vw with an ellipsis, pill-shaped
-   action buttons. Colours are NOT set here (see the theme rules below), so 'normal'
-   keeps Spotify's own colours with this shape. The 1px border is transparent here so
-   the size is identical in every look; the dark themes colour it. */
+/* Toast SHAPE (ToastFix): the same in all three TOAST_STYLE looks - rounded pill,
+   single-line bold title capped at 56vw with an ellipsis, pill-shaped action
+   buttons. Colours are NOT set here (see the theme rules below), so 'normal' keeps
+   Spotify's own colours with this shape. The 1px border is transparent here so the
+   size is identical in every look; the dark themes colour it. ToastFix also rounded
+   the cover image (img[data-testid=entity-image]); that is deliberately NOT ported:
+   it left black square corners behind icons such as the Liked Songs heart. */
 div[role="alert"][aria-live] [data-encore-id="box"]{
   border:1px solid transparent!important;
   border-radius:9999px!important;
@@ -3585,10 +3589,6 @@ div[role="alert"][aria-live] [data-encore-id="box"]{
   display:inline-flex!important;
   align-items:center!important;
   gap:10px!important;
-}
-div[role="alert"][aria-live] img[data-testid="entity-image"]{
-  border-radius:50%!important;
-  object-fit:cover!important;
 }
 div[role="alert"][aria-live] [data-encore-id="text"]{
   font-weight:600!important;
