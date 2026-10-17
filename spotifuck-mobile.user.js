@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.25.h.acc
+// @version      7.25
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -866,9 +866,9 @@
 * [aria-live]), anchored to the bottom of the screen, which is exactly where
 * our fixed player (z-index 9998) and nav (9999) sit. The toast is now moved
 * up to sit just above the player and nav (above the nav only, if the player
-* is hidden), again via the live --sp-np-bar-height. The selectors come from
-* the desktop ToastFix. Raising the toast container's z-index above the bars
-* was tried and rejected: it blanked the bars while a toast was showing.
+* is hidden), again via the live --sp-np-bar-height. Raising the toast
+* container's z-index above the bars was tried and rejected: it blanked the
+* bars while a toast was showing.
 * d) Why the bars drifted: the container natively sits at left:50% with a
 * translateX(-50%) to center it. Removing that transform (needed so the fixed
 * toast is positioned against the screen, not a transformed wrapper) pushed
@@ -878,8 +878,8 @@
 * its own screen-sized fixed box (left/right 0, max-width 100vw), so nothing
 * sticks out and the page never widens.
 * e) Stacking: several toasts on screen at once now stack upward instead of
-* overlapping, oldest at the bottom, 56px apart (ported from the desktop
-* ToastFix's restack). A small watcher numbers the visible toasts
+* overlapping, oldest at the bottom, 56px apart. A small watcher numbers the
+* visible toasts
 * (--sp-toast-idx) and the toast CSS lifts each one by that many steps;
 * hidden or fading toasts are skipped so they leave no gap. It only polls
 * (every 300ms) while at least one toast exists.
@@ -893,25 +893,28 @@
 * Spotify already faded out on its own are left alone, so nothing pops back
 * in. These animate the separate CSS `translate` property because the toast
 * CSS forces `transform`, which would otherwise block them.
-* h) Entrance animation (currently switched OFF - the ENTRANCE flag at the top
-* of setupToastStack(); set it to true to enable): a new toast slides up about
-* 16px while fading in, with a small overshoot, over roughly 0.4s (it animates
+* h) Entrance animation (on by default; the ENTRANCE flag at the top of
+* setupToastStack() turns it off): a new toast slides up about 16px while
+* fading in, with a small overshoot, over roughly 0.4s (it animates
 * `translate` and `scale` for the same reason as above). If you grab or swipe
 * it while it's still sliding in, the entrance is cancelled so your finger
 * takes over. Independent of the entrance, a new toast now takes its stack
 * slot immediately, so it no longer flashes on top of the previous toast for a
 * moment before moving up.
-* i) Dark pill look (ported from the desktop ToastFix): toasts are now a rounded
-* dark blurred pill with a thin border and shadow, bold white single-line text
+* i) Dark pill look (on by default; the PILL flag at the top of setupToastStack()
+* turns it off, back to Spotify's own toast look): toasts are a rounded dark
+* blurred pill with a thin border and shadow, bold white single-line text
 * (cut off with an ellipsis when long), a round cover image, and pill-shaped
 * action buttons (e.g. Undo) with an accent tint on hover. The tint uses the
 * --spl-accent-rgb CSS variable (an "R,G,B" string) when the host app injects
-* it (the desktop interface's AccentTheme does), and falls back to Spotify
-* green (29,185,84) when it doesn't. Additions over the original: the pill can
+* it (Spotilol's AccentTheme does), and falls back to Spotify green (29,185,84,
+* the same as #1DB954) when it doesn't - the Spotifuck wrapper doesn't inject
+* it, so here it is always green. Additions over the original: the pill can
 * shrink long titles with an ellipsis instead of growing wider than the
 * screen. The 56px stacking step fits a pill with buttons (about 54px tall),
 * leaving only a thin gap between stacked toasts.
 */
+// Credits to lyssadev/Spotilol for ToastFix
 
 (function() {
     'use strict';
@@ -2337,7 +2340,7 @@
     }
 
     // v7.25: toast stacking + entrance + swipe-to-dismiss + smooth exit (ported/trimmed
-    // from the desktop ToastFix). Each visible toast gets --sp-toast-idx (0 = oldest = lowest;
+    // from ToastFix - credits at the top). Each visible toast gets --sp-toast-idx (0 = oldest = lowest;
     // the toast CSS lifts it idx * 56px). Swiping a toast sideways dismisses it; when
     // Spotify hides/removes one, a clone animates out instead of it vanishing. Our toast
     // CSS forces `transform`, so everything animates the separate `translate` property.
@@ -2349,7 +2352,9 @@
         const SEL = 'div[role="alert"][aria-live]';
         const GRACE = 600;      // ms after a toast appears before "hidden" styles count as an exit
         const SWIPE_MIN = 72;   // px
-        const ENTRANCE = false; // entrance animation: temporarily OFF (set true to re-enable)
+        const ENTRANCE = true;  // entrance animation (slide up + fade in); false = off
+        const PILL = true;      // dark pill toast look; false = Spotify's own toast look
+        if (PILL) document.documentElement.classList.add('sp-toast-pill');
         let timer = null;
 
         const state = el => {   // 'vis' | 'faded' | 'hidden'
@@ -3522,7 +3527,7 @@ div[data-testid=main-view],
 
 /* Toasts ("Added to queue", etc.) are notistack snackbars:
    .notistack-SnackbarContainer > .notistack-Snackbar > div[role=alert][aria-live]
-   (selectors from the desktop ToastFix). Spotify anchors them to the viewport
+   (selectors from ToastFix - credits at the top). Spotify anchors them to the viewport
    bottom, i.e. under our fixed player (z 9998) + nav (z 9999). Raising the
    container's z-index above the bars blanked them (an opaque layer inside it),
    so z-index is deliberately NOT touched: the toast is instead moved up to sit
@@ -3563,10 +3568,11 @@ div[role="alert"][aria-live]{
   pointer-events:auto!important;
   touch-action:none!important;
 }
-/* Dark pill look (ported from the desktop ToastFix). The min-width:0 / max-width:100%
-   lines are additions: they let long titles shrink with an ellipsis instead of
-   pushing the pill wider than the screen. */
-div[role="alert"][aria-live] [data-encore-id="box"]{
+/* Dark pill look (ToastFix, see credits at the top). Only active while the PILL flag
+   in setupToastStack() is true (it adds html.sp-toast-pill). The min-width:0 /
+   max-width:100% lines are additions: they let long titles shrink with an ellipsis
+   instead of pushing the pill wider than the screen. */
+html.sp-toast-pill div[role="alert"][aria-live] [data-encore-id="box"]{
   background:rgba(24,24,24,.92)!important;
   -webkit-backdrop-filter:blur(14px)!important;
   backdrop-filter:blur(14px)!important;
@@ -3581,11 +3587,11 @@ div[role="alert"][aria-live] [data-encore-id="box"]{
   max-width:100%!important;
   box-sizing:border-box!important;
 }
-div[role="alert"][aria-live] img[data-testid="entity-image"]{
+html.sp-toast-pill div[role="alert"][aria-live] img[data-testid="entity-image"]{
   border-radius:50%!important;
   object-fit:cover!important;
 }
-div[role="alert"][aria-live] [data-encore-id="text"]{
+html.sp-toast-pill div[role="alert"][aria-live] [data-encore-id="text"]{
   color:#fff!important;
   font-weight:600!important;
   font-size:13px!important;
@@ -3596,7 +3602,7 @@ div[role="alert"][aria-live] [data-encore-id="text"]{
   overflow:hidden!important;
   text-overflow:ellipsis!important;
 }
-div[role="alert"][aria-live] button{
+html.sp-toast-pill div[role="alert"][aria-live] button{
   background:rgba(255,255,255,.1)!important;
   color:#fff!important;
   border:none!important;
@@ -3611,8 +3617,8 @@ div[role="alert"][aria-live] button{
   margin-left:4px!important;
   transition:background .15s, transform .1s!important;
 }
-div[role="alert"][aria-live] button:hover{background:rgba(var(--spl-accent-rgb, 29,185,84),.3)!important}
-div[role="alert"][aria-live] button:active{transform:scale(.95)!important}
+html.sp-toast-pill div[role="alert"][aria-live] button:hover{background:rgba(var(--spl-accent-rgb, 29,185,84),.3)!important}
+html.sp-toast-pill div[role="alert"][aria-live] button:active{transform:scale(.95)!important}
 
 #sp-bottom-nav{
   position:fixed!important;
