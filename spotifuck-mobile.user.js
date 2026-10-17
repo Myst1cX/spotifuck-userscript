@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.24.7.TEST.UNDOCUMENTED
+// @version      7.24.8.SHOULDWORK.TEST
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -3227,7 +3227,8 @@ div[data-testid=main-view],
   overflow:hidden!important;
 }
 div[data-testid=main-view],
-#main-view{
+#main-view,
+.Root__main-view{
   height:calc(100dvh - var(--sp-np-bar-height, 0px) - 56px)!important;
   max-height:calc(100dvh - var(--sp-np-bar-height, 0px) - 56px)!important;
   overflow-y:auto!important;
@@ -3236,21 +3237,8 @@ div[data-testid=main-view],
 }
 @supports not (height: 100dvh) {
   div[data-testid=main-view],
-  #main-view{
-    height:calc(100vh - var(--sp-np-bar-height, 0px) - 56px)!important;
-    max-height:calc(100vh - var(--sp-np-bar-height, 0px) - 56px)!important;
-  }
-}
-
-/* App border: bound the whole app grid itself to end above the player + nav
-   (not just #main-view), so anything anchored to the app's bottom edge -
-   e.g. Spotify's "Added to queue" toasts - lands above them, not behind. */
-.Root__top-container{
-  height:calc(100dvh - var(--sp-np-bar-height, 0px) - 56px)!important;
-  max-height:calc(100dvh - var(--sp-np-bar-height, 0px) - 56px)!important;
-}
-@supports not (height: 100dvh) {
-  .Root__top-container{
+  #main-view,
+  .Root__main-view{
     height:calc(100vh - var(--sp-np-bar-height, 0px) - 56px)!important;
     max-height:calc(100vh - var(--sp-np-bar-height, 0px) - 56px)!important;
   }
