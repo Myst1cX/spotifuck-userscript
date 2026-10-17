@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.25.1
+// @version      7.25.normaltest
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -901,18 +901,18 @@
 * takes over. Independent of the entrance, a new toast now takes its stack
 * slot immediately, so it no longer flashes on top of the previous toast for a
 * moment before moving up.
-* i) Toast look, three choices (the TOAST_STYLE setting at the top of
-* setupToastStack(); default 'amoled'):
-*   'amoled' - rounded pure black (#000) pill with the same thin #666 outline
-*              as the player and nav bars, so it matches the AMOLED look.
-*   'dark'   - the same pill in dark grey with a blurred backdrop and a faint
-*              outline (the original ToastFix look).
-*   'normal' - Spotify's own toast look, no styling from us.
-* Both pill looks have a shadow, bold white single-line text (cut off with an
-* ellipsis when long), a round cover image, and pill-shaped action buttons
-* (e.g. Undo) that tint Spotify green (29,185,84) on hover. The 56px stacking
-* step fits a pill with buttons (about 54px tall), leaving only a thin gap
-* between stacked toasts.
+* i) Toast look: one pill shape, three colour themes (the TOAST_STYLE setting at
+* the top of setupToastStack(); default 'amoled'). Every toast now has the same
+* shape: a rounded pill with a shadow, bold single-line title (cut off with an
+* ellipsis past 56% of the screen width), a round cover image, and pill-shaped
+* action buttons (e.g. Undo). TOAST_STYLE only changes the colours:
+*   'amoled' - pure black (#000) with the same thin #666 outline as the player
+*              and nav bars, white text, buttons tint Spotify green on hover.
+*   'dark'   - dark grey with a blurred backdrop and a faint outline, white
+*              text, same green hover tint (the original ToastFix colours).
+*   'normal' - Spotify's own colours (white toast), in the same pill shape.
+* The 56px stacking step fits a pill with buttons (about 54px tall), leaving
+* only a thin gap between stacked toasts.
 */
 // Credits to lyssadev/Spotilol for ToastFix
 
@@ -2353,9 +2353,10 @@
         const GRACE = 600;      // ms after a toast appears before "hidden" styles count as an exit
         const SWIPE_MIN = 72;   // px
         const ENTRANCE = true;  // entrance animation (slide up + fade in); false = off
-        // Toast look: 'amoled' = pure-black pill matching the bars | 'dark' = dark-grey blurred
-        // pill (the ToastFix look) | 'normal' = Spotify's own toast. Anything else = 'normal'.
-        const TOAST_STYLE = 'amoled';
+        // Toast colours (the pill SHAPE is the same in all three): 'amoled' = pure black matching
+        // the bars | 'dark' = dark-grey blurred (the ToastFix look) | 'normal' = Spotify's own
+        // colours. Anything else = 'normal'.
+        const TOAST_STYLE = 'normal';
         if (TOAST_STYLE === 'dark' || TOAST_STYLE === 'amoled') document.documentElement.classList.add('sp-toast-pill');
         if (TOAST_STYLE === 'amoled') document.documentElement.classList.add('sp-toast-amoled');
         let timer = null;
@@ -3571,38 +3572,25 @@ div[role="alert"][aria-live]{
   pointer-events:auto!important;
   touch-action:none!important;
 }
-/* Pill toasts (ToastFix look, see credits at the top). Picked by TOAST_STYLE in
-   setupToastStack(), which puts html.sp-toast-pill on <html> for 'dark' and
-   'amoled' (nothing for 'normal' = Spotify's own look), plus html.sp-toast-amoled
-   for 'amoled'. The base below is the dark-grey blurred pill; the .sp-toast-amoled
-   rule after it turns it pure black. */
-html.sp-toast-pill div[role="alert"][aria-live] [data-encore-id="box"]{
-  background:rgba(24,24,24,.92)!important;
-  -webkit-backdrop-filter:blur(14px)!important;
-  backdrop-filter:blur(14px)!important;
-  color:#fff!important;
-  border:1px solid rgba(255,255,255,.09)!important;
+/* Toast SHAPE (ToastFix): the same in all three TOAST_STYLE looks - rounded pill, round
+   cover image, single-line bold title capped at 56vw with an ellipsis, pill-shaped
+   action buttons. Colours are NOT set here (see the theme rules below), so 'normal'
+   keeps Spotify's own colours with this shape. The 1px border is transparent here so
+   the size is identical in every look; the dark themes colour it. */
+div[role="alert"][aria-live] [data-encore-id="box"]{
+  border:1px solid transparent!important;
   border-radius:9999px!important;
   padding:8px 18px 8px 10px!important;
-  box-shadow:0 8px 32px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.03) inset!important;
+  box-shadow:0 8px 32px rgba(0,0,0,.7)!important;
   display:inline-flex!important;
   align-items:center!important;
   gap:10px!important;
 }
-/* AMOLED variant: solid #000 with the same #666 outline as the player and nav bars
-   (blur is pointless on solid black). */
-html.sp-toast-pill.sp-toast-amoled div[role="alert"][aria-live] [data-encore-id="box"]{
-  background:#000!important;
-  border:1px solid #666!important;
-  -webkit-backdrop-filter:none!important;
-  backdrop-filter:none!important;
-}
-html.sp-toast-pill div[role="alert"][aria-live] img[data-testid="entity-image"]{
+div[role="alert"][aria-live] img[data-testid="entity-image"]{
   border-radius:50%!important;
   object-fit:cover!important;
 }
-html.sp-toast-pill div[role="alert"][aria-live] [data-encore-id="text"]{
-  color:#fff!important;
+div[role="alert"][aria-live] [data-encore-id="text"]{
   font-weight:600!important;
   font-size:13px!important;
   letter-spacing:.2px!important;
@@ -3611,9 +3599,7 @@ html.sp-toast-pill div[role="alert"][aria-live] [data-encore-id="text"]{
   overflow:hidden!important;
   text-overflow:ellipsis!important;
 }
-html.sp-toast-pill div[role="alert"][aria-live] button{
-  background:rgba(255,255,255,.1)!important;
-  color:#fff!important;
+div[role="alert"][aria-live] button{
   border:none!important;
   border-radius:9999px!important;
   padding:8px 14px!important;
@@ -3626,8 +3612,34 @@ html.sp-toast-pill div[role="alert"][aria-live] button{
   margin-left:4px!important;
   transition:background .15s, transform .1s!important;
 }
+div[role="alert"][aria-live] button:active{transform:scale(.95)!important}
+/* Toast THEME. TOAST_STYLE in setupToastStack() puts html.sp-toast-pill on <html> for
+   'dark' and 'amoled' (nothing for 'normal'), plus html.sp-toast-amoled for 'amoled'.
+   'normal' sets no colours at all: Spotify's own white toast. 'dark' = the ToastFix
+   dark-grey blurred pill. 'amoled' = the same pill in pure #000 with the #666 outline
+   used by the player and nav bars (the .sp-toast-amoled rule overrides the dark one). */
+html.sp-toast-pill div[role="alert"][aria-live] [data-encore-id="box"]{
+  background:rgba(24,24,24,.92)!important;
+  -webkit-backdrop-filter:blur(14px)!important;
+  backdrop-filter:blur(14px)!important;
+  color:#fff!important;
+  border-color:rgba(255,255,255,.09)!important;
+  box-shadow:0 8px 32px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.03) inset!important;
+}
+html.sp-toast-pill.sp-toast-amoled div[role="alert"][aria-live] [data-encore-id="box"]{
+  background:#000!important;
+  border-color:#666!important;
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+}
+html.sp-toast-pill div[role="alert"][aria-live] [data-encore-id="text"]{
+  color:#fff!important;
+}
+html.sp-toast-pill div[role="alert"][aria-live] button{
+  background:rgba(255,255,255,.1)!important;
+  color:#fff!important;
+}
 html.sp-toast-pill div[role="alert"][aria-live] button:hover{background:rgba(29,185,84,.3)!important}
-html.sp-toast-pill div[role="alert"][aria-live] button:active{transform:scale(.95)!important}
 
 #sp-bottom-nav{
   position:fixed!important;
