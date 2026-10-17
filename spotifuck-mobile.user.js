@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.24.95.soon
+// @version      7.24.99.TEST
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -3327,7 +3327,22 @@ div[data-testid=main-view],
    just above player + nav, where it never overlaps them. The offset follows
    --sp-np-bar-height live (minimized / expanded / hidden). transform:none keeps
    position:fixed relative to the screen, not to a transformed wrapper. */
-.notistack-SnackbarContainer,
+/* The container natively sits at left:50% with translateX(-50%) (centered). With
+   the transform removed (needed so our fixed toast is relative to the screen) it
+   was pushed to L192-R544 on a 384px viewport; that overflow widened the WebView's
+   layout viewport (wide viewport mode) and displaced the fixed bars. So it also
+   gets a viewport-sized box of its own, which cannot overflow. */
+.notistack-SnackbarContainer{
+  position:fixed!important;
+  left:0!important;
+  right:0!important;
+  top:auto!important;
+  bottom:0!important;
+  width:auto!important;
+  max-width:100vw!important;
+  transform:none!important;
+  pointer-events:none!important;
+}
 .notistack-Snackbar{
   transform:none!important;
   pointer-events:none!important;
