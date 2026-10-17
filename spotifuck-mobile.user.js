@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.24.90.soon
+// @version      7.24.91.soon
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -3258,32 +3258,10 @@ div[data-testid=main-view],
   }
 }
 
-/* Toasts ("Added to queue", "Added to Liked Songs"): Spotify renders them as
-   notistack snackbars (.notistack-SnackbarContainer > div[role=alert][aria-live])
-   anchored to the viewport bottom, i.e. behind our fixed player (z 9998) + nav
-   (z 9999). Selectors/approach taken from the desktop ToastFix. Lift the toast
-   above player + nav (live via --sp-np-bar-height) and above their z-index. */
+/* TOAST STAGE 1 (z-index only, no repositioning): Spotify's toasts are notistack
+   snackbars; raise the container above our fixed player (9998) + nav (9999). */
 .notistack-SnackbarContainer{
-  transform:none!important;
   z-index:2147483647!important;
-  pointer-events:none!important;
-}
-.notistack-Snackbar{
-  transform:none!important;
-  pointer-events:none!important;
-}
-div[role="alert"][aria-live]{
-  position:fixed!important;
-  left:50%!important;
-  right:auto!important;
-  top:auto!important;
-  bottom:calc(var(--sp-np-bar-height, 0px) + 56px + 10px)!important;
-  transform:translateX(-50%)!important;
-  z-index:2147483647!important;
-  width:max-content!important;
-  max-width:calc(100vw - 24px)!important;
-  margin:0!important;
-  pointer-events:auto!important;
 }
 
 #sp-bottom-nav{
