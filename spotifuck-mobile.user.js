@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.25.h
+// @version      7.25.h.acc
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -893,12 +893,24 @@
 * Spotify already faded out on its own are left alone, so nothing pops back
 * in. These animate the separate CSS `translate` property because the toast
 * CSS forces `transform`, which would otherwise block them.
-* h) Entrance animation: a new toast now slides up about 16px while fading in,
-* with a small overshoot, over roughly 0.4s (it animates `translate` and
-* `scale` for the same reason as above). If you grab or swipe it while it's
-* still sliding in, the entrance is cancelled so your finger takes over. A
-* new toast also takes its stack slot immediately, so it no longer flashes on
-* top of the previous toast for a moment before moving up.
+* h) Entrance animation (currently switched OFF - the ENTRANCE flag at the top
+* of setupToastStack(); set it to true to enable): a new toast slides up about
+* 16px while fading in, with a small overshoot, over roughly 0.4s (it animates
+* `translate` and `scale` for the same reason as above). If you grab or swipe
+* it while it's still sliding in, the entrance is cancelled so your finger
+* takes over. Independent of the entrance, a new toast now takes its stack
+* slot immediately, so it no longer flashes on top of the previous toast for a
+* moment before moving up.
+* i) Dark pill look (ported from the desktop ToastFix): toasts are now a rounded
+* dark blurred pill with a thin border and shadow, bold white single-line text
+* (cut off with an ellipsis when long), a round cover image, and pill-shaped
+* action buttons (e.g. Undo) with an accent tint on hover. The tint uses the
+* --spl-accent-rgb CSS variable (an "R,G,B" string) when the host app injects
+* it (the desktop interface's AccentTheme does), and falls back to Spotify
+* green (29,185,84) when it doesn't. Additions over the original: the pill can
+* shrink long titles with an ellipsis instead of growing wider than the
+* screen. The 56px stacking step fits a pill with buttons (about 54px tall),
+* leaving only a thin gap between stacked toasts.
 */
 
 (function() {
@@ -2337,6 +2349,7 @@
         const SEL = 'div[role="alert"][aria-live]';
         const GRACE = 600;      // ms after a toast appears before "hidden" styles count as an exit
         const SWIPE_MIN = 72;   // px
+        const ENTRANCE = false; // entrance animation: temporarily OFF (set true to re-enable)
         let timer = null;
 
         const state = el => {   // 'vis' | 'faded' | 'hidden'
@@ -2349,7 +2362,7 @@
         // Entrance: slide up 16px + fade in with a slight overshoot (translate/scale, not
         // transform - see above). Cancelled if the toast is grabbed or dismissed mid-entrance.
         const enter = el => {
-            if (!el.animate) return;
+            if (!ENTRANCE || !el.animate) return;
             try {
                 el.__spEnter = el.animate([
                     { opacity: 0, translate: '0 16px', scale: 0.94 },
@@ -3550,6 +3563,56 @@ div[role="alert"][aria-live]{
   pointer-events:auto!important;
   touch-action:none!important;
 }
+/* Dark pill look (ported from the desktop ToastFix). The min-width:0 / max-width:100%
+   lines are additions: they let long titles shrink with an ellipsis instead of
+   pushing the pill wider than the screen. */
+div[role="alert"][aria-live] [data-encore-id="box"]{
+  background:rgba(24,24,24,.92)!important;
+  -webkit-backdrop-filter:blur(14px)!important;
+  backdrop-filter:blur(14px)!important;
+  color:#fff!important;
+  border:1px solid rgba(255,255,255,.09)!important;
+  border-radius:9999px!important;
+  padding:8px 18px 8px 10px!important;
+  box-shadow:0 8px 32px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.03) inset!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  gap:10px!important;
+  max-width:100%!important;
+  box-sizing:border-box!important;
+}
+div[role="alert"][aria-live] img[data-testid="entity-image"]{
+  border-radius:50%!important;
+  object-fit:cover!important;
+}
+div[role="alert"][aria-live] [data-encore-id="text"]{
+  color:#fff!important;
+  font-weight:600!important;
+  font-size:13px!important;
+  letter-spacing:.2px!important;
+  white-space:nowrap!important;
+  max-width:56vw!important;
+  min-width:0!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+div[role="alert"][aria-live] button{
+  background:rgba(255,255,255,.1)!important;
+  color:#fff!important;
+  border:none!important;
+  border-radius:9999px!important;
+  padding:8px 14px!important;
+  font-size:12px!important;
+  font-weight:700!important;
+  text-transform:uppercase!important;
+  letter-spacing:.5px!important;
+  cursor:pointer!important;
+  min-height:36px!important;
+  margin-left:4px!important;
+  transition:background .15s, transform .1s!important;
+}
+div[role="alert"][aria-live] button:hover{background:rgba(var(--spl-accent-rgb, 29,185,84),.3)!important}
+div[role="alert"][aria-live] button:active{transform:scale(.95)!important}
 
 #sp-bottom-nav{
   position:fixed!important;
