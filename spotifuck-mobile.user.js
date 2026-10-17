@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.24.99.TEST
+// @version      7.25
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -839,6 +839,60 @@
 * sibling in the same widget (heart button, track-title link). The
 * .fuckd-npv-art marker moves to the container too, so the existing stop-check
 * needs no change.
+*
+* RESOLVED (v7.25) - The main navigation UI's bottom boundary was wrong: its
+* content ran underneath both the player bar (minimized or expanded) and the
+* bottom nav bar. It now stops above the bottom nav when the player is hidden,
+* and above the player when it's visible, following the player's minimized /
+* expanded state live. Also fixed in the same pass: Spotify's confirmation
+* popups ("Added to queue", "Added to Liked Songs", "Removed from Liked
+* Songs") were hidden behind the player and nav, and showing them made the
+* player and nav bar drift off-screen until you pinched to zoom out.
+*
+* a) Library: switchLs() opens the library by giving #Desktop_LeftSidebar_Id an
+* inline height of 100%, i.e. the full screen, so the bottom of the list sat
+* under the player and nav (and the player looked missing in Library). A CSS
+* rule now caps the open library at the screen height minus the player's
+* current height minus the 56px nav, using the same --sp-np-bar-height
+* variable #main-view already uses (with a 100vh fallback for webviews
+* without dvh support). It needs !important to beat that inline height.
+* .Root__main-view was also added to the selector group that already bounds
+* #main-view, so the outer wrapper ends above the bars as well.
+* b) --sp-np-bar-height is now reset to 0px when the player element is gone
+* (nothing playing, logged out). Before, it kept its last value and left an
+* empty gap above the nav bar.
+* c) Toasts: Spotify renders them as notistack snackbars
+* (.notistack-SnackbarContainer > .notistack-Snackbar > div[role=alert]
+* [aria-live]), anchored to the bottom of the screen, which is exactly where
+* our fixed player (z-index 9998) and nav (9999) sit. The toast is now moved
+* up to sit just above the player and nav (above the nav only, if the player
+* is hidden), again via the live --sp-np-bar-height. The selectors come from
+* the desktop ToastFix. Raising the toast container's z-index above the bars
+* was tried and rejected: it blanked the bars while a toast was showing.
+* d) Why the bars drifted: the container natively sits at left:50% with a
+* translateX(-50%) to center it. Removing that transform (needed so the fixed
+* toast is positioned against the screen, not a transformed wrapper) pushed
+* its right edge to 544px on a 384px-wide screen. The app's WebView runs in
+* wide-viewport mode, so it widened the whole page to fit, and the fixed bars
+* anchored to the bigger page, below the visible area. The container now has
+* its own screen-sized fixed box (left/right 0, max-width 100vw), so nothing
+* sticks out and the page never widens.
+* e) Stacking: several toasts on screen at once now stack upward instead of
+* overlapping, oldest at the bottom, 56px apart (ported from the desktop
+* ToastFix's restack). A small watcher numbers the visible toasts
+* (--sp-toast-idx) and the toast CSS lifts each one by that many steps;
+* hidden or fading toasts are skipped so they leave no gap. It only polls
+* (every 300ms) while at least one toast exists.
+* f) Swipe to dismiss: drag a toast sideways and it follows your finger and
+* fades; let go past about a third of its width (at least 72px) and it flies
+* off that side, otherwise it springs back. Taps on the toast's own buttons
+* (e.g. Undo) still work. The original toast is only hidden, so Spotify's own
+* timer still removes it later as usual.
+* g) Smooth exit: when Spotify hides or removes a toast, a copy of it sinks
+* and fades out over about 0.3s instead of disappearing instantly. Toasts
+* Spotify already faded out on its own are left alone, so nothing pops back
+* in. These animate the separate CSS `translate` property because the toast
+* CSS forces `transform`, which would otherwise block them.
 */
 
 (function() {
@@ -2264,65 +2318,167 @@
         }
     }
 
-    // ===== TEMP TOAST PROBE - remove once the widening element is known =====
-    // While a toast shows, something is wider than the viewport, so the WebView
-    // (wide viewport on) widens its layout viewport and the fixed bars drift
-    // off-screen. On each toast this prints viewport metrics plus the elements
-    // whose right edge is past the viewport. Tap the green box to dismiss it.
-    function setupToastProbe() {
-        if (window.__spToastProbe || !document.body) return;
-        window.__spToastProbe = true;
-        const label = el => {
-            const cls = (typeof el.className === 'string' ? el.className : '').trim().split(/\s+/).slice(0, 2).join('.');
-            const tid = el.getAttribute('data-testid');
-            return el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + (cls ? '.' + cls : '') + (tid ? '[' + tid + ']' : '');
+    // v7.25: toast stacking + swipe-to-dismiss + smooth exit (ported/trimmed from the
+    // desktop ToastFix). Each visible toast gets --sp-toast-idx (0 = oldest = lowest;
+    // the toast CSS lifts it idx * 56px). Swiping a toast sideways dismisses it; when
+    // Spotify hides/removes one, a clone animates out instead of it vanishing. Our toast
+    // CSS forces `transform`, so everything animates the separate `translate` property.
+    // Spotify hides toasts by flipping inline styles (no DOM mutation), so besides the
+    // attribute watcher a 300ms poll runs while any toast exists, then stops.
+    function setupToastStack() {
+        if (window.__spToastStack || !document.body) return;
+        window.__spToastStack = true;
+        const SEL = 'div[role="alert"][aria-live]';
+        const GRACE = 600;      // ms after a toast appears before "hidden" styles count as an exit
+        const SWIPE_MIN = 72;   // px
+        let timer = null;
+
+        const state = el => {   // 'vis' | 'faded' | 'hidden'
+            const cs = getComputedStyle(el);
+            if (cs.display === 'none' || el.getBoundingClientRect().height < 2) return 'hidden';
+            if (cs.visibility === 'hidden' || parseFloat(cs.opacity) < 0.02) return 'faded';
+            return 'vis';
         };
-        const rect = el => { const r = el.getBoundingClientRect(); return 'L' + Math.round(r.left) + ' R' + Math.round(r.right) + ' T' + Math.round(r.top) + ' B' + Math.round(r.bottom) + ' W' + Math.round(r.width); };
-        const report = () => {
-            const de = document.documentElement, cw = de.clientWidth, vv = window.visualViewport;
-            const lines = [
-                'inner ' + window.innerWidth + 'x' + window.innerHeight + ' client ' + cw + ' scrollW ' + de.scrollWidth + ' bodyScrollW ' + document.body.scrollWidth,
-                'vv scale ' + (vv ? vv.scale.toFixed(2) + ' w ' + Math.round(vv.width) : 'n/a') + ' dpr ' + window.devicePixelRatio,
-                'meta: ' + ((document.querySelector('meta[name=viewport]') || {}).content || '(none)')
-            ];
-            const wide = [];
-            document.querySelectorAll('body *').forEach(el => {
-                if (el.closest('#sp-toast-probe')) return;
-                const r = el.getBoundingClientRect();
-                if (r.width > 0 && r.right > cw + 1) wide.push({ el, right: r.right });
-            });
-            wide.sort((x, y) => y.right - x.right);
-            lines.push('wider than ' + cw + ': ' + wide.length);
-            wide.slice(0, 8).forEach(w => {
-                const cs = getComputedStyle(w.el);
-                lines.push(label(w.el) + ' ' + cs.position + (cs.transform !== 'none' ? ' TRANSFORM' : '') + ' ' + rect(w.el) + (w.el.closest('.notistack-SnackbarContainer') ? ' [in toast]' : ''));
-            });
-            const c = document.querySelector('.notistack-SnackbarContainer');
-            if (c) lines.push('container ' + getComputedStyle(c).position + ' z' + getComputedStyle(c).zIndex + ' ' + rect(c));
-            const t = document.querySelector('div[role="alert"][aria-live]');
-            if (t) lines.push('toast ' + getComputedStyle(t).position + ' ' + rect(t));
-            let box = document.getElementById('sp-toast-probe');
-            if (!box) {
-                box = document.createElement('div');
-                box.id = 'sp-toast-probe';
-                box.style.cssText = 'position:fixed;top:0;left:0;max-width:100vw;box-sizing:border-box;z-index:2147483647;background:rgba(0,0,0,.9);color:#0f0;font:10px/1.3 monospace;white-space:pre-wrap;padding:6px;max-height:55vh;overflow:auto;pointer-events:auto';
-                box.addEventListener('click', () => box.remove());
-                document.body.appendChild(box);
+
+        // Animate a ghost (a clone, or a removed toast re-attached) out, then delete it.
+        // dx = how far it was swiped (|dx| > 30: fly off that side; otherwise sink + fade).
+        const mount = (g, dx, strip) => {
+            g.__spGone = true;
+            g.setAttribute('data-sp-ghost', '1');
+            if (strip) {   // drop Spotify's inline hide styles so the ghost is visible
+                ['opacity', 'display', 'translate', 'transition'].forEach(p => g.style.removeProperty(p));
+                g.style.setProperty('visibility', 'visible', 'important');
             }
-            box.textContent = lines.join('\n');
+            g.style.setProperty('pointer-events', 'none', 'important');
+            document.body.appendChild(g);
+            const op = parseFloat(getComputedStyle(g).opacity);
+            const done = () => { try { g.remove(); } catch (e) {} };
+            if (!(op > 0.02)) { done(); return; }   // already faded out: nothing to animate
+            if (!g.animate) { setTimeout(done, 300); return; }
+            const away = Math.abs(dx) > 30;
+            const sign = dx < 0 ? -1 : 1;
+            const vw = document.documentElement.clientWidth || 400;
+            const a = g.animate(
+                away ? [{ translate: Math.round(dx) + 'px 0', opacity: op },
+                        { translate: Math.round(dx + sign * (vw * 0.7 + 200)) + 'px 0', opacity: 0 }]
+                     : [{ translate: '0 0', opacity: op }, { translate: '0 16px', opacity: 0 }],
+                { duration: 300, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'both' });
+            a.addEventListener('finish', done);
+            setTimeout(done, 800);
         };
+
+        // Spotify (or a swipe) is done with this toast: animate a clone out, hide the original.
+        const takeover = el => {
+            if (!el || el.__spGone) return;
+            el.__spGone = true;
+            try { if (el.__spObs) el.__spObs.disconnect(); } catch (e) {}
+            try {
+                const g = el.cloneNode(true);
+                g.style.cssText = el.style.cssText;
+                mount(g, el.__spDX || 0, true);
+            } catch (e) {}
+            el.style.setProperty('display', 'none', 'important');
+        };
+
+        const stomped = n => n.style.visibility === 'hidden' || n.style.display === 'none' ||
+                             (n.style.opacity !== '' && parseFloat(n.style.opacity) < 0.02);
+        const watchExit = el => {
+            const w = el.parentElement;
+            const obs = new MutationObserver(() => {
+                if (el.__spGone || Date.now() - el.__spBorn < GRACE) return;
+                if (stomped(el) || (w && stomped(w))) takeover(el);
+            });
+            obs.observe(el, { attributes: true, attributeFilter: ['style', 'class'] });
+            if (w) obs.observe(w, { attributes: true, attributeFilter: ['style', 'class'] });
+            el.__spObs = obs;
+        };
+
+        const wireSwipe = el => {
+            let sx = 0, sy = 0, dx = 0, drag = false, op0 = '';
+            const snap = () => {
+                drag = false; sx = 0; dx = 0; el.__spDX = 0;
+                el.style.removeProperty('transition');
+                el.style.removeProperty('translate');
+                if (op0) el.style.opacity = op0; else el.style.removeProperty('opacity');
+            };
+            el.addEventListener('touchstart', e => {
+                if (e.touches.length !== 1) return;
+                sx = e.touches[0].clientX; sy = e.touches[0].clientY; dx = 0; drag = false;
+            }, { passive: true });
+            el.addEventListener('touchmove', e => {
+                if (!sx) return;
+                const t = e.touches[0];
+                dx = t.clientX - sx;
+                if (!drag) {
+                    if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(t.clientY - sy)) {
+                        drag = true;
+                        op0 = el.style.opacity;
+                        el.style.setProperty('transition', 'none', 'important');
+                    } else return;
+                }
+                if (e.cancelable) e.preventDefault();
+                el.__spDX = dx;
+                el.style.setProperty('translate', Math.round(dx) + 'px 0');
+                el.style.setProperty('opacity', String(Math.max(0.35, 1 - Math.abs(dx) / 420)), 'important');
+            }, { passive: false });
+            el.addEventListener('touchend', () => {
+                if (!drag) { sx = 0; return; }
+                sx = 0;
+                if (Math.abs(dx) > Math.max(SWIPE_MIN, (el.offsetWidth || 220) * 0.35)) takeover(el);
+                else snap();
+            });
+            el.addEventListener('touchcancel', () => { if (drag) snap(); sx = 0; });
+        };
+
+        const adopt = el => {
+            if (el.__spBorn || el.hasAttribute('data-sp-ghost')) return;
+            el.__spBorn = Date.now();
+            wireSwipe(el);
+            watchExit(el);
+        };
+
+        // Spotify removed a toast we never took over: animate it out instead of a hard cut.
+        const exitRemoved = node => {
+            const t = node.matches(SEL) ? node : node.querySelector(SEL);
+            if (!t || t.__spGone || t.hasAttribute('data-sp-ghost')) return;
+            t.__spGone = true;
+            mount(t, t.__spDX || 0, false);
+        };
+
+        const restack = () => {
+            const all = document.querySelectorAll(SEL);
+            let idx = 0;
+            all.forEach(el => {
+                if (el.hasAttribute('data-sp-ghost')) return;
+                const s = state(el);
+                if (s === 'vis') {
+                    el.__spDead = 0;
+                    el.style.setProperty('--sp-toast-idx', String(idx++));
+                } else if (!el.__spGone && Date.now() - (el.__spBorn || 0) > GRACE && ++el.__spDead >= 2) {
+                    if (s === 'hidden') takeover(el); else el.__spGone = true;   // faded by Spotify: nothing to animate
+                }
+            });
+            if (!all.length && timer) { clearInterval(timer); timer = null; }
+        };
+
         new MutationObserver(muts => {
+            let hit = false;
             for (const m of muts) {
                 for (const n of m.addedNodes) {
-                    if (n.nodeType === 1 && (n.matches('div[role="alert"][aria-live]') || n.querySelector('div[role="alert"][aria-live]'))) {
-                        setTimeout(report, 500);
-                        return;
-                    }
+                    if (n.nodeType !== 1) continue;
+                    if (n.matches(SEL)) { adopt(n); hit = true; }
+                    n.querySelectorAll(SEL).forEach(el => { adopt(el); hit = true; });
                 }
+                for (const n of m.removedNodes) {
+                    if (n.nodeType === 1 && (n.matches(SEL) || n.querySelector(SEL))) { exitRemoved(n); hit = true; }
+                }
+            }
+            if (hit) {
+                restack();
+                if (!timer) timer = setInterval(restack, 300);
             }
         }).observe(document.body, { childList: true, subtree: true });
     }
-    // ===== END TEMP TOAST PROBE =====
 
     // enhance-badge (Smart Shuffle indicator) vertical alignment - see the
     // "Badge vertical alignment" CSS comment above (search enhance-badge)
@@ -3325,7 +3481,8 @@ div[data-testid=main-view],
    container's z-index above the bars blanked them (an opaque layer inside it),
    so z-index is deliberately NOT touched: the toast is instead moved up to sit
    just above player + nav, where it never overlaps them. The offset follows
-   --sp-np-bar-height live (minimized / expanded / hidden). transform:none keeps
+   --sp-np-bar-height live (minimized / expanded / hidden); several toasts stack
+   upward via --sp-toast-idx (setupToastStack). transform:none keeps
    position:fixed relative to the screen, not to a transformed wrapper. */
 /* The container natively sits at left:50% with translateX(-50%) (centered). With
    the transform removed (needed so our fixed toast is relative to the screen) it
@@ -3352,12 +3509,13 @@ div[role="alert"][aria-live]{
   left:50%!important;
   right:auto!important;
   top:auto!important;
-  bottom:calc(var(--sp-np-bar-height, 0px) + 56px + 10px)!important;
+  bottom:calc(var(--sp-np-bar-height, 0px) + 56px + 10px + var(--sp-toast-idx, 0) * 56px)!important;
   transform:translateX(-50%)!important;
   width:max-content!important;
   max-width:calc(100vw - 24px)!important;
   margin:0!important;
   pointer-events:auto!important;
+  touch-action:none!important;
 }
 
 #sp-bottom-nav{
@@ -3898,7 +4056,7 @@ div[data-testid=now-playing-widget]>div:nth-child(2)>div:nth-child(2):not(:has(s
                 lastNavPath = location.pathname;
                 updateBodyClass();
                 createBottomNav();
-                setupToastProbe(); // TEMP
+                setupToastStack();
                 hookHistory();
                 prewarmLibrarySidebar();
             }
