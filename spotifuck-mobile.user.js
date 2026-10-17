@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.24
+// @version      7.24.5.TEST.UNDOCUMENTED
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -2245,6 +2245,9 @@
                 SP_SHARED_WINDOW.__spReservedInsets = { bottom, bottomNav: BOTTOM_NAV_HEIGHT };
                 SP_SHARED_WINDOW.dispatchEvent(new CustomEvent('sp-reserved-insets-change', { detail: SP_SHARED_WINDOW.__spReservedInsets }));
             }
+        } else {
+            // Player removed from the DOM: don't keep reserving its last height.
+            document.documentElement.style.setProperty('--sp-np-bar-height', '0px');
         }
     }
     function setupNPBarHeightSync() {
@@ -3234,6 +3237,20 @@ div[data-testid=main-view],
 @supports not (height: 100dvh) {
   div[data-testid=main-view],
   #main-view{
+    height:calc(100vh - var(--sp-np-bar-height, 0px) - 56px)!important;
+    max-height:calc(100vh - var(--sp-np-bar-height, 0px) - 56px)!important;
+  }
+}
+
+/* Library overlay: switchLs() sets inline height:100% (full viewport), so its
+   bottom ran underneath the player + bottom nav. Same bound as #main-view;
+   !important beats the inline height. */
+#Desktop_LeftSidebar_Id[data-fuck-expanded="true"]{
+  height:calc(100dvh - var(--sp-np-bar-height, 0px) - 56px)!important;
+  max-height:calc(100dvh - var(--sp-np-bar-height, 0px) - 56px)!important;
+}
+@supports not (height: 100dvh) {
+  #Desktop_LeftSidebar_Id[data-fuck-expanded="true"]{
     height:calc(100vh - var(--sp-np-bar-height, 0px) - 56px)!important;
     max-height:calc(100vh - var(--sp-np-bar-height, 0px) - 56px)!important;
   }
