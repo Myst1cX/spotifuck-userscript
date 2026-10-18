@@ -921,7 +921,7 @@
 * Credits to lyssadev/Spotilol (ToastFix.kt)
 *
 * RESOLVED (v7.27) - The toast look (item i above) can now be picked inside the
-* Spotify Web app instead of by editing the script. Version 1.43 adds Settings >
+* Spotify Web app instead of by editing the script. App v1.43 adds Settings >
 * "Toast notification style" (AMOLED / Dark / Normal; shown only in Spotifuck Mode: Mobile),
 * which stores the choice and exposes it as window.AndBridge.getToastStyle().
 * setupToastStack() now reads that first (accepting only 'amoled', 'dark' or
@@ -956,7 +956,13 @@
 *    localStorage wipe on logout. Without AndBridge it stays GM_setValue. Users
 *    who had compact on start expanded once after updating the app; toggle it
 *    once and it sticks.
-* App v1.44, also downloads this script natively from onPageStarted, in parallel
+* d) If React re-rendered the player controls while compact mode was on (common
+*    during launch), the play button we had moved into the strip was left as a
+*    dead copy - visible but not clickable until the app was restarted - while
+*    the live one sat hidden in the controls. A throttled observer on the player
+*    bar now spots a live play button that isn't the moved one, drops the dead
+*    copy and moves the live one into the strip.
+* App v1.44 also downloads this script natively from onPageStarted, in parallel
 * with the page load, and the loader picks it up at onPageFinished (falling back
 * to its own fetch if that failed), so the GitHub round trip is no longer on the
 * critical path. It is still fetched fresh on every launch.
@@ -3350,6 +3356,29 @@
                 if (compactModeEnabled()) enterCompact();
             };
             tryRestoreCompact();
+
+            // v7.28: the real play button is moved out of React's tree (moveOut above). If React
+            // re-renders the controls while compact is on - common during launch, as the track and
+            // device state arrive - it mounts a FRESH play button in the (hidden) controls and the one
+            // we moved is left as a dead copy: it looks right but nothing happens on tap, until the
+            // app is restarted. Detect that (a live play button exists that isn't our moved one),
+            // drop the dead copy and move the live one in its place.
+            const fixStalePlay = () => {
+                if (!player.classList.contains('spf-compact')) return;
+                const live = player.querySelector('button[data-testid="control-button-playpause"]:not(#spf-compact-play)');
+                if (!live) return;
+                const stale = document.getElementById('spf-compact-play');
+                if (stale) {
+                    const i = movedOut.findIndex(m => m.el === stale);
+                    if (i >= 0) movedOut.splice(i, 1);
+                    stale.remove();
+                }
+                moveOut(live, 'spf-compact-play');
+            };
+            let fixStaleTimer = null;
+            new MutationObserver(() => {
+                if (!fixStaleTimer) fixStaleTimer = setTimeout(() => { fixStaleTimer = null; fixStalePlay(); }, 100);
+            }).observe(player, { childList: true, subtree: true });
 
             dbg('setupCompactToggle: strip inserted', 'aside[data-testid=now-playing-bar]', {
                 restoredCompact: compactModeEnabled()
