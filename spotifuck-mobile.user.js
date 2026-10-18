@@ -933,7 +933,8 @@
 * TOAST_STYLE_DEFAULT.
 *
 * RESOLVED (v7.28) - Slow launch: the player bar and navigation took a moment
-* to appear, and compact mode showed the expanded bar first. Three causes:
+* to appear, compact mode showed the expanded bar first, and the compact play
+* button could stop responding. Fixed as follows:
 * a) firstFuck() only ran setInterval(..., 5000) with no immediate check, so
 *    addCSSJSHack() (navigation wiring, player-bar setup, compact restore)
 *    could never start sooner than 5s after the script loaded. firstFuck() now
@@ -944,9 +945,9 @@
 *    compact mode is on, html.spf-compact-pre now pre-hides it. That CSS is the
 *    compact CSS itself with .spf-compact re-keyed to html.spf-compact-pre, built
 *    in injectCSS() so it can't drift from the real rules. In the app (App v1.44)
-*    it is handed to AndBridge.setCompactPreCss(); the app stores it and injects
-*    it from onPageStarted on the next launch, before the page draws. The app
-*    carries no CSS of its own. In a plain userscript manager (no AndBridge) it
+*    it is handed to AndBridge.setCompactPreCss(); the app stores it and, in
+*    Spotifuck Mode: Mobile, injects it from onPageStarted on the next launch,
+*    before the page draws. The app carries no CSS of its own. In a plain userscript manager (no AndBridge) it
 *    is injected right there, at document-start. enterCompact() removes the
 *    class; if compact never takes over, it is removed after 8s so a failed
 *    script load can't leave the play button hidden.
@@ -957,7 +958,7 @@
 *    who had compact on start expanded once after updating the app; toggle it
 *    once and it sticks.
 * d) If React re-rendered the player controls while compact mode was on (common
-*    during launch), the play button we had moved into the strip was left as a
+*    during launch), the play button moved into the strip was left as a
 *    dead copy - visible but not clickable until the app was restarted - while
 *    the live one sat hidden in the controls. A throttled observer on the player
 *    bar now spots a live play button that isn't the moved one, drops the dead
