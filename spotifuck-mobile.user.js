@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.27
+// @version      7.28
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -918,9 +918,10 @@
 *   'normal' - Spotify's own colours (white toast), in the same pill shape.
 * The 56px stacking step fits a pill with buttons (about 53px tall), leaving
 * only a thin gap between stacked toasts.
+* Credits to lyssadev/Spotilol (ToastFix.kt)
 *
 * RESOLVED (v7.27) - The toast look (item i above) can now be picked inside the
-* Spotifuck app instead of by editing the script. App v1.43 adds Settings >
+* Spotify Web app instead of by editing the script. Version 1.43 adds Settings >
 * "Toast notification style" (AMOLED / Dark / Normal; shown only in Spotifuck Mode: Mobile),
 * which stores the choice and exposes it as window.AndBridge.getToastStyle().
 * setupToastStack() now reads that first (accepting only 'amoled', 'dark' or
@@ -930,8 +931,36 @@
 * app reloads the page when you come back from Settings, so the new look
 * applies on the next load. To change the look outside the app, edit
 * TOAST_STYLE_DEFAULT.
+*
+* RESOLVED (v7.28) - Slow launch: the player bar and navigation took a moment
+* to appear, and compact mode showed the expanded bar first. Three causes:
+* a) firstFuck() only ran setInterval(..., 5000) with no immediate check, so
+*    addCSSJSHack() (navigation wiring, player-bar setup, compact restore)
+*    could never start sooner than 5s after the script loaded. firstFuck() now
+*    checks once straight away, then again on DOM changes (throttled to 100ms)
+*    until the first init has happened. The 5s interval stays afterwards, as
+*    before, to re-wire play buttons Spotify re-renders later.
+* b) The expanded bar was already drawn by the time compact was applied. While
+*    compact mode is on, html.spf-compact-pre now pre-hides it. That CSS is the
+*    compact CSS itself with .spf-compact re-keyed to html.spf-compact-pre, built
+*    in injectCSS() so it can't drift from the real rules. In the app (App v1.44)
+*    it is handed to AndBridge.setCompactPreCss(); the app stores it and injects
+*    it from onPageStarted on the next launch, before the page draws. The app
+*    carries no CSS of its own. In a plain userscript manager (no AndBridge) it
+*    is injected right there, at document-start. enterCompact() removes the
+*    class; if compact never takes over, it is removed after 8s so a failed
+*    script load can't leave the play button hidden.
+* c) The saved compact state now lives in the app when there is one
+*    (AndBridge.getCompactPlayer / setCompactPlayer, SharedPreferences): the app
+*    needs it at page start, before this script exists, and it survives the
+*    localStorage wipe on logout. Without AndBridge it stays GM_setValue. Users
+*    who had compact on start expanded once after updating the app; toggle it
+*    once and it sticks.
+* App v1.44, also downloads this script natively from onPageStarted, in parallel
+* with the page load, and the loader picks it up at onPageFinished (falling back
+* to its own fetch if that failed), so the GitHub round trip is no longer on the
+* critical path. It is still fetched fresh on every launch.
 */
-// Credits to lyssadev/Spotilol for ToastFix
 
 (function() {
     'use strict';
@@ -1085,12 +1114,21 @@
     // getFlag/setFlag below, since those hardcode a `true` default (fine for
     // the premium-spoof flags they were built for, wrong here). ---
     const COMPACT_KEY = 'spotifuck_compactPlayer';
+    // v7.28: inside the app the saved state lives in the app (AndBridge.get/setCompactPlayer,
+    // SharedPreferences) - the app needs it at page start, before this script exists, and it survives
+    // logout clearing localStorage. In a plain userscript manager it stays GM_setValue.
+    const appCompact = () => window.AndBridge && typeof window.AndBridge.getCompactPlayer === 'function';
     function compactModeEnabled() {
-        try { return typeof GM_getValue === 'function' ? GM_getValue(COMPACT_KEY, false) : false; }
-        catch (e) { return false; }
+        try {
+            if (appCompact()) return !!window.AndBridge.getCompactPlayer();
+            return typeof GM_getValue === 'function' ? GM_getValue(COMPACT_KEY, false) : false;
+        } catch (e) { return false; }
     }
     function setCompactMode(val) {
-        try { if (typeof GM_setValue === 'function') GM_setValue(COMPACT_KEY, val); } catch (e) {}
+        try {
+            if (appCompact()) window.AndBridge.setCompactPlayer(!!val);
+            else if (typeof GM_setValue === 'function') GM_setValue(COMPACT_KEY, val);
+        } catch (e) {}
     }
 
     // --- Per-site visual premium spoof toggles (v6.6) ---
@@ -2635,7 +2673,7 @@
     window.firstFuck = function() {
         if (pfint) clearInterval(pfint);
 
-        pfint = setInterval(() => {
+        const pfTick = () => {
             // Find and setup play button
             const playBtn = document.querySelector('aside button[data-testid=control-button-playpause]:not(.fuckd)');
             if (playBtn) {
@@ -2687,7 +2725,20 @@
                     addCSSJSHack();
                 }
             }
-        }, 5000);
+        };
+        // v7.28: was only setInterval(..., 5000) with no immediate check, so addCSSJSHack() (nav, player
+        // bar, compact restore) could never run sooner than 5s after load. Now: check once now, and
+        // on DOM changes (throttled 100ms) until first init. The 5s interval stays as before.
+        pfint = setInterval(pfTick, 5000);
+        pfTick();
+        if (!ffDone) {
+            let pfObsTimer = null;
+            const pfObs = new MutationObserver(() => {
+                if (ffDone) { pfObs.disconnect(); return; }
+                if (!pfObsTimer) pfObsTimer = setTimeout(() => { pfObsTimer = null; pfTick(); }, 100);
+            });
+            pfObs.observe(document.documentElement, { childList: true, subtree: true });
+        }
     };
 
     /**
@@ -3271,6 +3322,7 @@
                 ensureLibActionProxy();
                 ensureRemoveRecProxy();
                 player.classList.add('spf-compact');
+                document.documentElement.classList.remove('spf-compact-pre');
                 setCompactMode(true);
                 dbg('compactToggle: entered compact', '#spf-compact-toggle', { movedCount: movedOut.length });
             };
@@ -4195,6 +4247,31 @@ div[data-testid=now-playing-widget]>div:nth-child(2)>div:nth-child(2):not(:has(s
 }
         `;
         document.head.appendChild(compactPlayer);
+
+        // v7.28: pre-hide for compact mode, derived from the real compact CSS above (same rules, keyed
+        // on html.spf-compact-pre instead of the aside's .spf-compact) so it can't drift from it.
+        // In the app: hand it to AndBridge, which stores it and injects it from onPageStarted next
+        // launch (the APK carries no CSS of its own). In a plain userscript manager: inject it here,
+        // we're at document-start. enterCompact() removes the class; the app/browser path removes it
+        // after 8s if compact never takes over. The saved compact state (app pref, or GM in a browser) is the source of truth.
+        try {
+            const on = compactModeEnabled();
+            const pre = compactPlayer.textContent
+                .split('aside[data-testid=now-playing-bar].spf-compact')
+                .join('html.spf-compact-pre aside[data-testid=now-playing-bar]')
+                .replace(/\/\*[\s\S]*?\*\//g, '').replace(/\s+/g, ' ');
+            const b = window.AndBridge;
+            if (b) {
+                if (typeof b.setCompactPreCss === 'function') b.setCompactPreCss(pre);
+            } else if (on) {
+                const st = document.createElement('style');
+                st.textContent = pre;
+                document.head.appendChild(st);
+                document.documentElement.classList.add('spf-compact-pre');
+                setTimeout(() => document.documentElement.classList.remove('spf-compact-pre'), 8000);
+            }
+            if (!on) document.documentElement.classList.remove('spf-compact-pre');
+        } catch (e) {}
         console.log('#CSS Injected');
     }
 
