@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.28
+// @version      7.29
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -967,6 +967,15 @@
 * with the page load, and the loader picks it up at onPageFinished (falling back
 * to its own fetch if that failed), so the GitHub round trip is no longer on the
 * critical path. It is still fetched fresh on every launch.
+*
+* RESOLVED (v7.29) - dbg() output now reaches the app's Logger (app v1.54+). Inside the
+* app GM_registerMenuCommand does nothing, so the "Debug Logging (console)" flag could
+* never be turned on and none of the ~100 dbg() lines (clicks, selectors, view changes)
+* were ever produced there. dbg() now also forwards its line to AndBridge.dbgt under the
+* tag us.spotifuck-mobile whenever the app's Settings > Debug Logging is on, so they show
+* up in Settings > Logger (Source = userscripts, or search tag:us.spotifuck-mobile). The
+* console path and the GM flag work as before; in a plain userscript manager (or an app
+* without dbgt) the new code does nothing. No call site changed.
 */
 
 (function() {
@@ -1052,7 +1061,32 @@
     // before -> after), so you can see both "what was clicked" and "what the
     // script then did to the view" in sequence.
     // Filter your console by "SPFDBG" to isolate just this script's click activity.
+    // --- App Logger bridge ---
+    // Inside the Spotifuck app GM_registerMenuCommand is a no-op, so the GM "Debug Logging (console)" flag can
+    // never be switched on there and dbg() stayed silent forever. It now also forwards to the app's own log
+    // (Settings > Logger) through AndBridge.dbgt, tagged APP_LOG_TAG = "us.<this file's name>" - the same tag
+    // the Logger derives from this script's console output - so Source = userscripts shows it. The app gates it
+    // (Settings > Debug Logging); appLogOn() asks first so details are not serialized while that is off.
+    // Outside the app, or on an app build without dbgt, all of this is a no-op. The console path is unchanged.
+    // (Calls AndBridge directly, not window.dbg: this file is eval'd in the global scope and a top-level dbg
+    // here would replace the app's window.dbg helper.)
+    const APP_LOG_TAG = 'us.spotifuck-mobile';
+    function appLogOn() {
+        try { return !!(window.AndBridge && typeof window.AndBridge.dbgt === 'function' && window.AndBridge.getDebugLogEnabled()); }
+        catch (e) { return false; }
+    }
+    function appLogText(v) {
+        if (v === undefined || v === null || v === '') return '';
+        if (typeof v === 'string') return v;
+        if (v instanceof Error) return v.message;
+        try { return JSON.stringify(v) || String(v); } catch (e) { return String(v); }
+    }
+    function appLog(msg) {
+        try { window.AndBridge.dbgt('l', APP_LOG_TAG, msg); } catch (e) {}
+    }
+
     function dbg(event, selector, details) {
+        if (appLogOn()) appLog(event + ' | selector: ' + selector + (details ? ' | ' + appLogText(details) : ''));
         if (!debugLoggingEnabled()) return;
         console.log(`%c[SPFDBG] ${event}`, 'color:#1ed760;font-weight:bold;', 'selector:', selector, details || '');
     }
