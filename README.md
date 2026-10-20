@@ -180,8 +180,9 @@ The text-replacement pass only re-scans nodes that actually changed (via a debou
 1. **Ported from** [Spotifuck](https://4pda.to/forum/index.php?showtopic=248440&view=findpost&p=137957887), the original Android mod (reverse-engineered from `r0/e.java`) - the mobile UI hacks (bottom nav's underlying toggle logic, full-screen library), the Play/Pause reliability watchdog, the Now Playing View button toggle, AMOLED mode, and the original Force English implementation all trace back to it. The Now Playing View guard, AMOLED mode, and Force English were later carried over into SpotiwebJS as well; Force English's region-code table was in turn refined there and ported back here.
 2. **Bottom nav bar layout and Compact player mode ported from** [kitbodega/SpotiKit](https://github.com/kitbodega/SpotiKit)'s mobile layout and its `#sp-player-toggle`/`.minimized` feature respectively.
 3. **Visual Premium Spoof and Ad-Slot Cleanup adopted from** SpotiwebJS, which itself builds on kitbodega's original SpotiKit code - credited directly in this script's own changelog.
-4. All porting, adaptation, and independent extensions by Myst1cX.
-5. **Powered by** [Spotify](https://open.spotify.com/).
+4. **Toast look and animations adapted from** `lyssadev/Spotilol` (ToastFix.kt`, repository currently unavailable): the pill shape, title and button styling, Dark colours, entrance animation, swipe-to-dismiss, exit animation and stack spacing. The logic is re-implemented here; the AMOLED and Normal looks, the positioning above the player and nav bars, and the round-icon fix are this script's own.        
+5. All porting, adaptation, and independent extensions by Myst1cX.      
+6. **Powered by** [Spotify](https://open.spotify.com/).       
 
 ## License
 
