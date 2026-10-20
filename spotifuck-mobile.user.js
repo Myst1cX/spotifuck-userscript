@@ -918,7 +918,11 @@
 *   'normal' - Spotify's own colours (white toast), in the same pill shape.
 * The 56px stacking step fits a pill with buttons (about 53px tall), leaving
 * only a thin gap between stacked toasts.
-* Credits to lyssadev/Spotilol (ToastFix.kt)
+*
+* Credits to lyssadev/Spotilol (ToastFix.kt; repository currently unavailable): the toast
+* pill shape, title and button styling, Dark colours, entrance, swipe-to-dismiss and exit
+* animation, and stack spacing are adapted from it. The AMOLED and Normal looks, the
+* positioning above the player and nav bars, and the round-icon fix are this script's own.
 *
 * RESOLVED (v7.27) - The toast look (item i above) can now be picked inside the
 * Spotify Web app instead of by editing the script. App v1.43 adds Settings >
