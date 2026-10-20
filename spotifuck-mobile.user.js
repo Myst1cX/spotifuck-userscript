@@ -972,7 +972,7 @@
 * to its own fetch if that failed), so the GitHub round trip is no longer on the
 * critical path. It is still fetched fresh on every launch.
 *
-* RESOLVED (v7.29) - dbg() output now reaches the app's Logger (app v1.54+). Inside the
+* RESOLVED (v7.29) - dbg() output now reaches the app's Logger (app v1.52+). Inside the
 * app GM_registerMenuCommand does nothing, so the "Debug Logging (console)" flag could
 * never be turned on and none of the ~100 dbg() lines (clicks, selectors, view changes)
 * were ever produced there. dbg() now also forwards its line to AndBridge.dbgt under the
