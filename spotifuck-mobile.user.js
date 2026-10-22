@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.29
+// @version      7.29.1-probe
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -2394,6 +2394,192 @@
     // through that instead. Falls back to window if unsafeWindow isn't
     // exposed (e.g. @grant none, where window already IS the real window).
     const SP_SHARED_WINDOW = typeof unsafeWindow !== 'undefined' ? unsafeWindow : window;
+    // =====================================================================================
+    // PROBE (v7.29.1, diagnostic only - changes no layout). Spotify changed something in the
+    // player bar DOM and the compact / expanded positioning rules stopped lining up. This dumps
+    // the live structure so it can be read in the app's Logger (Settings > Debug Logging ON,
+    // Settings > Logger, search tag:us.spotifuck-mobile, text "PROBE"). Runs automatically
+    // once the player exists (+2s, +8s), and after every compact toggle (tap the thin strip at
+    // the top of the player bar: one tap = compact dump, next tap = expanded dump). Also callable
+    // from a console as spfProbe('label'). Remove this whole block + its 3 call sites once fixed.
+    // =====================================================================================
+    function plog(line) {
+        try { if (appLogOn()) appLog(line); } catch (e) {}
+        try { if (debugLoggingEnabled()) console.log('[SPFPROBE] ' + line); } catch (e) {}
+    }
+    function plogChunked(tag, text) {
+        const N = 700;
+        const parts = Math.max(1, Math.ceil(text.length / N));
+        for (let i = 0; i < parts; i++) plog('[PROBE ' + tag + ' ' + (i + 1) + '/' + parts + '] ' + text.slice(i * N, (i + 1) * N));
+    }
+    function probeDescribe(el) {
+        const cs = getComputedStyle(el);
+        const r = el.getBoundingClientRect();
+        const tn = el.tagName.toLowerCase();
+        let s = tn;
+        const tid = el.getAttribute('data-testid'); if (tid) s += '[tid=' + tid + ']';
+        const eid = el.getAttribute('data-encore-id'); if (eid) s += '[enc=' + eid + ']';
+        const al = el.getAttribute('aria-label'); if (al) s += '[aria=' + al.slice(0, 30) + ']';
+        const role = el.getAttribute('role'); if (role) s += '[role=' + role + ']';
+        if (el.id) s += '#' + el.id;
+        const cls = (typeof el.className === 'string' ? el.className : '').trim().split(/\s+/).filter(Boolean).slice(0, 3).join('.');
+        if (cls) s += '.' + cls;
+        s += ' @' + [r.left, r.top, r.width, r.height].map(Math.round).join(',');
+        s += ' d=' + cs.display;
+        if (cs.display.indexOf('flex') >= 0) s += ' fd=' + cs.flexDirection + ' jc=' + cs.justifyContent + ' ai=' + cs.alignItems;
+        if (cs.display.indexOf('grid') >= 0) s += ' gtc=' + cs.gridTemplateColumns + ' gtr=' + cs.gridTemplateRows;
+        if (cs.position !== 'static') s += ' pos=' + cs.position;
+        if (cs.maxWidth !== 'none') s += ' maxw=' + cs.maxWidth;
+        if (cs.overflowX !== 'visible') s += ' ov=' + cs.overflowX;
+        if (tn !== 'svg' && el.children.length === 0) {
+            const t = (el.textContent || '').trim().slice(0, 24);
+            if (t) s += ' "' + t + '"';
+        } else {
+            s += ' kids=' + el.children.length;
+        }
+        return s;
+    }
+    function probeTree(tag, root, maxDepth, maxNodes) {
+        let count = 0;
+        (function walk(el, depth) {
+            if (count >= maxNodes) return;
+            count++;
+            plog('[PROBE ' + tag + ' tree] ' + '.'.repeat(depth) + probeDescribe(el));
+            if (el.tagName.toLowerCase() === 'svg' || depth >= maxDepth) return;
+            for (const c of el.children) walk(c, depth + 1);
+        })(root, 0);
+        if (count >= maxNodes) plog('[PROBE ' + tag + ' tree] ...truncated at ' + maxNodes + ' nodes');
+    }
+    const PROBE_SELECTORS = [
+        'aside[data-testid=now-playing-bar]',
+        'aside[data-testid=now-playing-bar]>div:first-child',
+        'aside[data-testid=now-playing-bar]>div:first-child>div',
+        'div[data-testid=now-playing-widget]',
+        'div[data-testid=now-playing-widget]>div',
+        'div[data-testid=now-playing-widget]>div:first-child',
+        'div[data-testid=now-playing-widget]>div:nth-child(2)',
+        'div[data-testid=now-playing-widget]>div:nth-child(2)>div',
+        'div[data-testid=now-playing-widget]>div:nth-child(2)>div:nth-child(2)',
+        'div[data-testid=now-playing-widget]>div:nth-child(2)>div:nth-child(3)',
+        'div[data-testid=now-playing-widget]>div:last-child',
+        'div[data-testid=now-playing-widget]>div:last-child>button',
+        'div[data-testid=now-playing-widget] button[data-testid=cover-art-button]',
+        'div[data-testid=now-playing-widget] img',
+        '[data-testid=context-item-info-title]',
+        '[data-testid=context-item-info-subtitles]',
+        '[data-testid=context-item-info-artist]',
+        'svg[data-testid=enhance-badge]',
+        '[aria-label="Switch to video"]',
+        '[data-testid=now-playing-widget] button[aria-label^="Add to "]',
+        '[data-testid=now-playing-widget] button[aria-label="Remove recommendation"]',
+        '[data-testid=now-playing-widget] button',
+        '[data-testid=now-playing-widget] button[aria-checked]',
+        'button[data-testid=control-button-playpause]',
+        '[data-testid=player-controls]',
+        '[data-testid=general-controls]',
+        '[data-testid=playback-progressbar]',
+        '[data-testid=playback-position]',
+        '[data-testid=playback-duration]',
+        '[data-testid=lyrics-button]',
+        'button[data-testid=control-button-queue]',
+        'button[aria-label="Connect to a device"]',
+        '[data-testid=volume-bar]',
+        'aside[data-testid=now-playing-bar]>div:first-child>div:has([data-testid=lyrics-button],[data-testid=control-button-queue],[aria-label="Connect to a device"])',
+        'aside[data-testid=now-playing-bar]>div:first-child>div:has([data-testid=player-controls])',
+        'aside[data-testid=now-playing-bar]>div:first-child>div:has(div[data-testid=now-playing-widget])',
+        '#spf-compact-toggle', '#spf-compact-play', '#spf-compact-libaction', '#spf-compact-removerec',
+        '.npbtn', '.fuckd-npv-art'
+    ];
+    function spfProbe(label) {
+        try {
+            const tag = (spfProbe.seq = (spfProbe.seq || 0) + 1) + ':' + (label || 'manual');
+            const player = document.querySelector('aside[data-testid=now-playing-bar]');
+            plog('[PROBE ' + tag + '] BEGIN viewport=' + innerWidth + 'x' + innerHeight + ' dpr=' + devicePixelRatio
+                + ' compact=' + !!(player && player.classList.contains('spf-compact'))
+                + ' htmlClass="' + document.documentElement.className + '"'
+                + ' --sp-np-bar-height=' + document.documentElement.style.getPropertyValue('--sp-np-bar-height')
+                + ' playerExists=' + !!player);
+            if (!player) return;
+            const pr = player.getBoundingClientRect();
+            plog('[PROBE ' + tag + '] aside rect=' + [pr.left, pr.top, pr.width, pr.height].map(Math.round).join(',')
+                + ' aside.children=' + player.children.length + ' aside.class="' + player.className + '"');
+
+            // 1) selector audit: how many nodes each selector the script relies on matches right now
+            const hits = PROBE_SELECTORS.map(sel => {
+                let n; try { n = document.querySelectorAll(sel).length; } catch (e) { n = 'ERR'; }
+                return n + 'x ' + sel;
+            });
+            plogChunked(tag + ' selectors', hits.join('  ;;  '));
+
+            // 2) structural assumptions the CSS/JS makes about now-playing-widget's children
+            const w = player.querySelector('[data-testid=now-playing-widget]');
+            if (w) {
+                const kids = Array.from(w.children);
+                const info = kids[1];
+                const chk = [];
+                chk.push('widget.children=' + kids.length + ' (old layout assumed 3: art, info, last)');
+                chk.push('child0 has cover-art-button=' + !!(kids[0] && kids[0].querySelector('[data-testid=cover-art-button]')) + ' has img=' + !!(kids[0] && kids[0].querySelector('img')));
+                chk.push('child1.children=' + (info ? info.children.length : 'n/a') + ' (old: 3 = title, badge wrapper, artist)');
+                if (info) {
+                    Array.from(info.children).forEach((c, i) => {
+                        chk.push('child1>[' + i + '] title=' + !!c.querySelector('[data-testid=context-item-info-title]')
+                            + ' artist=' + !!c.querySelector('[data-testid=context-item-info-artist]')
+                            + ' subtitles=' + !!c.querySelector('[data-testid=context-item-info-subtitles]')
+                            + ' badge=' + !!c.querySelector('svg[data-testid=enhance-badge]')
+                            + ' video=' + !!c.querySelector('[aria-label="Switch to video"]')
+                            + ' isTitleItself=' + (c.getAttribute('data-testid') === 'context-item-info-title'));
+                    });
+                }
+                const last = kids[kids.length - 1];
+                chk.push('lastChild has Add-to/lib button=' + !!(last && last.querySelector('button[aria-label^="Add to "]'))
+                    + ' lastChild buttons=' + (last ? last.querySelectorAll('button').length : 'n/a'));
+                chk.push('title and artist share a row? titleTop=' + Math.round((w.querySelector('[data-testid=context-item-info-title]') || {getBoundingClientRect: () => ({top: -1})}).getBoundingClientRect().top)
+                    + ' artistTop=' + Math.round((w.querySelector('[data-testid=context-item-info-artist]') || {getBoundingClientRect: () => ({top: -1})}).getBoundingClientRect().top));
+                chk.forEach(c => plog('[PROBE ' + tag + ' assume] ' + c));
+
+                // 3) skeleton HTML of the widget (svg bodies / srcs / inline styles stripped)
+                const clone = w.cloneNode(true);
+                clone.querySelectorAll('svg').forEach(s => { s.innerHTML = ''; });
+                clone.querySelectorAll('img').forEach(i => { i.removeAttribute('src'); i.removeAttribute('srcset'); i.removeAttribute('sizes'); });
+                const html = clone.outerHTML.replace(/\s(style|href|alt|aria-describedby|aria-labelledby)="[^"]*"/g, '');
+                plogChunked(tag + ' widgetHTML', html.slice(0, 4200));
+            } else {
+                plog('[PROBE ' + tag + '] now-playing-widget NOT FOUND inside player');
+            }
+
+            // 4) full tree of the player bar (live rects + the layout styles that matter)
+            probeTree(tag, player, 10, 150);
+
+            // 5) the bounds the page content is supposed to stop at
+            const mv = document.querySelector('#main-view'), nav = document.getElementById('sp-bottom-nav');
+            plog('[PROBE ' + tag + '] #main-view bottom=' + (mv ? Math.round(mv.getBoundingClientRect().bottom) : 'n/a')
+                + ' playerTop=' + Math.round(pr.top) + ' navTop=' + (nav ? Math.round(nav.getBoundingClientRect().top) : 'n/a'));
+            plog('[PROBE ' + tag + '] END');
+        } catch (e) {
+            plog('[PROBE] spfProbe error: ' + (e && e.message));
+        }
+    }
+    window.spfProbe = spfProbe;
+    let probeAutoStarted = false;
+    function startProbeAutoRun() {
+        if (probeAutoStarted) return;
+        probeAutoStarted = true;
+        let tries = 0;
+        const poll = setInterval(() => {
+            tries++;
+            const w = document.querySelector('aside[data-testid=now-playing-bar] [data-testid=now-playing-widget]');
+            if (w && w.children.length) {
+                clearInterval(poll);
+                setTimeout(() => spfProbe('auto+2s'), 2000);
+                setTimeout(() => spfProbe('auto+8s'), 8000);
+            } else if (tries > 60) {
+                clearInterval(poll);
+                plog('[PROBE] gave up waiting for now-playing-widget (60 polls)');
+            }
+        }, 500);
+    }
+    // ===================== end PROBE =====================
+
     function updateNPBarHeightVar() {
         const player = document.querySelector('aside[data-testid=now-playing-bar]');
         if (player) {
@@ -3370,6 +3556,7 @@
                 document.documentElement.classList.remove('spf-compact-pre');
                 setCompactMode(true);
                 dbg('compactToggle: entered compact', '#spf-compact-toggle', { movedCount: movedOut.length });
+                setTimeout(() => spfProbe('after-enterCompact'), 600);
             };
             const exitCompact = () => {
                 moveBack();
@@ -3378,6 +3565,7 @@
                 player.classList.remove('spf-compact');
                 setCompactMode(false);
                 dbg('compactToggle: exited compact', '#spf-compact-toggle', {});
+                setTimeout(() => spfProbe('after-exitCompact(expanded)'), 600);
             };
 
             strip.addEventListener('click', (e) => {
@@ -3449,6 +3637,7 @@
             setupEnhanceBadgeAlign();
             setupCompactToggle();
             tryRestoreCompact();
+            startProbeAutoRun();
         }, 2000);
 
         // setupNpvButton/setupNpvWidgetTrigger/setupOtherPanelTriggers get their
