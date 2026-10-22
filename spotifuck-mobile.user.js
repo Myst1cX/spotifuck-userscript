@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.30.0-v2
+// @version      7.30.2-v2
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -3585,7 +3585,7 @@
                 document.documentElement.classList.remove('spf-compact-pre');
                 setCompactMode(true);
                 dbg('compactToggle: entered compact', '#spf-compact-toggle', { movedCount: movedOut.length });
-                setTimeout(() => spfProbe('after-enterCompact'), 600);
+                if (window.__spfProbeTap) { window.__spfProbeTap = false; setTimeout(() => spfProbe('tap-compact'), 600); }
             };
             const exitCompact = () => {
                 moveBack();
@@ -3594,11 +3594,12 @@
                 player.classList.remove('spf-compact');
                 setCompactMode(false);
                 dbg('compactToggle: exited compact', '#spf-compact-toggle', {});
-                setTimeout(() => spfProbe('after-exitCompact(expanded)'), 600);
+                if (window.__spfProbeTap) { window.__spfProbeTap = false; setTimeout(() => spfProbe('tap-expanded'), 600); }
             };
 
             strip.addEventListener('click', (e) => {
                 e.stopPropagation();
+                window.__spfProbeTap = true;
                 if (player.classList.contains('spf-compact')) exitCompact();
                 else enterCompact();
             });
@@ -3696,14 +3697,16 @@
         setupNpvWidgetTrigger();
         setupOtherPanelTriggers();
         setupCompactToggle();
+        let npvPollTicks = 0;
         const npvSetupInterval = setInterval(() => {
+            npvPollTicks++;
             setupNpvButton();
             setupNpvWidgetTrigger();
             setupOtherPanelTriggers();
             setupCompactToggle();
             tryRestoreCompact();
             cleanupOrphans();
-            const compactRestoreDone = !compactModeEnabled() || document.getElementById('spf-compact-libaction');
+            const compactRestoreDone = !compactModeEnabled() || document.getElementById('spf-compact-libaction') || npvPollTicks > 20;
             if (document.querySelector('.npbtn') && document.querySelector('.fuckd-npv-art')
                 && document.querySelector('button[data-testid="control-button-queue"].fuckd-other-panel')
                 && document.querySelector('button[aria-label="Connect to a device"].fuckd-other-panel')
@@ -3794,8 +3797,9 @@ div[data-testid=now-playing-widget-v2]>div:last-child>button{transform:scale(1.3
      */
 
 div[data-testid=now-playing-widget-v2]>div:nth-child(2){display:flex!important;flex-direction:column!important;justify-content:center!important;flex:1 1 0!important;min-width:0!important;overflow:hidden!important}
-div[data-testid=now-playing-widget-v2]>div:nth-child(2) span{font-size:13px!important;height:20px!important;margin:0!important}
-div[data-testid=now-playing-widget-v2]>div:nth-child(2)>div{min-width:0;max-width:100%;white-space:nowrap;overflow:hidden}
+/* v2: native text sizes + marquee left alone (before-shots: title/artist at Spotify's own sizes) */
+/* v2: rows keep native overflow/marquee */
+div[data-testid=now-playing-widget-v2]>div:nth-child(2)>div{min-width:0}
 [data-tippy-root]{overflow:hidden!important}
 [data-tippy-root],[data-tippy-root] *{transition:none!important;transform:none!important}
 div[data-testid=hover-or-focus-tooltip],#Desktop_LeftSidebar_Id header>div>div:last-child{display:none!important}
@@ -4233,24 +4237,11 @@ aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widge
   flex-direction:row!important;
   align-items:center!important;
   justify-content:flex-start!important;
-  gap:8px!important;
-  height:100%!important;
+    height:100%!important;
   overflow:hidden!important
 }
-aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget-v2]>div:first-child{
-  width:44px!important;
-  height:44px!important;
-  min-width:44px!important;
-  flex-shrink:0!important;
-  border-radius:4px!important;
-  overflow:hidden!important
-}
-aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget-v2]>div:first-child img{
-  width:100%!important;
-  height:100%!important;
-  object-fit:cover!important;
-  border-radius:4px!important
-}
+/* v2: cover art stays native 56px */
+/* v2: no img override */
 aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget-v2]>div:nth-child(2){
   display:flex!important;
   flex-direction:column!important;
@@ -4287,11 +4278,8 @@ aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widge
 /* Artist row - row 2, column 2 (the remaining 1fr track), right next to
    the badge instead of stacked below it. */
 /* removed: v2 info block has only title+artist rows */
-aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget-v2]>div:nth-child(2)>div{
-  white-space:nowrap!important;
-  overflow:hidden!important;
-  max-width:100%!important
-}
+/* v2: native marquee */
+aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget-v2]>div:nth-child(2)>div{min-width:0!important}
 /* Badge-clip fix - the blanket rule above exists to ellipsis-truncate the
    title/artist TEXT rows, but as a generic ">div:nth-child(2)>div" selector
    it also matches the badge wrapper (jEiAs1et4fAU3chW), which holds nothing
