@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.30.fix
+// @version      7.31.fix
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -981,7 +981,7 @@
 * console path and the GM flag work as before; in a plain userscript manager (or an app
 * without dbgt) the new code does nothing. No call site changed.
 *
-* RESOLVED (v7.30) - Spotify rebuilt the player bar's DOM and the compact / expanded
+* RESOLVED (v7.30 and v7.31) - Spotify rebuilt the player bar's DOM and the compact / expanded
 * positioning stopped lining up. Everything is back to the same positions the script
 * had before, plus the one place the new layout was genuinely off:
 * a) What changed on Spotify's side: the track widget's testid went from
@@ -1049,7 +1049,6 @@
 *    margin-top in compact is the alternative, but that moves the row, cover and
 *    scrubber up 2px as well.
 *
-* RESOLVED (v7.30.fix)
 * g) Full player, title and artist overlapping: the single-row 13px layout (text column as a
 *    flex row) now puts the title row and the byline side by side. Spotify gives both text
 *    boxes a 6px fade zone (margin-left:-6px, width +6px; confirmed in the dump on the title
@@ -1062,6 +1061,14 @@
 *    stacks the two rows, so it is excluded. The dump predates the v7.30
 *    selectors (it shows the stacked native layout), so the 0 gap is derived from its box
 *    numbers, not measured.
+*
+* h) Full player, top part (cover, title, artist, add button) vanishing on load and on track
+*    changes: Spotify empties the widget for about 400-700ms while the new track loads
+*    (widget, cover and row all measure 0px high, nothing hidden or restyled - display,
+*    visibility, opacity and inline style unchanged). The full player's row is height:auto,
+*    so the whole bar shrank by the row's 56px and jumped back. The row now has min-height:56px
+*    (the measured row height in every dump). Compact has a fixed 68px row and never collapsed.
+*    The widget itself still renders blank for that moment; that is Spotify's own loading state.
 */
 
 (function() {
@@ -3659,6 +3666,8 @@ div[data-testid=general-controls]{margin:15px 0 25px}
 div[data-testid=general-controls] button{transform:scale(1.4)!important;margin:0 8px!important}
 div[data-testid=player-controls]{margin:5px 0}
 div[data-testid=now-playing-widget-v2]{justify-content:center;overflow:hidden}
+/* v7.30 h): hold the full player's widget row at its 56px so the bar doesn't shrink while Spotify empties the widget on a track change. */
+aside[data-testid=now-playing-bar]:not(.spf-compact)>div:first-child>div:has(div[data-testid=now-playing-widget-v2]){min-height:56px}
 form[role=search]{z-index:10;margin-left:48px;max-width:88%}
 div[data-testid=now-playing-widget-v2]>div:last-child>button{transform:scale(1.3)}
 
