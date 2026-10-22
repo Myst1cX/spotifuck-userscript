@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.30.3-v2
+// @version      7.29
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -804,14 +804,14 @@
 *
 * RESOLVED (v7.23) - Album art button (button[data-testid=cover-art-button]) no
 * longer opened/closed Now Playing View. Cause: setupNpvWidgetTrigger's selector
-* (div[data-testid=now-playing-widget-v2]>div:first-child) was purely positional -
+* (div[data-testid=now-playing-widget]>div:first-child) was purely positional -
 * Spotify wrapped the art in a real interactive <button data-testid=cover-art-button
 * aria-label="Now playing view"> nested inside that div, so the click handling moved
 * onto the button specifically and a listener on the outer div wrapper stopped
 * receiving it (the div itself is still technically "the first child", so the old
 * selector kept matching something, just not the thing that's actually clicked
 * anymore). Solution: target the button directly via its testid
-* (div[data-testid=now-playing-widget-v2] button[data-testid=cover-art-button]),
+* (div[data-testid=now-playing-widget] button[data-testid=cover-art-button]),
 * scoped under now-playing-widget so it can't match a same-named button elsewhere.
 *
 * Naming note: now-playing-widget is NOT the Now Playing View (NPV) panel -
@@ -832,7 +832,7 @@
 * these triggers had already stopped by then (its stop-check only confirms the
 * marker class exists somewhere, not that it's on a node still receiving
 * clicks), nothing re-attached to the new button. Fix: delegate from
-* div[data-testid=now-playing-widget-v2] instead - the outer container, which
+* div[data-testid=now-playing-widget] instead - the outer container, which
 * persists for the whole session (only its children get replaced) - attaching
 * the capture listener there once and checking event.target.closest() in the
 * handler to confirm the click actually landed on the art button and not a
@@ -2394,350 +2394,6 @@
     // through that instead. Falls back to window if unsafeWindow isn't
     // exposed (e.g. @grant none, where window already IS the real window).
     const SP_SHARED_WINDOW = typeof unsafeWindow !== 'undefined' ? unsafeWindow : window;
-    // =====================================================================================
-    // PROBE (v7.29.1, diagnostic only - changes no layout). Spotify changed something in the
-    // player bar DOM and the compact / expanded positioning rules stopped lining up. This dumps
-    // the live structure so it can be read in the app's Logger (Settings > Debug Logging ON,
-    // Settings > Logger, search tag:us.spotifuck-mobile, text "PROBE"). Runs automatically
-    // once the player exists (+2s, +8s), and after every compact toggle (tap the thin strip at
-    // the top of the player bar: one tap = compact dump, next tap = expanded dump). Also callable
-    // from a console as spfProbe('label'). Remove this whole block + its 3 call sites once fixed.
-    // =====================================================================================
-    function plog(line) {
-        try { if (appLogOn()) appLog(line); } catch (e) {}
-        try { if (debugLoggingEnabled()) console.log('[SPFPROBE] ' + line); } catch (e) {}
-    }
-    function plogChunked(tag, text) {
-        const N = 700;
-        const parts = Math.max(1, Math.ceil(text.length / N));
-        for (let i = 0; i < parts; i++) plog('[PROBE ' + tag + ' ' + (i + 1) + '/' + parts + '] ' + text.slice(i * N, (i + 1) * N));
-    }
-    function probeDescribe(el) {
-        const cs = getComputedStyle(el);
-        const r = el.getBoundingClientRect();
-        const tn = el.tagName.toLowerCase();
-        let s = tn;
-        const tid = el.getAttribute('data-testid'); if (tid) s += '[tid=' + tid + ']';
-        const eid = el.getAttribute('data-encore-id'); if (eid) s += '[enc=' + eid + ']';
-        const al = el.getAttribute('aria-label'); if (al) s += '[aria=' + al.slice(0, 30) + ']';
-        const role = el.getAttribute('role'); if (role) s += '[role=' + role + ']';
-        if (el.id) s += '#' + el.id;
-        const cls = (typeof el.className === 'string' ? el.className : '').trim().split(/\s+/).filter(Boolean).slice(0, 3).join('.');
-        if (cls) s += '.' + cls;
-        s += ' @' + [r.left, r.top, r.width, r.height].map(Math.round).join(',');
-        s += ' d=' + cs.display;
-        if (cs.display.indexOf('flex') >= 0) s += ' fd=' + cs.flexDirection + ' jc=' + cs.justifyContent + ' ai=' + cs.alignItems;
-        if (cs.display.indexOf('grid') >= 0) s += ' gtc=' + cs.gridTemplateColumns + ' gtr=' + cs.gridTemplateRows;
-        if (cs.position !== 'static') s += ' pos=' + cs.position;
-        if (cs.maxWidth !== 'none') s += ' maxw=' + cs.maxWidth;
-        if (cs.overflowX !== 'visible') s += ' ov=' + cs.overflowX;
-        if (tn !== 'svg' && el.children.length === 0) {
-            const t = (el.textContent || '').trim().slice(0, 24);
-            if (t) s += ' "' + t + '"';
-        } else {
-            s += ' kids=' + el.children.length;
-        }
-        return s;
-    }
-    function probeTree(tag, root, maxDepth, maxNodes) {
-        let count = 0;
-        (function walk(el, depth) {
-            if (count >= maxNodes) return;
-            count++;
-            plog('[PROBE ' + tag + ' tree] ' + '.'.repeat(depth) + probeDescribe(el));
-            if (el.tagName.toLowerCase() === 'svg' || depth >= maxDepth) return;
-            for (const c of el.children) walk(c, depth + 1);
-        })(root, 0);
-        if (count >= maxNodes) plog('[PROBE ' + tag + ' tree] ...truncated at ' + maxNodes + ' nodes');
-    }
-    const PROBE_SELECTORS = [
-        'aside[data-testid=now-playing-bar]',
-        'aside[data-testid=now-playing-bar]>div:first-child',
-        'aside[data-testid=now-playing-bar]>div:first-child>div',
-        // old widget testid (what the script still uses) vs the one the logs showed
-        'div[data-testid=now-playing-widget]',
-        'div[data-testid=now-playing-widget-v2]',
-        'div[data-testid=now-playing-widget-v2]>div',
-        'div[data-testid=now-playing-widget-v2]>div:first-child',
-        'div[data-testid=now-playing-widget-v2]>div:nth-child(2)',
-        'div[data-testid=now-playing-widget-v2]>div:nth-child(2)>div',
-        'div[data-testid=now-playing-widget-v2]>div:last-child',
-        'div[data-testid=now-playing-widget-v2]>div:last-child>button',
-        '[data-testid=cover-art-container]',
-        'button[data-testid=cover-art-button]',
-        '[data-testid=cover-art-image]',
-        '[data-testid=context-item-info-title]',
-        '[data-testid=context-item-info-subtitles]',
-        '[data-testid=context-item-info-artist]',
-        '[data-testid=enhance-badge]',
-        'svg[data-testid=enhance-badge]',
-        '[aria-label="Switch to video"]',
-        'aside[data-testid=now-playing-bar] button[aria-label^="Add to "]',
-        'aside[data-testid=now-playing-bar] button[aria-label="Remove recommendation"]',
-        'button[data-testid=control-button-playpause]',
-        '[data-testid=player-controls]',
-        '[data-testid=general-controls]',
-        '[data-testid=playback-progressbar]',
-        '[data-testid=playback-position]',
-        '[data-testid=playback-duration]',
-        '[data-testid=lyrics-button]',
-        'button[data-testid=control-button-queue]',
-        'button[aria-label="Connect to a device"]',
-        '[data-testid=volume-bar]',
-        'aside[data-testid=now-playing-bar]>div:first-child>div:has([data-testid=lyrics-button],[data-testid=control-button-queue],[aria-label="Connect to a device"])',
-        'aside[data-testid=now-playing-bar]>div:first-child>div:has([data-testid=player-controls])',
-        'aside[data-testid=now-playing-bar]>div:first-child>div:has(div[data-testid=now-playing-widget])',
-        'aside[data-testid=now-playing-bar]>div:first-child>div:has(div[data-testid=now-playing-widget-v2])',
-        '#spf-compact-toggle', '#spf-compact-play', '#spf-compact-libaction', '#spf-compact-removerec',
-        '.npbtn', '.fuckd-npv-art'
-    ];
-    // Ancestor chain from just under `stop` down to el, e.g. "div.GT3bt > div > div[tid=...]".
-    function probePath(el, stop) {
-        const parts = [];
-        for (let n = el; n && n !== stop; n = n.parentElement) {
-            const tid = n.getAttribute('data-testid');
-            const cls = (typeof n.className === 'string' ? n.className : '').trim().split(/\s+/).filter(Boolean)[0];
-            parts.unshift(n.tagName.toLowerCase() + (tid ? '[tid=' + tid + ']' : '') + (cls ? '.' + cls : ''));
-        }
-        return parts.join(' > ');
-    }
-    function spfProbe(label) {
-        try {
-            const tag = (spfProbe.seq = (spfProbe.seq || 0) + 1) + ':' + (label || 'manual');
-            const player = document.querySelector('aside[data-testid=now-playing-bar]');
-            plog('[PROBE ' + tag + '] BEGIN viewport=' + innerWidth + 'x' + innerHeight + ' dpr=' + devicePixelRatio
-                + ' compact=' + !!(player && player.classList.contains('spf-compact'))
-                + ' htmlClass="' + document.documentElement.className + '"'
-                + ' --sp-np-bar-height=' + document.documentElement.style.getPropertyValue('--sp-np-bar-height')
-                + ' playerExists=' + !!player);
-            if (!player) return;
-            const pr = player.getBoundingClientRect();
-            plog('[PROBE ' + tag + '] aside rect=' + [pr.left, pr.top, pr.width, pr.height].map(Math.round).join(',')
-                + ' aside.children=' + player.children.length + ' aside.class="' + player.className + '"');
-
-            // 1) selector audit: how many nodes each selector the script relies on matches right now
-            const hits = PROBE_SELECTORS.map(sel => {
-                let n; try { n = document.querySelectorAll(sel).length; } catch (e) { n = 'ERR'; }
-                return n + 'x ' + sel;
-            });
-            plogChunked(tag + ' selectors', hits.join('  ;;  '));
-
-            // 2) where the pieces the old code relied on live now - looked up across the whole
-            //    player bar (not under the widget), each match with its ancestor path
-            [
-                ['enhance-badge', '[data-testid=enhance-badge]'],
-                ['Switch to video', '[aria-label="Switch to video"]'],
-                ['Add to ...', 'button[aria-label^="Add to "]'],
-                ['Remove recommendation', 'button[aria-label="Remove recommendation"]'],
-                ['cover-art-button', 'button[data-testid=cover-art-button]']
-            ].forEach(pair => {
-                const found = Array.from(player.querySelectorAll(pair[1]));
-                plog('[PROBE ' + tag + ' where] ' + pair[0] + ': ' + found.length + ' match(es)');
-                found.slice(0, 4).forEach((el, i) => {
-                    const r = el.getBoundingClientRect();
-                    plog('[PROBE ' + tag + ' where] ' + pair[0] + '[' + i + '] @' + [r.left, r.top, r.width, r.height].map(Math.round).join(',')
-                        + ' aria="' + (el.getAttribute('aria-label') || '') + '" aria-checked=' + el.getAttribute('aria-checked')
-                        + ' path=' + probePath(el, player));
-                });
-            });
-
-            // 3) structure of the widget (now data-testid=now-playing-widget-v2) and its skeleton HTML
-            const w = player.querySelector('[data-testid=now-playing-widget-v2]');
-            if (w) {
-                const kids = Array.from(w.children);
-                const chk = [];
-                chk.push('widget-v2 role=' + w.getAttribute('role') + ' aria-label="' + (w.getAttribute('aria-label') || '') + '" children=' + kids.length + ' (old layout: 3)');
-                kids.forEach((k, i) => {
-                    const r = k.getBoundingClientRect();
-                    chk.push('widget>[' + i + '] tid=' + k.getAttribute('data-testid') + ' class=' + (typeof k.className === 'string' ? k.className : '')
-                        + ' children=' + k.children.length + ' buttons=' + k.querySelectorAll('button').length + ' links=' + k.querySelectorAll('a').length
-                        + ' img=' + !!k.querySelector('img') + ' @' + [r.left, r.top, r.width, r.height].map(Math.round).join(',')
-                        + ' text="' + (k.textContent || '').trim().slice(0, 40) + '"');
-                });
-                const info = kids[1];
-                if (info) {
-                    Array.from(info.children).forEach((c, i) => {
-                        const r = c.getBoundingClientRect();
-                        chk.push('widget>[1]>[' + i + '] class=' + (typeof c.className === 'string' ? c.className : '') + ' children=' + c.children.length
-                            + ' links=' + c.querySelectorAll('a').length + ' svgs=' + c.querySelectorAll('svg').length
-                            + ' @' + [r.left, r.top, r.width, r.height].map(Math.round).join(',') + ' text="' + (c.textContent || '').trim().slice(0, 40) + '"');
-                    });
-                }
-                chk.push('widget buttons: ' + Array.from(w.querySelectorAll('button')).map(bt => '"' + (bt.getAttribute('aria-label') || '') + '" checked=' + bt.getAttribute('aria-checked')).join(' | '));
-                chk.forEach(c => plog('[PROBE ' + tag + ' assume] ' + c));
-
-                const clone = w.cloneNode(true);
-                clone.querySelectorAll('svg').forEach(s => { s.innerHTML = ''; });
-                clone.querySelectorAll('img').forEach(i => { i.removeAttribute('src'); i.removeAttribute('srcset'); i.removeAttribute('sizes'); });
-                const html = clone.outerHTML.replace(/\s(style|href|alt|aria-describedby|aria-labelledby)="[^"]*"/g, '');
-                plogChunked(tag + ' widgetHTML', html.slice(0, 4200));
-            } else {
-                plog('[PROBE ' + tag + '] now-playing-widget-v2 NOT FOUND inside player');
-            }
-
-            probeNpStyles(tag);
-            // 4) full tree of the player bar (live rects + the layout styles that matter)
-            probeTree(tag, player, 10, 150);
-
-            // 5) the bounds the page content is supposed to stop at
-            const mv = document.querySelector('#main-view'), nav = document.getElementById('sp-bottom-nav');
-            plog('[PROBE ' + tag + '] #main-view bottom=' + (mv ? Math.round(mv.getBoundingClientRect().bottom) : 'n/a')
-                + ' playerTop=' + Math.round(pr.top) + ' navTop=' + (nav ? Math.round(nav.getBoundingClientRect().top) : 'n/a'));
-            plog('[PROBE ' + tag + '] END');
-        } catch (e) {
-            plog('[PROBE] spfProbe error: ' + (e && e.message));
-        }
-    }
-    window.spfProbe = spfProbe;
-    let probeAutoStarted = false;
-    function startProbeAutoRun() {
-        if (probeAutoStarted) return;
-        probeAutoStarted = true;
-        let tries = 0;
-        const poll = setInterval(() => {
-            tries++;
-            const w = document.querySelector('aside[data-testid=now-playing-bar] [data-testid=now-playing-widget-v2]');
-            if (w && w.children.length) {
-                clearInterval(poll);
-                setTimeout(() => spfProbe('auto+2s'), 2000);
-                setTimeout(() => spfProbe('auto+8s'), 8000);
-            } else if (tries > 60) {
-                clearInterval(poll);
-                plog('[PROBE] gave up waiting for now-playing-widget-v2 (60 polls)');
-            }
-        }, 500);
-    }
-    // ===================== end PROBE =====================
-
-    // ===================== NP title/artist size + marquee (v7.30.3) =====================
-    // Spotify's new player-bar layout (widget-v2) shrank the track title / artist text and the
-    // native hover auto-scroll no longer kicks in for long names. This restores both:
-    //  - font sizes: tweak SPF_NP_TITLE_PX / SPF_NP_ARTIST_PX / line heights below (one place).
-    //  - marquee: our own, structure-based (no hashed class names). A row is "overflowing" when its
-    //    content is wider than its nearest overflow:hidden ancestor; on hover / touch it slides to
-    //    the end and back on leave. Re-measured on every enter and on DOM / resize changes.
-    const SPF_NP_TITLE_PX = 15, SPF_NP_TITLE_LH = 20;
-    const SPF_NP_ARTIST_PX = 13, SPF_NP_ARTIST_LH = 16;
-    const SPF_MARQ_PX_PER_S = 40;      // scroll speed
-    const SPF_MARQ_TOUCH_HOLD_MS = 1500; // touch: stay at the end this long, then slide back
-    function npInfoCol() {
-        return document.querySelector('aside[data-testid=now-playing-bar] div[data-testid=now-playing-widget-v2]>div:nth-child(2)');
-    }
-    function ensureNpTextStyle() {
-        if (document.getElementById('spf-np-text-style')) return;
-        const S = 'aside[data-testid=now-playing-bar] div[data-testid=now-playing-widget-v2]>div:nth-child(2)';
-        const st = document.createElement('style');
-        st.id = 'spf-np-text-style';
-        st.textContent = `
-${S}>div:nth-child(1) [data-encore-id=text]{font-size:${SPF_NP_TITLE_PX}px!important;line-height:${SPF_NP_TITLE_LH}px!important}
-${S}>div:nth-child(2) [data-encore-id=text]{font-size:${SPF_NP_ARTIST_PX}px!important;line-height:${SPF_NP_ARTIST_LH}px!important}
-${S} [data-encore-id=text] *{font-size:inherit!important;line-height:inherit!important}
-${S} .spf-marq-clip{overflow:hidden!important;max-width:100%}
-${S} .spf-marq-clip>*{width:max-content!important;min-width:100%!important;max-width:none!important;transition:transform var(--spf-dur,3s) linear}
-${S} .spf-marq-clip>*>*{flex:none!important}
-${S} .spf-marq-clip [data-encore-id=text],${S} .spf-marq-clip a{white-space:nowrap!important;text-overflow:clip!important}
-${S} .spf-marq-clip.spf-marq-overflow>*{transform:translateX(0)!important;transition-duration:.35s}
-${S} .spf-marq-clip.spf-marq-overflow.spf-marq-go>*{transform:translateX(var(--spf-dx,0px))!important;transition-duration:var(--spf-dur,3s)}
-`;
-        document.head.appendChild(st);
-    }
-    function npMarqClips() {
-        const col = npInfoCol();
-        if (!col) return [];
-        const out = [];
-        Array.from(col.children).forEach(row => {
-            const t = row.querySelector('[data-encore-id=text]');
-            if (!t) return;
-            for (let n = t.parentElement; n && n !== col; n = n.parentElement) {
-                const ox = getComputedStyle(n).overflowX;
-                if (ox === 'hidden' || ox === 'clip' || n.classList.contains('spf-marq-clip')) {
-                    n.classList.add('spf-marq-clip');
-                    if (n.firstElementChild) out.push(n);
-                    break;
-                }
-            }
-        });
-        return out;
-    }
-    function npMarqMeasure() {
-        ensureNpTextStyle();
-        const clips = npMarqClips();
-        clips.forEach(clip => {
-            const c = clip.firstElementChild;
-            const d = Math.ceil(c.scrollWidth - clip.clientWidth);
-            if (d > 2) {
-                clip.classList.add('spf-marq-overflow');
-                clip.style.setProperty('--spf-dx', -(d + 6) + 'px');
-                clip.style.setProperty('--spf-dur', Math.max(1.2, d / SPF_MARQ_PX_PER_S).toFixed(2) + 's');
-            } else {
-                clip.classList.remove('spf-marq-overflow', 'spf-marq-go');
-                clip.style.removeProperty('--spf-dx');
-                clip.style.removeProperty('--spf-dur');
-            }
-        });
-        return clips;
-    }
-    let npMarqHoldTimer = null;
-    function npMarqSet(on) {
-        const clips = npMarqMeasure();
-        clips.forEach(c => c.classList.toggle('spf-marq-go', !!on && c.classList.contains('spf-marq-overflow')));
-        return clips;
-    }
-    function setupNpMarquee() {
-        if (setupNpMarquee.done) return;
-        setupNpMarquee.done = true;
-        ensureNpTextStyle();
-        const insideCol = (el) => { const col = npInfoCol(); return !!(col && el && el.nodeType === 1 && col.contains(el)); };
-        document.addEventListener('pointerover', (e) => {
-            if (!insideCol(e.target)) return;
-            clearTimeout(npMarqHoldTimer);
-            const clips = npMarqSet(true);
-            if (e.pointerType === 'touch') {
-                const longest = Math.max(0, ...clips.filter(c => c.classList.contains('spf-marq-overflow')).map(c => parseFloat(c.style.getPropertyValue('--spf-dur')) || 0));
-                npMarqHoldTimer = setTimeout(() => npMarqSet(false), longest * 1000 + SPF_MARQ_TOUCH_HOLD_MS);
-            }
-            dbg('npMarquee: go', 'now-playing-widget-v2 info col', { pointer: e.pointerType, overflowing: clips.filter(c => c.classList.contains('spf-marq-overflow')).length, rows: clips.length });
-        }, true);
-        document.addEventListener('pointerout', (e) => {
-            if (!insideCol(e.target) || e.pointerType === 'touch') return;
-            if (insideCol(e.relatedTarget)) return;
-            npMarqSet(false);
-        }, true);
-        let t = null;
-        const remeasure = () => { clearTimeout(t); t = setTimeout(npMarqMeasure, 200); };
-        new MutationObserver(remeasure).observe(document.body, { childList: true, subtree: true, characterData: true });
-        window.addEventListener('resize', remeasure);
-        setInterval(npMarqMeasure, 3000); // safety net: new track / compact<->expanded switches
-        dbg('npMarquee: wired', 'document', {});
-    }
-    // computed-style dump of the title/artist rows (everything the native marquee could depend on)
-    function probeNpStyles(tag) {
-        try {
-            const col = npInfoCol();
-            if (!col) { plog('[PROBE ' + tag + ' npstyle] info column not found'); return; }
-            ['title', 'artist'].forEach((name, i) => {
-                const row = col.children[i];
-                if (!row) return;
-                const t = row.querySelector('[data-encore-id=text]');
-                const chain = [];
-                for (let n = t; n && n !== col; n = n.parentElement) chain.unshift(n);
-                chain.forEach((n, depth) => {
-                    const cs = getComputedStyle(n), r = n.getBoundingClientRect();
-                    const attrs = Array.from(n.attributes).filter(a => a.name !== 'class').map(a => a.name + '=' + String(a.value).slice(0, 60)).join(' ');
-                    plog('[PROBE ' + tag + ' npstyle] ' + name + ' d' + depth + ' <' + n.tagName.toLowerCase() + '.' + (typeof n.className === 'string' ? n.className.split(/\s+/).slice(0, 3).join('.') : '') + '> '
-                        + 'w=' + Math.round(r.width) + ' sw=' + n.scrollWidth + ' cw=' + n.clientWidth
-                        + ' fs=' + cs.fontSize + ' lh=' + cs.lineHeight + ' fw=' + cs.fontWeight
-                        + ' disp=' + cs.display + ' ov=' + cs.overflowX + ' to=' + cs.textOverflow + ' ws=' + cs.whiteSpace
-                        + ' mar=' + cs.margin + ' pad=' + cs.padding + ' fshrink=' + cs.flexShrink
-                        + ' tf=' + cs.transform + ' anim=' + cs.animationName + ' trans=' + cs.transitionProperty
-                        + ' mask=' + (cs.webkitMaskImage || cs.maskImage || 'none').slice(0, 60)
-                        + (attrs ? ' attrs[' + attrs + ']' : ''));
-                });
-            });
-        } catch (e) { plog('[PROBE] probeNpStyles error: ' + (e && e.message)); }
-    }
-    // ===================== end NP marquee =====================
-
     function updateNPBarHeightVar() {
         const player = document.querySelector('aside[data-testid=now-playing-bar]');
         if (player) {
@@ -3021,8 +2677,7 @@ ${S} .spf-marq-clip.spf-marq-overflow.spf-marq-go>*{transform:translateX(var(--s
         // accidentally grab, and no mode branching is needed. Querying
         // under `player` each call already scopes this to whatever's live
         // right now, in either mode.
-        const ref = player.querySelector('[data-testid="context-item-info-artist"]')
-            || player.querySelector('[data-testid="now-playing-widget-v2-byline"]');
+        const ref = player.querySelector('[data-testid="context-item-info-artist"]');
         if (!ref) return;
         // Reset any previous adjustment before measuring - getBoundingClientRect
         // reflects transforms already applied, so measuring without resetting
@@ -3365,7 +3020,7 @@ ${S} .spf-marq-clip.spf-marq-overflow.spf-marq-go>*{transform:translateX(var(--s
         };
 
         // NPV guard: the player-bar album art (button[data-testid=cover-art-button]
-        // inside div[data-testid=now-playing-widget-v2]) natively TOGGLES the Now Playing
+        // inside div[data-testid=now-playing-widget]) natively TOGGLES the Now Playing
         // view on click - this is a real, reliable Spotify affordance, separate from
         // the unreliable native toggle button npBtn above works around. Without this,
         // panelGuardObserver (which only trusts opens that went through an authorized
@@ -3384,7 +3039,7 @@ ${S} .spf-marq-clip.spf-marq-overflow.spf-marq-go>*{transform:translateX(var(--s
         // synthetically here (unlike clickNP()), so there's no risk of a second,
         // self-inflicted toggle undoing Spotify's own native one.
         //
-        // Selector was previously div[data-testid=now-playing-widget-v2]>div:first-child,
+        // Selector was previously div[data-testid=now-playing-widget]>div:first-child,
         // a purely positional guess. Spotify wrapped the art in a real interactive
         // button (data-testid=cover-art-button, aria-label="Now playing view") - the
         // click handling moved onto that button specifically, so a listener on the
@@ -3403,7 +3058,7 @@ ${S} .spf-marq-clip.spf-marq-overflow.spf-marq-go>*{transform:translateX(var(--s
         // exists to attach to exactly once, and the poll's stop-check (which just
         // looks for the class anywhere) needs no change.
         const setupNpvWidgetTrigger = () => {
-            const widget = document.querySelector('div[data-testid="now-playing-widget-v2"]:not(.fuckd-npv-art)');
+            const widget = document.querySelector('div[data-testid="now-playing-widget"]:not(.fuckd-npv-art)');
             if (!widget) return;
             widget.classList.add('fuckd-npv-art');
             widget.addEventListener('click', (event) => {
@@ -3424,7 +3079,7 @@ ${S} .spf-marq-clip.spf-marq-overflow.spf-marq-go>*{transform:translateX(var(--s
                         : 'panel was open - this click closes it natively (closeNowPlay() never runs for this path), so the authorized-panel flags are cleared here to keep guard state in sync'
                 });
             }, { capture: true });
-            dbg('[PanelGuard] setupNpvWidgetTrigger: delegated listener attached to now-playing-widget (survives cover-art-button re-renders)', 'div[data-testid="now-playing-widget-v2"]', {});
+            dbg('[PanelGuard] setupNpvWidgetTrigger: delegated listener attached to now-playing-widget (survives cover-art-button re-renders)', 'div[data-testid="now-playing-widget"]', {});
         };
 
         // Queue and Connect are full authorized-opener types, same pattern as the album art
@@ -3553,7 +3208,7 @@ ${S} .spf-marq-clip.spf-marq-overflow.spf-marq-go>*{transform:translateX(var(--s
             // class/aria-checked/aria-label/title/icon every time.
             let libActionObserver = null;
             const findLibActionBtn = () =>
-                document.querySelector('[data-testid="now-playing-widget-v2"] button[aria-label^="Add to "]');
+                document.querySelector('[data-testid="now-playing-widget"] button[aria-label^="Add to "]');
             const syncLibActionProxy = (proxy, realBtn) => {
                 proxy.className = realBtn.className;
                 proxy.setAttribute('aria-checked', realBtn.getAttribute('aria-checked') || 'false');
@@ -3580,7 +3235,7 @@ ${S} .spf-marq-clip.spf-marq-overflow.spf-marq-go>*{transform:translateX(var(--s
                     findLibActionBtn()?.click();
                 });
                 player.appendChild(proxy);
-                const widgetEl = document.querySelector('[data-testid="now-playing-widget-v2"]');
+                const widgetEl = document.querySelector('[data-testid="now-playing-widget"]');
                 if (widgetEl) {
                     libActionObserver = new MutationObserver(() => {
                         const btn = findLibActionBtn();
@@ -3610,7 +3265,7 @@ ${S} .spf-marq-clip.spf-marq-overflow.spf-marq-go>*{transform:translateX(var(--s
             // pattern as the library-action proxy, since this is a React-owned node too.
             let removeRecObserver = null;
             const findRemoveRecBtn = () =>
-                document.querySelector('[data-testid="now-playing-widget-v2"] button[aria-label="Remove recommendation"]');
+                document.querySelector('[data-testid="now-playing-widget"] button[aria-label="Remove recommendation"]');
             const syncRemoveRecProxy = (proxy, realBtn) => {
                 proxy.className = realBtn.className;
                 proxy.innerHTML = realBtn.innerHTML;
@@ -3667,7 +3322,7 @@ ${S} .spf-marq-clip.spf-marq-overflow.spf-marq-go>*{transform:translateX(var(--s
                     }
                 }
                 player.appendChild(proxy);
-                const widgetEl = document.querySelector('[data-testid="now-playing-widget-v2"]');
+                const widgetEl = document.querySelector('[data-testid="now-playing-widget"]');
                 if (widgetEl) {
                     removeRecObserver = new MutationObserver(() => {
                         const btn = findRemoveRecBtn();
@@ -3715,7 +3370,6 @@ ${S} .spf-marq-clip.spf-marq-overflow.spf-marq-go>*{transform:translateX(var(--s
                 document.documentElement.classList.remove('spf-compact-pre');
                 setCompactMode(true);
                 dbg('compactToggle: entered compact', '#spf-compact-toggle', { movedCount: movedOut.length });
-                if (window.__spfProbeTap) { window.__spfProbeTap = false; setTimeout(() => spfProbe('tap-compact'), 600); }
             };
             const exitCompact = () => {
                 moveBack();
@@ -3724,12 +3378,10 @@ ${S} .spf-marq-clip.spf-marq-overflow.spf-marq-go>*{transform:translateX(var(--s
                 player.classList.remove('spf-compact');
                 setCompactMode(false);
                 dbg('compactToggle: exited compact', '#spf-compact-toggle', {});
-                if (window.__spfProbeTap) { window.__spfProbeTap = false; setTimeout(() => spfProbe('tap-expanded'), 600); }
             };
 
             strip.addEventListener('click', (e) => {
                 e.stopPropagation();
-                window.__spfProbeTap = true;
                 if (player.classList.contains('spf-compact')) exitCompact();
                 else enterCompact();
             });
@@ -3797,8 +3449,6 @@ ${S} .spf-marq-clip.spf-marq-overflow.spf-marq-go>*{transform:translateX(var(--s
             setupEnhanceBadgeAlign();
             setupCompactToggle();
             tryRestoreCompact();
-            setupNpMarquee();
-            startProbeAutoRun();
         }, 2000);
 
         // setupNpvButton/setupNpvWidgetTrigger/setupOtherPanelTriggers get their
@@ -3828,16 +3478,14 @@ ${S} .spf-marq-clip.spf-marq-overflow.spf-marq-go>*{transform:translateX(var(--s
         setupNpvWidgetTrigger();
         setupOtherPanelTriggers();
         setupCompactToggle();
-        let npvPollTicks = 0;
         const npvSetupInterval = setInterval(() => {
-            npvPollTicks++;
             setupNpvButton();
             setupNpvWidgetTrigger();
             setupOtherPanelTriggers();
             setupCompactToggle();
             tryRestoreCompact();
             cleanupOrphans();
-            const compactRestoreDone = !compactModeEnabled() || document.getElementById('spf-compact-libaction') || npvPollTicks > 20;
+            const compactRestoreDone = !compactModeEnabled() || document.getElementById('spf-compact-libaction');
             if (document.querySelector('.npbtn') && document.querySelector('.fuckd-npv-art')
                 && document.querySelector('button[data-testid="control-button-queue"].fuckd-other-panel')
                 && document.querySelector('button[aria-label="Connect to a device"].fuckd-other-panel')
@@ -3918,19 +3566,18 @@ aside[data-testid=now-playing-bar]>div>div:last-child button{transform:scale(1.1
 div[data-testid=general-controls]{margin:15px 0 25px}
 div[data-testid=general-controls] button{transform:scale(1.4)!important;margin:0 8px!important}
 div[data-testid=player-controls]{margin:5px 0}
-div[data-testid=now-playing-widget-v2]{justify-content:center;overflow:hidden}
+div[data-testid=now-playing-widget]{justify-content:center;overflow:hidden}
 form[role=search]{z-index:10;margin-left:48px;max-width:88%}
-div[data-testid=now-playing-widget-v2]>div:last-child>button{transform:scale(1.3)}
+div[data-testid=now-playing-widget]>div:last-child>button{transform:scale(1.3)}
 
 /**
      * Uncomment this line to hide the track-info block on the left side of the player bar (album art which one can click to then display NPV)
-     * div[data-testid=now-playing-widget-v2]>div:first-child{display:none!important}
+     * div[data-testid=now-playing-widget]>div:first-child{display:none!important}
      */
 
-div[data-testid=now-playing-widget-v2]>div:nth-child(2){display:flex!important;flex-direction:column!important;justify-content:center!important;flex:1 1 0!important;min-width:0!important;overflow:hidden!important}
-/* v2: native text sizes + marquee left alone (before-shots: title/artist at Spotify's own sizes) */
-/* v2: rows keep native overflow/marquee */
-div[data-testid=now-playing-widget-v2]>div:nth-child(2)>div{min-width:0}
+div[data-testid=now-playing-widget]>div:nth-child(2){display:flex!important;overflow:hidden!important}
+div[data-testid=now-playing-widget]>div:nth-child(2) span{font-size:13px!important;height:20px!important;margin:0!important}
+div[data-testid=now-playing-widget]>div:nth-child(2)>div{min-width:auto;max-width:66%}
 [data-tippy-root]{overflow:hidden!important}
 [data-tippy-root],[data-tippy-root] *{transition:none!important;transform:none!important}
 div[data-testid=hover-or-focus-tooltip],#Desktop_LeftSidebar_Id header>div>div:last-child{display:none!important}
@@ -4245,7 +3892,7 @@ aside[data-testid=now-playing-bar].spf-compact{
 }
 aside[data-testid=now-playing-bar].spf-compact [data-testid=playback-position],
 aside[data-testid=now-playing-bar].spf-compact [data-testid=playback-duration],
-aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget-v2]>div:last-child{
+aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:last-child{
   display:none!important
 }
 /* Hide just the secondary-controls wrapper (Lyrics+, npbtn, native lyrics/
@@ -4321,7 +3968,7 @@ aside[data-testid=now-playing-bar].spf-compact [data-testid="playback-progressba
   margin:0!important;
   padding:0!important
 }
-aside[data-testid=now-playing-bar].spf-compact>div:first-child>div:has(div[data-testid=now-playing-widget-v2]){
+aside[data-testid=now-playing-bar].spf-compact>div:first-child>div:has(div[data-testid=now-playing-widget]){
   display:flex!important;
   flex:1!important;
   min-width:0!important;
@@ -4361,22 +4008,39 @@ aside[data-testid=now-playing-bar].spf-compact>div:first-child{
      scrubber moved up. */
   padding:0 84px 10px 8px!important
 }
-aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget-v2]{
+aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]{
   flex:1!important;
   min-width:0!important;
   display:flex!important;
   flex-direction:row!important;
   align-items:center!important;
   justify-content:flex-start!important;
-    height:100%!important;
+  gap:8px!important;
+  height:100%!important;
   overflow:hidden!important
 }
-/* v2: cover art stays native 56px */
-/* v2: no img override */
-aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget-v2]>div:nth-child(2){
-  display:flex!important;
-  flex-direction:column!important;
+aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:first-child{
+  width:44px!important;
+  height:44px!important;
+  min-width:44px!important;
+  flex-shrink:0!important;
+  border-radius:4px!important;
+  overflow:hidden!important
+}
+aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:first-child img{
+  width:100%!important;
+  height:100%!important;
+  object-fit:cover!important;
+  border-radius:4px!important
+}
+aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:nth-child(2){
+  display:grid!important;
+  grid-template-columns:12px 1fr!important;
+  grid-template-rows:auto auto!important;
+  align-items:center!important;
   justify-content:center!important;
+  column-gap:4px!important;
+  row-gap:0!important;
   min-width:0!important;
   max-width:none!important;
   overflow:hidden!important
@@ -4384,7 +4048,10 @@ aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widge
 /* Title spans both grid columns on row 1, alone - matches native's own
    title-gets-its-own-line behavior (see native dump: title top=540 vs
    badge/artist top~557/558, i.e. two rows, title on its own). */
-/* removed: v2 info block has only title+artist rows */
+aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:nth-child(2)>div:first-child{
+  grid-column:1/3!important;
+  grid-row:1!important
+}
 /* Badge wrapper (jEiAs1et4fAU3chW) - row 2, column 1. Grid's align-items:
    center on the row keeps it vertically centered against the artist text
    next to it, and the 4px column-gap reproduces the native ~4px gap
@@ -4405,12 +4072,22 @@ aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widge
    always renders at native size; the artist column (1fr) absorbs
    whatever width is left and truncates via the nowrap/overflow rules
    below, same as it already did before this fix. */
-/* removed: v2 info block has only title+artist rows */
+aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:nth-child(2)>div:nth-child(2){
+  grid-column:1!important;
+  grid-row:2!important
+}
 /* Artist row - row 2, column 2 (the remaining 1fr track), right next to
    the badge instead of stacked below it. */
-/* removed: v2 info block has only title+artist rows */
-/* v2: native marquee */
-aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget-v2]>div:nth-child(2)>div{min-width:0!important}
+aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:nth-child(2)>div:nth-child(3){
+  grid-column:2!important;
+  grid-row:2!important;
+  min-width:0!important
+}
+aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:nth-child(2)>div{
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  max-width:100%!important
+}
 /* Badge-clip fix - the blanket rule above exists to ellipsis-truncate the
    title/artist TEXT rows, but as a generic ">div:nth-child(2)>div" selector
    it also matches the badge wrapper (jEiAs1et4fAU3chW), which holds nothing
@@ -4427,7 +4104,9 @@ aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widge
    overflow:hidden from the rule above - harmless, since that empty wrapper
    is already collapsed to ~0 size by the "Badge-absent reclaim" rules
    below regardless. */
-/* removed: no badge wrapper in v2 */
+aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:nth-child(2)>div:has(svg[data-testid="enhance-badge"]){
+  overflow:visible!important
+}
 /* The music-video "Switch to video" row (+ its bullet separator) is a third
    sibling row alongside title/artist inside nth-child(2) whenever a track
    has an associated video. Initially only hidden in compact mode, where
@@ -4452,7 +4131,9 @@ aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widge
    video-switch button + bullet get hidden - the badge svg, being a
    sibling one level up, is untouched either way a track does or doesn't
    have a video. */
-aside[data-testid=now-playing-bar] div[data-testid=now-playing-widget-v2] [aria-label="Switch to video"]{display:none!important}
+aside[data-testid=now-playing-bar] div[data-testid=now-playing-widget]>div:nth-child(2)>div>div:has([aria-label="Switch to video"]){
+  display:none!important
+}
 /* enhance-badge (Smart Shuffle recommendation indicator, data-testid=
    "enhance-badge") - shown whether or not the track also has a video (see
    fix above: the video block next to it, when present, is hidden without
@@ -4529,8 +4210,16 @@ aside[data-testid=now-playing-bar] div[data-testid=now-playing-widget-v2] [aria-
    so the artist text reclaims the same title-aligned left edge it'd have
    if the wrapper were never in the DOM at all. Scoped with :not(:has())
    so tracks that DO have the badge are completely untouched by this. */
-/* removed: no badge wrapper in v2 */
-/* removed: no badge wrapper in v2 */
+aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:nth-child(2):not(:has(svg[data-testid="enhance-badge"])){
+  grid-template-columns:0 1fr!important;
+  column-gap:0!important
+}
+div[data-testid=now-playing-widget]>div:nth-child(2)>div:nth-child(2):not(:has(svg[data-testid="enhance-badge"])){
+  margin:0!important;
+  padding:0!important;
+  min-width:0!important;
+  width:0!important
+}
 
 /* Toggle strip - thin bar pinned to the top of the player bar in both full
    and compact states, click to switch between them. Position/size ported
