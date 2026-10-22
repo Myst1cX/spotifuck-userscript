@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.30.2-v2
+// @version      7.30.3-v2
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -2575,6 +2575,7 @@
                 plog('[PROBE ' + tag + '] now-playing-widget-v2 NOT FOUND inside player');
             }
 
+            probeNpStyles(tag);
             // 4) full tree of the player bar (live rects + the layout styles that matter)
             probeTree(tag, player, 10, 150);
 
@@ -2607,6 +2608,135 @@
         }, 500);
     }
     // ===================== end PROBE =====================
+
+    // ===================== NP title/artist size + marquee (v7.30.3) =====================
+    // Spotify's new player-bar layout (widget-v2) shrank the track title / artist text and the
+    // native hover auto-scroll no longer kicks in for long names. This restores both:
+    //  - font sizes: tweak SPF_NP_TITLE_PX / SPF_NP_ARTIST_PX / line heights below (one place).
+    //  - marquee: our own, structure-based (no hashed class names). A row is "overflowing" when its
+    //    content is wider than its nearest overflow:hidden ancestor; on hover / touch it slides to
+    //    the end and back on leave. Re-measured on every enter and on DOM / resize changes.
+    const SPF_NP_TITLE_PX = 15, SPF_NP_TITLE_LH = 20;
+    const SPF_NP_ARTIST_PX = 13, SPF_NP_ARTIST_LH = 16;
+    const SPF_MARQ_PX_PER_S = 40;      // scroll speed
+    const SPF_MARQ_TOUCH_HOLD_MS = 1500; // touch: stay at the end this long, then slide back
+    function npInfoCol() {
+        return document.querySelector('aside[data-testid=now-playing-bar] div[data-testid=now-playing-widget-v2]>div:nth-child(2)');
+    }
+    function ensureNpTextStyle() {
+        if (document.getElementById('spf-np-text-style')) return;
+        const S = 'aside[data-testid=now-playing-bar] div[data-testid=now-playing-widget-v2]>div:nth-child(2)';
+        const st = document.createElement('style');
+        st.id = 'spf-np-text-style';
+        st.textContent = `
+${S}>div:nth-child(1) [data-encore-id=text]{font-size:${SPF_NP_TITLE_PX}px!important;line-height:${SPF_NP_TITLE_LH}px!important}
+${S}>div:nth-child(2) [data-encore-id=text]{font-size:${SPF_NP_ARTIST_PX}px!important;line-height:${SPF_NP_ARTIST_LH}px!important}
+${S} [data-encore-id=text] *{font-size:inherit!important;line-height:inherit!important}
+${S} .spf-marq-clip{overflow:hidden!important;max-width:100%}
+${S} .spf-marq-clip>*{width:max-content!important;min-width:100%!important;max-width:none!important;transition:transform var(--spf-dur,3s) linear}
+${S} .spf-marq-clip>*>*{flex:none!important}
+${S} .spf-marq-clip [data-encore-id=text],${S} .spf-marq-clip a{white-space:nowrap!important;text-overflow:clip!important}
+${S} .spf-marq-clip.spf-marq-overflow>*{transform:translateX(0)!important;transition-duration:.35s}
+${S} .spf-marq-clip.spf-marq-overflow.spf-marq-go>*{transform:translateX(var(--spf-dx,0px))!important;transition-duration:var(--spf-dur,3s)}
+`;
+        document.head.appendChild(st);
+    }
+    function npMarqClips() {
+        const col = npInfoCol();
+        if (!col) return [];
+        const out = [];
+        Array.from(col.children).forEach(row => {
+            const t = row.querySelector('[data-encore-id=text]');
+            if (!t) return;
+            for (let n = t.parentElement; n && n !== col; n = n.parentElement) {
+                const ox = getComputedStyle(n).overflowX;
+                if (ox === 'hidden' || ox === 'clip' || n.classList.contains('spf-marq-clip')) {
+                    n.classList.add('spf-marq-clip');
+                    if (n.firstElementChild) out.push(n);
+                    break;
+                }
+            }
+        });
+        return out;
+    }
+    function npMarqMeasure() {
+        ensureNpTextStyle();
+        const clips = npMarqClips();
+        clips.forEach(clip => {
+            const c = clip.firstElementChild;
+            const d = Math.ceil(c.scrollWidth - clip.clientWidth);
+            if (d > 2) {
+                clip.classList.add('spf-marq-overflow');
+                clip.style.setProperty('--spf-dx', -(d + 6) + 'px');
+                clip.style.setProperty('--spf-dur', Math.max(1.2, d / SPF_MARQ_PX_PER_S).toFixed(2) + 's');
+            } else {
+                clip.classList.remove('spf-marq-overflow', 'spf-marq-go');
+                clip.style.removeProperty('--spf-dx');
+                clip.style.removeProperty('--spf-dur');
+            }
+        });
+        return clips;
+    }
+    let npMarqHoldTimer = null;
+    function npMarqSet(on) {
+        const clips = npMarqMeasure();
+        clips.forEach(c => c.classList.toggle('spf-marq-go', !!on && c.classList.contains('spf-marq-overflow')));
+        return clips;
+    }
+    function setupNpMarquee() {
+        if (setupNpMarquee.done) return;
+        setupNpMarquee.done = true;
+        ensureNpTextStyle();
+        const insideCol = (el) => { const col = npInfoCol(); return !!(col && el && el.nodeType === 1 && col.contains(el)); };
+        document.addEventListener('pointerover', (e) => {
+            if (!insideCol(e.target)) return;
+            clearTimeout(npMarqHoldTimer);
+            const clips = npMarqSet(true);
+            if (e.pointerType === 'touch') {
+                const longest = Math.max(0, ...clips.filter(c => c.classList.contains('spf-marq-overflow')).map(c => parseFloat(c.style.getPropertyValue('--spf-dur')) || 0));
+                npMarqHoldTimer = setTimeout(() => npMarqSet(false), longest * 1000 + SPF_MARQ_TOUCH_HOLD_MS);
+            }
+            dbg('npMarquee: go', 'now-playing-widget-v2 info col', { pointer: e.pointerType, overflowing: clips.filter(c => c.classList.contains('spf-marq-overflow')).length, rows: clips.length });
+        }, true);
+        document.addEventListener('pointerout', (e) => {
+            if (!insideCol(e.target) || e.pointerType === 'touch') return;
+            if (insideCol(e.relatedTarget)) return;
+            npMarqSet(false);
+        }, true);
+        let t = null;
+        const remeasure = () => { clearTimeout(t); t = setTimeout(npMarqMeasure, 200); };
+        new MutationObserver(remeasure).observe(document.body, { childList: true, subtree: true, characterData: true });
+        window.addEventListener('resize', remeasure);
+        setInterval(npMarqMeasure, 3000); // safety net: new track / compact<->expanded switches
+        dbg('npMarquee: wired', 'document', {});
+    }
+    // computed-style dump of the title/artist rows (everything the native marquee could depend on)
+    function probeNpStyles(tag) {
+        try {
+            const col = npInfoCol();
+            if (!col) { plog('[PROBE ' + tag + ' npstyle] info column not found'); return; }
+            ['title', 'artist'].forEach((name, i) => {
+                const row = col.children[i];
+                if (!row) return;
+                const t = row.querySelector('[data-encore-id=text]');
+                const chain = [];
+                for (let n = t; n && n !== col; n = n.parentElement) chain.unshift(n);
+                chain.forEach((n, depth) => {
+                    const cs = getComputedStyle(n), r = n.getBoundingClientRect();
+                    const attrs = Array.from(n.attributes).filter(a => a.name !== 'class').map(a => a.name + '=' + String(a.value).slice(0, 60)).join(' ');
+                    plog('[PROBE ' + tag + ' npstyle] ' + name + ' d' + depth + ' <' + n.tagName.toLowerCase() + '.' + (typeof n.className === 'string' ? n.className.split(/\s+/).slice(0, 3).join('.') : '') + '> '
+                        + 'w=' + Math.round(r.width) + ' sw=' + n.scrollWidth + ' cw=' + n.clientWidth
+                        + ' fs=' + cs.fontSize + ' lh=' + cs.lineHeight + ' fw=' + cs.fontWeight
+                        + ' disp=' + cs.display + ' ov=' + cs.overflowX + ' to=' + cs.textOverflow + ' ws=' + cs.whiteSpace
+                        + ' mar=' + cs.margin + ' pad=' + cs.padding + ' fshrink=' + cs.flexShrink
+                        + ' tf=' + cs.transform + ' anim=' + cs.animationName + ' trans=' + cs.transitionProperty
+                        + ' mask=' + (cs.webkitMaskImage || cs.maskImage || 'none').slice(0, 60)
+                        + (attrs ? ' attrs[' + attrs + ']' : ''));
+                });
+            });
+        } catch (e) { plog('[PROBE] probeNpStyles error: ' + (e && e.message)); }
+    }
+    // ===================== end NP marquee =====================
 
     function updateNPBarHeightVar() {
         const player = document.querySelector('aside[data-testid=now-playing-bar]');
@@ -3667,6 +3797,7 @@
             setupEnhanceBadgeAlign();
             setupCompactToggle();
             tryRestoreCompact();
+            setupNpMarquee();
             startProbeAutoRun();
         }, 2000);
 
