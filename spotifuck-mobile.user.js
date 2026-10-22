@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.30.88
+// @version      7.30
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -1056,6 +1056,11 @@
 *    so the whole bar shrank by the row's 56px and jumped back. The row now has min-height:56px
 *    (the measured row height in every dump). Compact has a fixed 68px row and never collapsed.
 *    The widget itself still renders blank for that moment; that is Spotify's own loading state.
+*
+* h) The badge-alignment observer (e) re-ran on every DOM change in the player bar, and with it
+*    on the full player's title marquee never started (a build without it scrolled). It now only
+*    re-runs when a badge node is added. A switch between compact and full no longer re-aligns
+*    by itself, since the badge's offset against the artist text does not depend on the mode.
 */
 
 (function() {
@@ -2786,7 +2791,11 @@
         if (!player) return;
         alignEnhanceBadge();
         if (!enhanceBadgeMutationObserver) {
-            enhanceBadgeMutationObserver = new MutationObserver(() => {
+            // Only a badge being added re-runs the alignment. Reacting to every DOM change in the
+            // player bar (marquee, controls, progress): a build without this observer had a working title marquee.
+            const isBadge = n => n.nodeType === 1 && (n.matches('svg[data-testid="enhance-badge"]') || !!n.querySelector('svg[data-testid="enhance-badge"]'));
+            enhanceBadgeMutationObserver = new MutationObserver(muts => {
+                if (!muts.some(m => [...m.addedNodes].some(isBadge))) return;
                 clearTimeout(enhanceBadgeAlignTimer);
                 // Debounced: a track change touches many nodes in one burst; re-measure once it settles.
                 enhanceBadgeAlignTimer = setTimeout(alignEnhanceBadge, 50);
