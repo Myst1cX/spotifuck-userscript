@@ -1058,9 +1058,12 @@
 *    The widget itself still renders blank for that moment; that is Spotify's own loading state.
 *
 * h) The badge-alignment observer (e) re-ran on every DOM change in the player bar, and with it
-*    on the full player's title marquee never started (a build without it scrolled). It now only
-*    re-runs when a badge node is added. A switch between compact and full no longer re-aligns
-*    by itself, since the badge's offset against the artist text does not depend on the mode.
+*    the full player's title marquee never started (a build without it scrolled; narrowing its
+*    callback to badge additions was not enough). The observer and the setup-time call are gone:
+*    the badge svg now carries a 1ms opacity animation (spf-badge-seen) and its animationstart
+*    event is the only trigger, so nothing runs on tracks without a badge. A switch between
+*    compact and full no longer re-aligns by itself (the dump puts the badge within 0.5px of
+*    the byline's center in full already).
 */
 
 (function() {
@@ -2756,8 +2759,7 @@
     // measured live instead of a hardcoded px offset (Spotify's line-height CSS isn't ours to assume).
     // getBoundingClientRect() includes transforms already applied, so the previous nudge is cleared
     // before measuring or it would compound on every run.
-    let enhanceBadgeMutationObserver = null;
-    let enhanceBadgeAlignTimer = null;
+    let enhanceBadgeListening = false;
     function alignEnhanceBadge() {
         const player = document.querySelector('aside[data-testid=now-playing-bar]');
         if (!player) return;
@@ -2787,21 +2789,13 @@
     }
 
     function setupEnhanceBadgeAlign() {
-        const player = document.querySelector('aside[data-testid=now-playing-bar]');
-        if (!player) return;
-        alignEnhanceBadge();
-        if (!enhanceBadgeMutationObserver) {
-            // Only a badge being added re-runs the alignment. Reacting to every DOM change in the
-            // player bar (marquee, controls, progress): a build without this observer had a working title marquee.
-            const isBadge = n => n.nodeType === 1 && (n.matches('svg[data-testid="enhance-badge"]') || !!n.querySelector('svg[data-testid="enhance-badge"]'));
-            enhanceBadgeMutationObserver = new MutationObserver(muts => {
-                if (!muts.some(m => [...m.addedNodes].some(isBadge))) return;
-                clearTimeout(enhanceBadgeAlignTimer);
-                // Debounced: a track change touches many nodes in one burst; re-measure once it settles.
-                enhanceBadgeAlignTimer = setTimeout(alignEnhanceBadge, 50);
-            });
-            enhanceBadgeMutationObserver.observe(player, { childList: true, subtree: true });
-        }
+        // Nothing runs on tracks without a badge: the badge svg carries a 1ms CSS animation
+        // (spf-badge-seen), and its animationstart is the only trigger for the alignment.
+        if (enhanceBadgeListening) return;
+        enhanceBadgeListening = true;
+        document.addEventListener('animationstart', e => {
+            if (e.animationName === 'spf-badge-seen') alignEnhanceBadge();
+        }, true);
     }
 
     /**
@@ -3664,6 +3658,8 @@ div[data-testid=player-controls]{margin:5px 0}
 div[data-testid=now-playing-widget-v2]{justify-content:center;overflow:hidden}
 /* v7.30 g): hold the full player's widget row at its 56px so the bar doesn't shrink while Spotify empties the widget on a track change. */
 aside[data-testid=now-playing-bar]:not(.spf-compact)>div:first-child>div:has(div[data-testid=now-playing-widget-v2]){min-height:56px}
+@keyframes spf-badge-seen{from{opacity:.999}to{opacity:1}}
+svg[data-testid=enhance-badge]{animation:spf-badge-seen .001s}
 form[role=search]{z-index:10;margin-left:48px;max-width:88%}
 div[data-testid=now-playing-widget-v2]>div:last-child>button{transform:scale(1.3)}
 
