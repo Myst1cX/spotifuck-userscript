@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.29.2-probe
+// @version      7.30.0-v2
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -804,14 +804,14 @@
 *
 * RESOLVED (v7.23) - Album art button (button[data-testid=cover-art-button]) no
 * longer opened/closed Now Playing View. Cause: setupNpvWidgetTrigger's selector
-* (div[data-testid=now-playing-widget]>div:first-child) was purely positional -
+* (div[data-testid=now-playing-widget-v2]>div:first-child) was purely positional -
 * Spotify wrapped the art in a real interactive <button data-testid=cover-art-button
 * aria-label="Now playing view"> nested inside that div, so the click handling moved
 * onto the button specifically and a listener on the outer div wrapper stopped
 * receiving it (the div itself is still technically "the first child", so the old
 * selector kept matching something, just not the thing that's actually clicked
 * anymore). Solution: target the button directly via its testid
-* (div[data-testid=now-playing-widget] button[data-testid=cover-art-button]),
+* (div[data-testid=now-playing-widget-v2] button[data-testid=cover-art-button]),
 * scoped under now-playing-widget so it can't match a same-named button elsewhere.
 *
 * Naming note: now-playing-widget is NOT the Now Playing View (NPV) panel -
@@ -832,7 +832,7 @@
 * these triggers had already stopped by then (its stop-check only confirms the
 * marker class exists somewhere, not that it's on a node still receiving
 * clicks), nothing re-attached to the new button. Fix: delegate from
-* div[data-testid=now-playing-widget] instead - the outer container, which
+* div[data-testid=now-playing-widget-v2] instead - the outer container, which
 * persists for the whole session (only its children get replaced) - attaching
 * the capture listener there once and checking event.target.closest() in the
 * handler to confirm the click actually landed on the art button and not a
@@ -2891,7 +2891,8 @@
         // accidentally grab, and no mode branching is needed. Querying
         // under `player` each call already scopes this to whatever's live
         // right now, in either mode.
-        const ref = player.querySelector('[data-testid="context-item-info-artist"]');
+        const ref = player.querySelector('[data-testid="context-item-info-artist"]')
+            || player.querySelector('[data-testid="now-playing-widget-v2-byline"]');
         if (!ref) return;
         // Reset any previous adjustment before measuring - getBoundingClientRect
         // reflects transforms already applied, so measuring without resetting
@@ -3234,7 +3235,7 @@
         };
 
         // NPV guard: the player-bar album art (button[data-testid=cover-art-button]
-        // inside div[data-testid=now-playing-widget]) natively TOGGLES the Now Playing
+        // inside div[data-testid=now-playing-widget-v2]) natively TOGGLES the Now Playing
         // view on click - this is a real, reliable Spotify affordance, separate from
         // the unreliable native toggle button npBtn above works around. Without this,
         // panelGuardObserver (which only trusts opens that went through an authorized
@@ -3253,7 +3254,7 @@
         // synthetically here (unlike clickNP()), so there's no risk of a second,
         // self-inflicted toggle undoing Spotify's own native one.
         //
-        // Selector was previously div[data-testid=now-playing-widget]>div:first-child,
+        // Selector was previously div[data-testid=now-playing-widget-v2]>div:first-child,
         // a purely positional guess. Spotify wrapped the art in a real interactive
         // button (data-testid=cover-art-button, aria-label="Now playing view") - the
         // click handling moved onto that button specifically, so a listener on the
@@ -3272,7 +3273,7 @@
         // exists to attach to exactly once, and the poll's stop-check (which just
         // looks for the class anywhere) needs no change.
         const setupNpvWidgetTrigger = () => {
-            const widget = document.querySelector('div[data-testid="now-playing-widget"]:not(.fuckd-npv-art)');
+            const widget = document.querySelector('div[data-testid="now-playing-widget-v2"]:not(.fuckd-npv-art)');
             if (!widget) return;
             widget.classList.add('fuckd-npv-art');
             widget.addEventListener('click', (event) => {
@@ -3293,7 +3294,7 @@
                         : 'panel was open - this click closes it natively (closeNowPlay() never runs for this path), so the authorized-panel flags are cleared here to keep guard state in sync'
                 });
             }, { capture: true });
-            dbg('[PanelGuard] setupNpvWidgetTrigger: delegated listener attached to now-playing-widget (survives cover-art-button re-renders)', 'div[data-testid="now-playing-widget"]', {});
+            dbg('[PanelGuard] setupNpvWidgetTrigger: delegated listener attached to now-playing-widget (survives cover-art-button re-renders)', 'div[data-testid="now-playing-widget-v2"]', {});
         };
 
         // Queue and Connect are full authorized-opener types, same pattern as the album art
@@ -3422,7 +3423,7 @@
             // class/aria-checked/aria-label/title/icon every time.
             let libActionObserver = null;
             const findLibActionBtn = () =>
-                document.querySelector('[data-testid="now-playing-widget"] button[aria-label^="Add to "]');
+                document.querySelector('[data-testid="now-playing-widget-v2"] button[aria-label^="Add to "]');
             const syncLibActionProxy = (proxy, realBtn) => {
                 proxy.className = realBtn.className;
                 proxy.setAttribute('aria-checked', realBtn.getAttribute('aria-checked') || 'false');
@@ -3449,7 +3450,7 @@
                     findLibActionBtn()?.click();
                 });
                 player.appendChild(proxy);
-                const widgetEl = document.querySelector('[data-testid="now-playing-widget"]');
+                const widgetEl = document.querySelector('[data-testid="now-playing-widget-v2"]');
                 if (widgetEl) {
                     libActionObserver = new MutationObserver(() => {
                         const btn = findLibActionBtn();
@@ -3479,7 +3480,7 @@
             // pattern as the library-action proxy, since this is a React-owned node too.
             let removeRecObserver = null;
             const findRemoveRecBtn = () =>
-                document.querySelector('[data-testid="now-playing-widget"] button[aria-label="Remove recommendation"]');
+                document.querySelector('[data-testid="now-playing-widget-v2"] button[aria-label="Remove recommendation"]');
             const syncRemoveRecProxy = (proxy, realBtn) => {
                 proxy.className = realBtn.className;
                 proxy.innerHTML = realBtn.innerHTML;
@@ -3536,7 +3537,7 @@
                     }
                 }
                 player.appendChild(proxy);
-                const widgetEl = document.querySelector('[data-testid="now-playing-widget"]');
+                const widgetEl = document.querySelector('[data-testid="now-playing-widget-v2"]');
                 if (widgetEl) {
                     removeRecObserver = new MutationObserver(() => {
                         const btn = findRemoveRecBtn();
@@ -3783,18 +3784,18 @@ aside[data-testid=now-playing-bar]>div>div:last-child button{transform:scale(1.1
 div[data-testid=general-controls]{margin:15px 0 25px}
 div[data-testid=general-controls] button{transform:scale(1.4)!important;margin:0 8px!important}
 div[data-testid=player-controls]{margin:5px 0}
-div[data-testid=now-playing-widget]{justify-content:center;overflow:hidden}
+div[data-testid=now-playing-widget-v2]{justify-content:center;overflow:hidden}
 form[role=search]{z-index:10;margin-left:48px;max-width:88%}
-div[data-testid=now-playing-widget]>div:last-child>button{transform:scale(1.3)}
+div[data-testid=now-playing-widget-v2]>div:last-child>button{transform:scale(1.3)}
 
 /**
      * Uncomment this line to hide the track-info block on the left side of the player bar (album art which one can click to then display NPV)
-     * div[data-testid=now-playing-widget]>div:first-child{display:none!important}
+     * div[data-testid=now-playing-widget-v2]>div:first-child{display:none!important}
      */
 
-div[data-testid=now-playing-widget]>div:nth-child(2){display:flex!important;overflow:hidden!important}
-div[data-testid=now-playing-widget]>div:nth-child(2) span{font-size:13px!important;height:20px!important;margin:0!important}
-div[data-testid=now-playing-widget]>div:nth-child(2)>div{min-width:auto;max-width:66%}
+div[data-testid=now-playing-widget-v2]>div:nth-child(2){display:flex!important;flex-direction:column!important;justify-content:center!important;flex:1 1 0!important;min-width:0!important;overflow:hidden!important}
+div[data-testid=now-playing-widget-v2]>div:nth-child(2) span{font-size:13px!important;height:20px!important;margin:0!important}
+div[data-testid=now-playing-widget-v2]>div:nth-child(2)>div{min-width:0;max-width:100%;white-space:nowrap;overflow:hidden}
 [data-tippy-root]{overflow:hidden!important}
 [data-tippy-root],[data-tippy-root] *{transition:none!important;transform:none!important}
 div[data-testid=hover-or-focus-tooltip],#Desktop_LeftSidebar_Id header>div>div:last-child{display:none!important}
@@ -4109,7 +4110,7 @@ aside[data-testid=now-playing-bar].spf-compact{
 }
 aside[data-testid=now-playing-bar].spf-compact [data-testid=playback-position],
 aside[data-testid=now-playing-bar].spf-compact [data-testid=playback-duration],
-aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:last-child{
+aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget-v2]>div:last-child{
   display:none!important
 }
 /* Hide just the secondary-controls wrapper (Lyrics+, npbtn, native lyrics/
@@ -4185,7 +4186,7 @@ aside[data-testid=now-playing-bar].spf-compact [data-testid="playback-progressba
   margin:0!important;
   padding:0!important
 }
-aside[data-testid=now-playing-bar].spf-compact>div:first-child>div:has(div[data-testid=now-playing-widget]){
+aside[data-testid=now-playing-bar].spf-compact>div:first-child>div:has(div[data-testid=now-playing-widget-v2]){
   display:flex!important;
   flex:1!important;
   min-width:0!important;
@@ -4225,7 +4226,7 @@ aside[data-testid=now-playing-bar].spf-compact>div:first-child{
      scrubber moved up. */
   padding:0 84px 10px 8px!important
 }
-aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]{
+aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget-v2]{
   flex:1!important;
   min-width:0!important;
   display:flex!important;
@@ -4236,7 +4237,7 @@ aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widge
   height:100%!important;
   overflow:hidden!important
 }
-aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:first-child{
+aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget-v2]>div:first-child{
   width:44px!important;
   height:44px!important;
   min-width:44px!important;
@@ -4244,20 +4245,16 @@ aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widge
   border-radius:4px!important;
   overflow:hidden!important
 }
-aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:first-child img{
+aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget-v2]>div:first-child img{
   width:100%!important;
   height:100%!important;
   object-fit:cover!important;
   border-radius:4px!important
 }
-aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:nth-child(2){
-  display:grid!important;
-  grid-template-columns:12px 1fr!important;
-  grid-template-rows:auto auto!important;
-  align-items:center!important;
+aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget-v2]>div:nth-child(2){
+  display:flex!important;
+  flex-direction:column!important;
   justify-content:center!important;
-  column-gap:4px!important;
-  row-gap:0!important;
   min-width:0!important;
   max-width:none!important;
   overflow:hidden!important
@@ -4265,10 +4262,7 @@ aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widge
 /* Title spans both grid columns on row 1, alone - matches native's own
    title-gets-its-own-line behavior (see native dump: title top=540 vs
    badge/artist top~557/558, i.e. two rows, title on its own). */
-aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:nth-child(2)>div:first-child{
-  grid-column:1/3!important;
-  grid-row:1!important
-}
+/* removed: v2 info block has only title+artist rows */
 /* Badge wrapper (jEiAs1et4fAU3chW) - row 2, column 1. Grid's align-items:
    center on the row keeps it vertically centered against the artist text
    next to it, and the 4px column-gap reproduces the native ~4px gap
@@ -4289,18 +4283,11 @@ aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widge
    always renders at native size; the artist column (1fr) absorbs
    whatever width is left and truncates via the nowrap/overflow rules
    below, same as it already did before this fix. */
-aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:nth-child(2)>div:nth-child(2){
-  grid-column:1!important;
-  grid-row:2!important
-}
+/* removed: v2 info block has only title+artist rows */
 /* Artist row - row 2, column 2 (the remaining 1fr track), right next to
    the badge instead of stacked below it. */
-aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:nth-child(2)>div:nth-child(3){
-  grid-column:2!important;
-  grid-row:2!important;
-  min-width:0!important
-}
-aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:nth-child(2)>div{
+/* removed: v2 info block has only title+artist rows */
+aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget-v2]>div:nth-child(2)>div{
   white-space:nowrap!important;
   overflow:hidden!important;
   max-width:100%!important
@@ -4321,9 +4308,7 @@ aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widge
    overflow:hidden from the rule above - harmless, since that empty wrapper
    is already collapsed to ~0 size by the "Badge-absent reclaim" rules
    below regardless. */
-aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:nth-child(2)>div:has(svg[data-testid="enhance-badge"]){
-  overflow:visible!important
-}
+/* removed: no badge wrapper in v2 */
 /* The music-video "Switch to video" row (+ its bullet separator) is a third
    sibling row alongside title/artist inside nth-child(2) whenever a track
    has an associated video. Initially only hidden in compact mode, where
@@ -4348,9 +4333,7 @@ aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widge
    video-switch button + bullet get hidden - the badge svg, being a
    sibling one level up, is untouched either way a track does or doesn't
    have a video. */
-aside[data-testid=now-playing-bar] div[data-testid=now-playing-widget]>div:nth-child(2)>div>div:has([aria-label="Switch to video"]){
-  display:none!important
-}
+aside[data-testid=now-playing-bar] div[data-testid=now-playing-widget-v2] [aria-label="Switch to video"]{display:none!important}
 /* enhance-badge (Smart Shuffle recommendation indicator, data-testid=
    "enhance-badge") - shown whether or not the track also has a video (see
    fix above: the video block next to it, when present, is hidden without
@@ -4427,16 +4410,8 @@ aside[data-testid=now-playing-bar] div[data-testid=now-playing-widget]>div:nth-c
    so the artist text reclaims the same title-aligned left edge it'd have
    if the wrapper were never in the DOM at all. Scoped with :not(:has())
    so tracks that DO have the badge are completely untouched by this. */
-aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:nth-child(2):not(:has(svg[data-testid="enhance-badge"])){
-  grid-template-columns:0 1fr!important;
-  column-gap:0!important
-}
-div[data-testid=now-playing-widget]>div:nth-child(2)>div:nth-child(2):not(:has(svg[data-testid="enhance-badge"])){
-  margin:0!important;
-  padding:0!important;
-  min-width:0!important;
-  width:0!important
-}
+/* removed: no badge wrapper in v2 */
+/* removed: no badge wrapper in v2 */
 
 /* Toggle strip - thin bar pinned to the top of the player bar in both full
    and compact states, click to switch between them. Position/size ported
