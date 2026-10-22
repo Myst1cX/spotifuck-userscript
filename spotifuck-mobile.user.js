@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.29
+// @version      7.30
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -804,14 +804,14 @@
 *
 * RESOLVED (v7.23) - Album art button (button[data-testid=cover-art-button]) no
 * longer opened/closed Now Playing View. Cause: setupNpvWidgetTrigger's selector
-* (div[data-testid=now-playing-widget]>div:first-child) was purely positional -
+* (div[data-testid=now-playing-widget-v2]>div:first-child) was purely positional -
 * Spotify wrapped the art in a real interactive <button data-testid=cover-art-button
 * aria-label="Now playing view"> nested inside that div, so the click handling moved
 * onto the button specifically and a listener on the outer div wrapper stopped
 * receiving it (the div itself is still technically "the first child", so the old
 * selector kept matching something, just not the thing that's actually clicked
 * anymore). Solution: target the button directly via its testid
-* (div[data-testid=now-playing-widget] button[data-testid=cover-art-button]),
+* (div[data-testid=now-playing-widget-v2] button[data-testid=cover-art-button]),
 * scoped under now-playing-widget so it can't match a same-named button elsewhere.
 *
 * Naming note: now-playing-widget is NOT the Now Playing View (NPV) panel -
@@ -832,7 +832,7 @@
 * these triggers had already stopped by then (its stop-check only confirms the
 * marker class exists somewhere, not that it's on a node still receiving
 * clicks), nothing re-attached to the new button. Fix: delegate from
-* div[data-testid=now-playing-widget] instead - the outer container, which
+* div[data-testid=now-playing-widget-v2] instead - the outer container, which
 * persists for the whole session (only its children get replaced) - attaching
 * the capture listener there once and checking event.target.closest() in the
 * handler to confirm the click actually landed on the art button and not a
@@ -980,6 +980,74 @@
 * up in Settings > Logger (Source = userscripts, or search tag:us.spotifuck-mobile). The
 * console path and the GM flag work as before; in a plain userscript manager (or an app
 * without dbgt) the new code does nothing. No call site changed.
+*
+* RESOLVED (v7.30) - Spotify rebuilt the player bar's DOM and the compact / expanded
+* positioning stopped lining up. Everything is back to the same positions the script
+* had before, plus the one place the new layout was genuinely off:
+* a) What changed on Spotify's side: the track widget's testid went from
+*    now-playing-widget to now-playing-widget-v2, and its insides were flattened. It is
+*    now exactly three children - the cover art container, a text column holding two
+*    rows (the title, then a byline that is already a flex row carrying the badge svg
+*    directly followed by the artist block), and the Add / Remove-recommendation
+*    buttons. Every compact rule and both compact proxies (library action and Remove
+*    recommendation) were keyed on the old testid, so none of them matched any more:
+*    the cover stayed 56px instead of 44px, the text column was never the 2-row layout,
+*    and the Add button sat next to the title instead of being pinned to the right
+*    edge, because the proxies were never created.
+* b) How the parity was reached: a labelled DOM dump script was run in eight states
+*    (home / search / Playing-on-device, each compact and expanded, normal and Smart
+*    Shuffle track) and read in full - every node, rect and computed style, not just
+*    the failing cases. Every selector the script uses on the player bar was then
+*    cross-checked against that dump. The old testid was replaced outright with the
+*    new one (no dual old-or-new selectors kept, since the old node no longer exists),
+*    and every old number was carried over unchanged: 44px cover, 8px widget gap, the
+*    68px compact row with 84px / 10px padding, Play at right:8, library action at
+*    right:44, and in the full player the centered widget and the single-row 13px text.
+*    Only structure that no longer exists was changed. The old title / badge-wrapper /
+*    artist grid (12px badge column + 4px gap) is now the byline's own flex row, which
+*    the dump confirms lands on the same numbers (badge x=88-100, artist x=104, a 4px
+*    gap). The empty-badge-wrapper rules, the "Switch to video" row rule and the
+*    wrapper-level overflow rule were deleted, because those nodes are gone - leaving
+*    them would actually have zero-widthed the byline.
+* c) Search page: Spotify now lays #global-nav-bar out as a real 48px grid row there,
+*    which pushes #main-view down by its height, but the bound only subtracted the
+*    player and the 56px bottom nav, so the view overhung the player by 47-48px (the
+*    only failing gap in the dump; home was 0 to -1 in all states). The nav's live
+*    height is now measured into --sp-gnav-height (0 while it is hidden) and
+*    subtracted in the #main-view and library-overlay bounds. The compact scrubber
+*    wrapper also gets max-width:none, since Spotify caps that wrapper at 722px and it
+*    only spanned half of a 1486px viewport.
+* d) "Playing on X device" banner in the full player: it is the aside's direct child
+*    carrying encore-bright-accent-set, 24px tall. The aside's 40vh safety cap
+*    (216.8px at a 542px viewport) was shorter than full row + banner (~222px), so flex
+*    squeezed the banner to 19px and the player ate into it; compact never reaches the
+*    cap, which is why only the full player was affected (the aside measured exactly
+*    217px). The banner now never shrinks, and while it is present the cap is raised by
+*    exactly its 24px.
+* e) Smart Shuffle badge (data-testid="enhance-badge"), the v7.17 behavior ported to
+*    the new nodes: the live vertical nudge still aligns the badge against the artist
+*    TEXT rather than the box around it (that box renders taller than the glyphs, which
+*    is what left the badge low). The old reference, context-item-info-artist, no
+*    longer exists; the same node is now the first <a> inside the artist block that
+*    sits right after the badge in the byline - confirmed to be an <a>, same pattern as
+*    the title. The compact byline no longer clips the nudge, truncation moved onto the
+*    artist block inside it, and the badge is pinned to its native 12px, non-shrinkable,
+*    so a tight compact row can never squash it.
+* f) Observation and choice - the 2px between Play and the row: Play (#spf-compact-play,
+*    and the library action / Remove recommendation proxies beside it) is positioned
+*    with top:34px from the aside, and the row sits 2px lower than the aside's top edge
+*    because of the base full-player rule aside>div:first-child{margin-top:2px}, which
+*    compact inherits. In the Playing-on-device dump Play's center is at y=426 against a
+*    row center of y=428. This is not tied to the tap line (#spf-compact-toggle): that
+*    strip is absolutely positioned at top:4px / 5px tall, independent of the row's
+*    margin, and does not overlap the cover. The compact comments assume the row is
+*    flush with the aside's top edge, which the 2px margin quietly breaks, so it looks
+*    like a leftover of the original full-player styling rather than a deliberate
+*    alignment. It comes from the old values, not from Spotify's change, and since the
+*    goal here was identical positioning to before, it was left as-is. If it is ever
+*    wanted dead-center, top:36px on those three ids would do it; zeroing the row's
+*    margin-top in compact is the alternative, but that moves the row, cover and
+*    scrubber up 2px as well.
 */
 
 (function() {
@@ -2306,6 +2374,8 @@
         if (location.pathname === lastNavPath) return;
         lastNavPath = location.pathname;
         updateBodyClass();
+        updateGNavHeightVar();
+        requestAnimationFrame(updateGNavHeightVar);
         if (typeof updateActiveTab === 'function') updateActiveTab();
 
         if (sessionStorage.getItem(LIB_OPEN_KEY) === 'true') {
@@ -2394,7 +2464,28 @@
     // through that instead. Falls back to window if unsafeWindow isn't
     // exposed (e.g. @grant none, where window already IS the real window).
     const SP_SHARED_WINDOW = typeof unsafeWindow !== 'undefined' ? unsafeWindow : window;
+    // v7.30: Spotify now lays #global-nav-bar out as a real 48px grid row on /search
+    // (rows: 0 / 48 / rest), which pushes #main-view down by the nav's height. The
+    // #main-view bound only subtracted player + bottom nav, so on /search the view
+    // overhung the player by exactly the nav height (log: mainview.bottom - aside.top
+    // = +47/+48 on search, <=0 everywhere else). Measure the nav live (0 while it is
+    // display:none) and let the CSS subtract it.
+    let gNavResizeObserver = null, gNavObserved = null;
+    function updateGNavHeightVar() {
+        const nav = document.getElementById('global-nav-bar');
+        if (nav && typeof ResizeObserver !== 'undefined' && gNavObserved !== nav) {
+            if (gNavResizeObserver) gNavResizeObserver.disconnect();
+            gNavResizeObserver = new ResizeObserver(() => updateGNavHeightVar());
+            gNavResizeObserver.observe(nav);
+            gNavObserved = nav;
+        }
+        const h = nav ? Math.round(nav.getBoundingClientRect().height) : 0;
+        const root = document.documentElement.style;
+        const next = h + 'px';
+        if (root.getPropertyValue('--sp-gnav-height') !== next) root.setProperty('--sp-gnav-height', next);
+    }
     function updateNPBarHeightVar() {
+        updateGNavHeightVar();
         const player = document.querySelector('aside[data-testid=now-playing-bar]');
         if (player) {
             document.documentElement.style.setProperty('--sp-np-bar-height', player.offsetHeight + 'px');
@@ -2647,49 +2738,36 @@
         }).observe(document.body, { childList: true, subtree: true });
     }
 
-    // enhance-badge (Smart Shuffle indicator) vertical alignment - see the
-    // "Badge vertical alignment" CSS comment above (search enhance-badge)
-    // for the full diagnosis. Short version: native Spotify centers the
-    // badge against context-item-info-subtitles' box, which renders taller
-    // than the artist text actually inside it, so the badge lands visibly
-    // low. Rather than hardcode that gap as a fixed px (which would go
-    // stale if Spotify's text/line-height CSS changes), this measures the
-    // real delta between the badge and context-item-info-artist live and
-    // nudges the badge by exactly that much.
-    // Re-measured only via MutationObserver (badge/artist nodes get
-    // replaced wholesale on track change - that's the only time this
-    // actually needs to re-run in normal use). No ResizeObserver/window
-    // resize listener - live font-scale/zoom changes without a track
-    // change are an edge case not worth the extra observer wiring for.
+    // enhance-badge (Smart Shuffle indicator) vertical alignment. The badge is a direct child of the
+    // byline row (flex), immediately followed by the artist block - the artist text inside it is the reference,
+    // measured live instead of a hardcoded px offset (Spotify's line-height CSS isn't ours to assume).
+    // getBoundingClientRect() includes transforms already applied, so the previous nudge is cleared
+    // before measuring or it would compound on every run.
     let enhanceBadgeMutationObserver = null;
     let enhanceBadgeAlignTimer = null;
-
     function alignEnhanceBadge() {
         const player = document.querySelector('aside[data-testid=now-playing-bar]');
         if (!player) return;
         const badge = player.querySelector('svg[data-testid="enhance-badge"]');
-        if (!badge) return; // no badge on this track (or row not rendered yet)
-        // Reference is always context-item-info-artist, in both modes.
-        // querySelectorAll() dumps in both modes on a 2-artist track show
-        // only ever ONE set of artist nodes total (one per artist, not one
-        // per mode), each already repositioned to whichever mode is
-        // currently active - so there's no stale/duplicate node to
-        // accidentally grab, and no mode branching is needed. Querying
-        // under `player` each call already scopes this to whatever's live
-        // right now, in either mode.
-        const ref = player.querySelector('[data-testid="context-item-info-artist"]');
-        if (!ref) return;
-        // Reset any previous adjustment before measuring - getBoundingClientRect
-        // reflects transforms already applied, so measuring without resetting
-        // first would compound the offset on every re-run instead of
-        // recomputing it fresh.
+        if (!badge) return; // not a Smart Shuffle track (or row not rendered yet)
+        // Reference = the artist TEXT, not the block around it (v7.17 rule c: the box renders taller
+        // than the glyphs, which is what left the badge visibly low). Spotify's old
+        // context-item-info-artist testid is gone; the same node is now the first <a> inside the
+        // artist block that sits right after the badge in the byline (the title uses the same <a>
+        // pattern: span > a > text).
+        const artistBlock = badge.nextElementSibling;
+        const ref = artistBlock && artistBlock.querySelector('a');
+        if (!ref) {
+            dbg('alignEnhanceBadge: no <a> found inside the artist block next to the badge - nothing to align against', 'svg[data-testid="enhance-badge"] + div a', {});
+            return;
+        }
         badge.style.transform = '';
         const badgeRect = badge.getBoundingClientRect();
         const refRect = ref.getBoundingClientRect();
         const delta = (badgeRect.top + badgeRect.height / 2) - (refRect.top + refRect.height / 2);
-        if (Math.abs(delta) < 0.5) return; // already aligned within half a px - leave transform cleared
+        if (Math.abs(delta) < 0.5) return; // already aligned within half a px
         badge.style.transform = `translateY(${-delta}px)`;
-        dbg('alignEnhanceBadge: badge nudged to match context-item-info-artist center', 'svg[data-testid="enhance-badge"]', {
+        dbg('alignEnhanceBadge: badge nudged to match the artist block center', 'svg[data-testid="enhance-badge"]', {
             deltaPx: delta,
             appliedTranslateY: -delta
         });
@@ -2702,9 +2780,7 @@
         if (!enhanceBadgeMutationObserver) {
             enhanceBadgeMutationObserver = new MutationObserver(() => {
                 clearTimeout(enhanceBadgeAlignTimer);
-                // Debounced, same as handlePremiumMutations - track-change
-                // renders touch a bunch of nodes in one burst, and we only
-                // need to re-measure once after it settles, not per-mutation.
+                // Debounced: a track change touches many nodes in one burst; re-measure once it settles.
                 enhanceBadgeAlignTimer = setTimeout(alignEnhanceBadge, 50);
             });
             enhanceBadgeMutationObserver.observe(player, { childList: true, subtree: true });
@@ -3020,7 +3096,7 @@
         };
 
         // NPV guard: the player-bar album art (button[data-testid=cover-art-button]
-        // inside div[data-testid=now-playing-widget]) natively TOGGLES the Now Playing
+        // inside div[data-testid=now-playing-widget-v2]) natively TOGGLES the Now Playing
         // view on click - this is a real, reliable Spotify affordance, separate from
         // the unreliable native toggle button npBtn above works around. Without this,
         // panelGuardObserver (which only trusts opens that went through an authorized
@@ -3039,7 +3115,7 @@
         // synthetically here (unlike clickNP()), so there's no risk of a second,
         // self-inflicted toggle undoing Spotify's own native one.
         //
-        // Selector was previously div[data-testid=now-playing-widget]>div:first-child,
+        // Selector was previously div[data-testid=now-playing-widget-v2]>div:first-child,
         // a purely positional guess. Spotify wrapped the art in a real interactive
         // button (data-testid=cover-art-button, aria-label="Now playing view") - the
         // click handling moved onto that button specifically, so a listener on the
@@ -3058,7 +3134,7 @@
         // exists to attach to exactly once, and the poll's stop-check (which just
         // looks for the class anywhere) needs no change.
         const setupNpvWidgetTrigger = () => {
-            const widget = document.querySelector('div[data-testid="now-playing-widget"]:not(.fuckd-npv-art)');
+            const widget = document.querySelector('div[data-testid="now-playing-widget-v2"]:not(.fuckd-npv-art)');
             if (!widget) return;
             widget.classList.add('fuckd-npv-art');
             widget.addEventListener('click', (event) => {
@@ -3079,7 +3155,7 @@
                         : 'panel was open - this click closes it natively (closeNowPlay() never runs for this path), so the authorized-panel flags are cleared here to keep guard state in sync'
                 });
             }, { capture: true });
-            dbg('[PanelGuard] setupNpvWidgetTrigger: delegated listener attached to now-playing-widget (survives cover-art-button re-renders)', 'div[data-testid="now-playing-widget"]', {});
+            dbg('[PanelGuard] setupNpvWidgetTrigger: delegated listener attached to now-playing-widget (survives cover-art-button re-renders)', 'div[data-testid="now-playing-widget-v2"]', {});
         };
 
         // Queue and Connect are full authorized-opener types, same pattern as the album art
@@ -3208,7 +3284,7 @@
             // class/aria-checked/aria-label/title/icon every time.
             let libActionObserver = null;
             const findLibActionBtn = () =>
-                document.querySelector('[data-testid="now-playing-widget"] button[aria-label^="Add to "]');
+                document.querySelector('[data-testid="now-playing-widget-v2"] button[aria-label^="Add to "]');
             const syncLibActionProxy = (proxy, realBtn) => {
                 proxy.className = realBtn.className;
                 proxy.setAttribute('aria-checked', realBtn.getAttribute('aria-checked') || 'false');
@@ -3235,7 +3311,7 @@
                     findLibActionBtn()?.click();
                 });
                 player.appendChild(proxy);
-                const widgetEl = document.querySelector('[data-testid="now-playing-widget"]');
+                const widgetEl = document.querySelector('[data-testid="now-playing-widget-v2"]');
                 if (widgetEl) {
                     libActionObserver = new MutationObserver(() => {
                         const btn = findLibActionBtn();
@@ -3265,7 +3341,7 @@
             // pattern as the library-action proxy, since this is a React-owned node too.
             let removeRecObserver = null;
             const findRemoveRecBtn = () =>
-                document.querySelector('[data-testid="now-playing-widget"] button[aria-label="Remove recommendation"]');
+                document.querySelector('[data-testid="now-playing-widget-v2"] button[aria-label="Remove recommendation"]');
             const syncRemoveRecProxy = (proxy, realBtn) => {
                 proxy.className = realBtn.className;
                 proxy.innerHTML = realBtn.innerHTML;
@@ -3322,7 +3398,7 @@
                     }
                 }
                 player.appendChild(proxy);
-                const widgetEl = document.querySelector('[data-testid="now-playing-widget"]');
+                const widgetEl = document.querySelector('[data-testid="now-playing-widget-v2"]');
                 if (widgetEl) {
                     removeRecObserver = new MutationObserver(() => {
                         const btn = findRemoveRecBtn();
@@ -3430,6 +3506,7 @@
         setupHomeButton();
         setupSearchInput();
         setupUserButton();
+        updateGNavHeightVar();
         setupNPBarHeightSync();
         setupEnhanceBadgeAlign();
         setupNpvButton();
@@ -3445,6 +3522,7 @@
             setupHomeButton();
             setupSearchInput();
             setupUserButton();
+            updateGNavHeightVar();
             setupNPBarHeightSync();
             setupEnhanceBadgeAlign();
             setupCompactToggle();
@@ -3566,18 +3644,18 @@ aside[data-testid=now-playing-bar]>div>div:last-child button{transform:scale(1.1
 div[data-testid=general-controls]{margin:15px 0 25px}
 div[data-testid=general-controls] button{transform:scale(1.4)!important;margin:0 8px!important}
 div[data-testid=player-controls]{margin:5px 0}
-div[data-testid=now-playing-widget]{justify-content:center;overflow:hidden}
+div[data-testid=now-playing-widget-v2]{justify-content:center;overflow:hidden}
 form[role=search]{z-index:10;margin-left:48px;max-width:88%}
-div[data-testid=now-playing-widget]>div:last-child>button{transform:scale(1.3)}
+div[data-testid=now-playing-widget-v2]>div:last-child>button{transform:scale(1.3)}
 
 /**
      * Uncomment this line to hide the track-info block on the left side of the player bar (album art which one can click to then display NPV)
-     * div[data-testid=now-playing-widget]>div:first-child{display:none!important}
+     * div[data-testid=now-playing-widget-v2]>div:first-child{display:none!important}
      */
 
-div[data-testid=now-playing-widget]>div:nth-child(2){display:flex!important;overflow:hidden!important}
-div[data-testid=now-playing-widget]>div:nth-child(2) span{font-size:13px!important;height:20px!important;margin:0!important}
-div[data-testid=now-playing-widget]>div:nth-child(2)>div{min-width:auto;max-width:66%}
+div[data-testid=now-playing-widget-v2]>div:nth-child(2){display:flex!important;overflow:hidden!important}
+div[data-testid=now-playing-widget-v2]>div:nth-child(2) span{font-size:13px!important;height:20px!important;margin:0!important}
+div[data-testid=now-playing-widget-v2]>div:nth-child(2)>div{min-width:auto;max-width:66%}
 [data-tippy-root]{overflow:hidden!important}
 [data-tippy-root],[data-tippy-root] *{transition:none!important;transform:none!important}
 div[data-testid=hover-or-focus-tooltip],#Desktop_LeftSidebar_Id header>div>div:last-child{display:none!important}
@@ -3649,8 +3727,8 @@ div[data-testid=main-view],
 div[data-testid=main-view],
 #main-view,
 .Root__main-view{
-  height:calc(100dvh - var(--sp-np-bar-height, 0px) - 56px)!important;
-  max-height:calc(100dvh - var(--sp-np-bar-height, 0px) - 56px)!important;
+  height:calc(100dvh - var(--sp-np-bar-height, 0px) - var(--sp-gnav-height, 0px) - 56px)!important;
+  max-height:calc(100dvh - var(--sp-np-bar-height, 0px) - var(--sp-gnav-height, 0px) - 56px)!important;
   overflow-y:auto!important;
   overflow-x:hidden!important;
   padding-bottom:0!important;
@@ -3659,8 +3737,8 @@ div[data-testid=main-view],
   div[data-testid=main-view],
   #main-view,
   .Root__main-view{
-    height:calc(100vh - var(--sp-np-bar-height, 0px) - 56px)!important;
-    max-height:calc(100vh - var(--sp-np-bar-height, 0px) - 56px)!important;
+    height:calc(100vh - var(--sp-np-bar-height, 0px) - var(--sp-gnav-height, 0px) - 56px)!important;
+    max-height:calc(100vh - var(--sp-np-bar-height, 0px) - var(--sp-gnav-height, 0px) - 56px)!important;
   }
 }
 
@@ -3668,13 +3746,13 @@ div[data-testid=main-view],
    bottom ran underneath the player + bottom nav. Same bound as #main-view;
    !important beats the inline height. */
 #Desktop_LeftSidebar_Id[data-fuck-expanded="true"]{
-  height:calc(100dvh - var(--sp-np-bar-height, 0px) - 56px)!important;
-  max-height:calc(100dvh - var(--sp-np-bar-height, 0px) - 56px)!important;
+  height:calc(100dvh - var(--sp-np-bar-height, 0px) - var(--sp-gnav-height, 0px) - 56px)!important;
+  max-height:calc(100dvh - var(--sp-np-bar-height, 0px) - var(--sp-gnav-height, 0px) - 56px)!important;
 }
 @supports not (height: 100dvh) {
   #Desktop_LeftSidebar_Id[data-fuck-expanded="true"]{
-    height:calc(100vh - var(--sp-np-bar-height, 0px) - 56px)!important;
-    max-height:calc(100vh - var(--sp-np-bar-height, 0px) - 56px)!important;
+    height:calc(100vh - var(--sp-np-bar-height, 0px) - var(--sp-gnav-height, 0px) - 56px)!important;
+    max-height:calc(100vh - var(--sp-np-bar-height, 0px) - var(--sp-gnav-height, 0px) - 56px)!important;
   }
 }
 
@@ -3849,6 +3927,17 @@ aside[data-testid=now-playing-bar]{
   overflow-y:auto!important;
   contain:layout style paint
 }
+/* v7.30: "Playing on X device" banner (direct child of the aside, carries encore-bright-accent-set;
+   24px tall natively). The 40vh safety cap above was shorter than expanded row + banner on short
+   viewports (542px tall: cap 216.8px vs ~222px content), so flex squeezed the banner to 19px and
+   the expanded row ate into it. Compact never reached the cap, hence only expanded was affected.
+   Banner never shrinks, and the cap is raised by exactly its 24px while it is present. */
+aside[data-testid=now-playing-bar]>.encore-bright-accent-set{
+  flex-shrink:0!important
+}
+aside[data-testid=now-playing-bar]:has(>.encore-bright-accent-set){
+  max-height:calc(40vh + 24px)!important
+}
 
 /* Home/Search now live in the bottom nav - top header (home icon, bell,
    upgrade button, profile menu) and the native search input are hidden by
@@ -3892,7 +3981,7 @@ aside[data-testid=now-playing-bar].spf-compact{
 }
 aside[data-testid=now-playing-bar].spf-compact [data-testid=playback-position],
 aside[data-testid=now-playing-bar].spf-compact [data-testid=playback-duration],
-aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:last-child{
+aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget-v2]>div:last-child{
   display:none!important
 }
 /* Hide just the secondary-controls wrapper (Lyrics+, npbtn, native lyrics/
@@ -3945,6 +4034,7 @@ aside[data-testid=now-playing-bar].spf-compact>div:first-child>div:has([data-tes
   right:0!important;
   bottom:4px!important;
   height:6px!important;
+  max-width:none!important;
   padding:0!important;
   margin:0!important;
   overflow:visible!important;
@@ -3968,7 +4058,7 @@ aside[data-testid=now-playing-bar].spf-compact [data-testid="playback-progressba
   margin:0!important;
   padding:0!important
 }
-aside[data-testid=now-playing-bar].spf-compact>div:first-child>div:has(div[data-testid=now-playing-widget]){
+aside[data-testid=now-playing-bar].spf-compact>div:first-child>div:has(div[data-testid=now-playing-widget-v2]){
   display:flex!important;
   flex:1!important;
   min-width:0!important;
@@ -4008,7 +4098,7 @@ aside[data-testid=now-playing-bar].spf-compact>div:first-child{
      scrubber moved up. */
   padding:0 84px 10px 8px!important
 }
-aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]{
+aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget-v2]{
   flex:1!important;
   min-width:0!important;
   display:flex!important;
@@ -4019,7 +4109,18 @@ aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widge
   height:100%!important;
   overflow:hidden!important
 }
-aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:first-child{
+aside[data-testid=now-playing-bar].spf-compact>div:first-child>div:has(div[data-testid=now-playing-widget-v2])>div{
+  flex:1 1 auto!important;
+  min-width:0!important
+}
+/* v7.30: Spotify renamed the widget testid to now-playing-widget-v2 and flattened it. Current
+   structure (from the layout dumps): widget-v2 > [cover-art-container, text column, actions].
+   The text column holds exactly two rows: the title, and the byline - a flex row that carries
+   the enhance-badge svg (only on Smart Shuffle tracks) directly followed by the artist block.
+   The old title/badge-wrapper/artist 3-child grid, the empty-badge-wrapper reclaim rules, the
+   'Switch to video' row rule and the JS badge nudge are gone: none of those nodes exist now, and
+   the byline's own flex layout already centers the badge against the artist text. */
+aside[data-testid=now-playing-bar].spf-compact [data-testid=cover-art-container]{
   width:44px!important;
   height:44px!important;
   min-width:44px!important;
@@ -4027,198 +4128,48 @@ aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widge
   border-radius:4px!important;
   overflow:hidden!important
 }
-aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:first-child img{
+aside[data-testid=now-playing-bar].spf-compact [data-testid=cover-art-container]>div,
+aside[data-testid=now-playing-bar].spf-compact [data-testid=cover-art-container]>div>button,
+aside[data-testid=now-playing-bar].spf-compact [data-testid=cover-art-container]>div>button>div,
+aside[data-testid=now-playing-bar].spf-compact [data-testid=cover-art-container]>div>button>div>div{
+  width:100%!important;
+  height:100%!important
+}
+aside[data-testid=now-playing-bar].spf-compact [data-testid=cover-art-container] img{
   width:100%!important;
   height:100%!important;
   object-fit:cover!important;
   border-radius:4px!important
 }
-aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:nth-child(2){
-  display:grid!important;
-  grid-template-columns:12px 1fr!important;
-  grid-template-rows:auto auto!important;
-  align-items:center!important;
+aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget-v2]>div:nth-child(2){
+  display:flex!important;
+  flex-direction:column!important;
   justify-content:center!important;
-  column-gap:4px!important;
-  row-gap:0!important;
   min-width:0!important;
   max-width:none!important;
   overflow:hidden!important
 }
-/* Title spans both grid columns on row 1, alone - matches native's own
-   title-gets-its-own-line behavior (see native dump: title top=540 vs
-   badge/artist top~557/558, i.e. two rows, title on its own). */
-aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:nth-child(2)>div:first-child{
-  grid-column:1/3!important;
-  grid-row:1!important
-}
-/* Badge wrapper (jEiAs1et4fAU3chW) - row 2, column 1. Grid's align-items:
-   center on the row keeps it vertically centered against the artist text
-   next to it, and the 4px column-gap reproduces the native ~4px gap
-   between badge and artist (native: subtitle.left 104 - badge.left 88 -
-   badge.width 12 = 4). This is the same relation the badge already has,
-   by coincidence of flex-row + align-items:center, in the non-compact
-   (fully expanded) player bar - this rule just gets compact mode to the
-   same relation via a 2-row grid instead of 1 row, since compact needs
-   the title on its own line above.
-   Column 1 is a fixed 12px (not auto): with auto, getComputedStyle
-   showed the badge's own track getting compressed from 12px to 8px in
-   compact mode specifically, distorting the icon (12px height stayed,
-   only width shrank) - col's available width there (~60px, squeezed by
-   the 44px album art + compact bar) isn't enough for badge(12)+gap(4)+
-   artist's max-content text, and grid's auto tracks are allowed to
-   shrink below max-content when space is tight, unlike fixed-length
-   tracks. Pinning column 1 to 12px makes it non-shrinkable so the badge
-   always renders at native size; the artist column (1fr) absorbs
-   whatever width is left and truncates via the nowrap/overflow rules
-   below, same as it already did before this fix. */
-aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:nth-child(2)>div:nth-child(2){
-  grid-column:1!important;
-  grid-row:2!important
-}
-/* Artist row - row 2, column 2 (the remaining 1fr track), right next to
-   the badge instead of stacked below it. */
-aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:nth-child(2)>div:nth-child(3){
-  grid-column:2!important;
-  grid-row:2!important;
-  min-width:0!important
-}
-aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:nth-child(2)>div{
+aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget-v2]>div:nth-child(2)>div{
   white-space:nowrap!important;
   overflow:hidden!important;
   max-width:100%!important
 }
-/* Badge-clip fix - the blanket rule above exists to ellipsis-truncate the
-   title/artist TEXT rows, but as a generic ">div:nth-child(2)>div" selector
-   it also matches the badge wrapper (jEiAs1et4fAU3chW), which holds nothing
-   but a 12x12 svg with no text to truncate. overflow:hidden on that wrapper
-   clips alignEnhanceBadge()'s live-measured translateY() nudge (see JS
-   below) whenever the measured offset pushes the badge past the wrapper's
-   own tight, content-sized 12px box. This selector matches that same
-   wrapper specifically (scoped to only wrappers that actually contain an
-   enhance-badge svg) but is more specific than the blanket rule above (an
-   extra :has() clause), so it wins and flips overflow back to visible for
-   just that one wrapper - leaving white-space/max-width, and everything
-   else about how the wrapper sizes and tracks, untouched. Tracks with no
-   badge don't match :has() here, so they're unaffected and still get
-   overflow:hidden from the rule above - harmless, since that empty wrapper
-   is already collapsed to ~0 size by the "Badge-absent reclaim" rules
-   below regardless. */
-aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:nth-child(2)>div:has(svg[data-testid="enhance-badge"]){
+/* The byline row holds the badge svg; overflow:hidden here would clip its live translateY nudge
+   (alignEnhanceBadge). Truncation moves to the artist block inside it, which can now shrink. */
+aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget-v2]>div:nth-child(2)>div:has(>svg[data-testid="enhance-badge"]){
   overflow:visible!important
 }
-/* The music-video "Switch to video" row (+ its bullet separator) is a third
-   sibling row alongside title/artist inside nth-child(2) whenever a track
-   has an associated video. Initially only hidden in compact mode, where
-   the 64px row was only ever budgeted for two rows (title, artist) and
-   the extra row pushed both into less vertical space than they need.
-   Now (v7.5) hidden in full player too, unconditionally - not just a
-   compact-mode layout fix anymore, so the .spf-compact scope was dropped
-   from the selector. Targeted via the stable aria-label rather than the
-   hashed wrapper class, since that's the only part of this row guaranteed
-   not to change across Spotify builds.
-   v7.17: this used to select the OUTER wrapper (nth-child(2)'s direct
-   child) - call it jEiAs1et4fAU3chW, matching Spotify's own class at time
-   of writing. That element also carries the enhance-badge svg
-   (data-testid="enhance-badge", Smart Shuffle recommendation indicator)
-   as a SIBLING of the "Switch to video" block, not a descendant of it -
-   so hiding the outer wrapper whenever a video existed was silently
-   taking the badge down with it too. The "Switch to video" aria-label
-   actually lives one level deeper, inside its own inner wrapper
-   (joq0zH0yEoIsJoXJ at time of writing - not targeted directly since,
-   like all hashed classnames here, it isn't guaranteed stable). Going one
-   extra >div deeper reaches that inner wrapper specifically, so only the
-   video-switch button + bullet get hidden - the badge svg, being a
-   sibling one level up, is untouched either way a track does or doesn't
-   have a video. */
-aside[data-testid=now-playing-bar] div[data-testid=now-playing-widget]>div:nth-child(2)>div>div:has([aria-label="Switch to video"]){
-  display:none!important
+/* v7.17 rule b: the badge must render at its full native 12px and never be compressed when compact's
+   width runs out (a shrinkable badge column was what squashed the icon to 8px). Pinned non-shrinkable. */
+aside[data-testid=now-playing-bar].spf-compact svg[data-testid="enhance-badge"]{
+  flex:0 0 12px!important;
+  width:12px!important;
+  height:12px!important;
+  min-width:12px!important
 }
-/* enhance-badge (Smart Shuffle recommendation indicator, data-testid=
-   "enhance-badge") - shown whether or not the track also has a video (see
-   fix above: the video block next to it, when present, is hidden without
-   touching this). No layout CSS is given to the badge svg or its
-   jEiAs1et4fAU3chW wrapper directly - Spotify's own native class on that
-   wrapper already renders it correctly (vertically centered against the
-   artist-name row, ~4px to its left) once it's placed in the same grid
-   row as that artist row. Getting it into that row is handled entirely
-   by the col-level grid rules above (nth-child(2) and its nth-child(2)/
-   nth-child(3) children) - measured via getComputedStyle dumps in both
-   modes:
-   - Native (no spotifuck): col is display:grid, title on row 1 alone,
-     badge+artist sharing row 2 - which is exactly why the badge already
-     lines up with the artist row with no extra CSS needed.
-   - An unconditional (non-.spf-compact) rule elsewhere in this file
-     forces col to display:flex!important, which drops that native grid.
-     In the full/expanded player this still happens to look right,
-     because flex-direction defaults to row and badge is already ordered
-     directly before the artist row in the DOM - one row, three inline
-     items, native gap preserved by coincidence.
-   - In compact mode specifically, an added flex-direction:column turned
-     that same flex container into 3 stacked rows (title, badge, artist
-     each on their own line) - the badge lost its pairing with the artist
-     row entirely, which is the bug this was reported against.
-   The col-level rules above replace that flex-column with an explicit
-   2-row grid (title spans row 1; badge in row 2/col 1; artist in row 2/
-   col 2) to restore the same row-pairing natively achieved by grid,
-   without touching the badge/wrapper CSS itself. If a future
-   misalignment shows up, fix it by matching jEiAs1et4fAU3chW's native
-   rules / the col-level grid placement, not by adding CSS to the badge
-   directly. */
-
-/* Badge vertical alignment - the badge is centered (align-items:center)
-   against the row's [data-testid="context-item-info-subtitles"] box, not
-   against the actual artist text inside it. Measured via
-   getBoundingClientRect() in both compact and full player: subtitles'
-   top edge matches the artist anchor's top edge exactly, but subtitles
-   renders taller, with all of the extra height sitting below the artist
-   text - so centering the badge against that taller box lands it a few
-   px lower than the artist glyphs' real center.
-   This gap comes from Spotify's own text/line-height CSS
-   (encore-text-marginal etc.), which this script doesn't control and
-   can't assume stays fixed - so it's corrected in JS instead of a
-   hardcoded px offset here (see alignEnhanceBadge()/
-   setupEnhanceBadgeAlign() below). No static transform is applied in CSS
-   on purpose - leave it to the JS so there's only one source of truth
-   for the offset.
-   context-item-info-artist is used as the reference in both modes:
-   querySelectorAll() dumps of it in both modes on a multi-artist track
-   show only one artist node per artist (not one per mode), each already
-   repositioned to whichever mode is active - no stale duplicate to
-   accidentally grab. Scoping the query under player on each call is
-   enough to always get the live, correct node. */
-
-/* Badge-absent reclaim - tracks that were NOT Smart Shuffle-recommended
-   never get an <svg data-testid="enhance-badge"> at all, but the wrapper
-   div around where it WOULD go (col's 2nd child, jEiAs1et4fAU3chW at time
-   of writing) still exists in the DOM regardless - Spotify doesn't
-   conditionally render/remove that wrapper, it just ends up 0x0 because
-   there's nothing inside it. The bug: the *positioning* we give that slot
-   is hardcoded and doesn't know or care whether a badge is actually
-   present, so it keeps reserving space for one that isn't there:
-   - Compact mode: grid-template-columns:12px 1fr above pins column 1 to
-     a fixed 12px + the 4px column-gap regardless of content, so the
-     artist column starts 16px further right than it needs to.
-   - Full/expanded player: col.children[1]'s own native margin survives
-     even at width/height:0 (confirmed via getComputedStyle dump - wrapper
-     left=733.15/width=0, artist left=737.15, a leftover ~4px gap with
-     nothing to justify it).
-   :has() lets us detect "no badge svg inside this wrapper" without any
-   JS/MutationObserver, and zero out exactly the reservation each mode
-   added - collapsing column 1 + its gap in the grid, and stripping
-   whatever margin/padding the wrapper still carries in the flex case -
-   so the artist text reclaims the same title-aligned left edge it'd have
-   if the wrapper were never in the DOM at all. Scoped with :not(:has())
-   so tracks that DO have the badge are completely untouched by this. */
-aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget]>div:nth-child(2):not(:has(svg[data-testid="enhance-badge"])){
-  grid-template-columns:0 1fr!important;
-  column-gap:0!important
-}
-div[data-testid=now-playing-widget]>div:nth-child(2)>div:nth-child(2):not(:has(svg[data-testid="enhance-badge"])){
-  margin:0!important;
-  padding:0!important;
+aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget-v2]>div:nth-child(2)>div>div{
   min-width:0!important;
-  width:0!important
+  overflow:hidden!important
 }
 
 /* Toggle strip - thin bar pinned to the top of the player bar in both full
