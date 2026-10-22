@@ -1057,11 +1057,10 @@
 *    (the measured row height in every dump). Compact has a fixed 68px row and never collapsed.
 *    The widget itself still renders blank for that moment; that is Spotify's own loading state.
 *
-* h) The badge-alignment MutationObserver (e) watched the whole player bar subtree and the full
-*    player's title marquee never started with it (a build without the badge code scrolled).
-*    It now observes only the byline row and its parent, childList without subtree, so a badge
-*    appearing or the byline being replaced re-aligns it and marquee changes inside the text
-*    boxes never reach it. It re-attaches from the existing setup calls if the byline changes.
+* h) The badge-alignment observer (e) re-ran on every DOM change in the player bar, and with it
+*    on the full player's title marquee never started (a build without it scrolled). It now only
+*    re-runs when a badge node is added. A switch between compact and full no longer re-aligns
+*    by itself, since the badge's offset against the artist text does not depend on the mode.
 */
 
 (function() {
@@ -2757,6 +2756,8 @@
     // measured live instead of a hardcoded px offset (Spotify's line-height CSS isn't ours to assume).
     // getBoundingClientRect() includes transforms already applied, so the previous nudge is cleared
     // before measuring or it would compound on every run.
+    let enhanceBadgeMutationObserver = null;
+    let enhanceBadgeAlignTimer = null;
     function alignEnhanceBadge() {
         const player = document.querySelector('aside[data-testid=now-playing-bar]');
         if (!player) return;
@@ -2785,19 +2786,22 @@
         });
     }
 
-    let enhanceBadgeObserver = null, enhanceBadgeObserved = null;
     function setupEnhanceBadgeAlign() {
+        const player = document.querySelector('aside[data-testid=now-playing-bar]');
+        if (!player) return;
         alignEnhanceBadge();
-        // Watches only the byline row and its parent, direct children only (no subtree): a badge
-        // appearing or the byline being swapped re-aligns; marquee changes inside the text boxes
-        // never reach this observer.
-        const byline = document.querySelector('[data-testid="now-playing-widget-v2-byline"]');
-        if (!byline || byline === enhanceBadgeObserved) return;
-        if (enhanceBadgeObserver) enhanceBadgeObserver.disconnect();
-        enhanceBadgeObserver = new MutationObserver(setupEnhanceBadgeAlign);
-        enhanceBadgeObserver.observe(byline, { childList: true });
-        if (byline.parentElement) enhanceBadgeObserver.observe(byline.parentElement, { childList: true });
-        enhanceBadgeObserved = byline;
+        if (!enhanceBadgeMutationObserver) {
+            // Only a badge being added re-runs the alignment. Reacting to every DOM change in the
+            // player bar (marquee, controls, progress): a build without this observer had a working title marquee.
+            const isBadge = n => n.nodeType === 1 && (n.matches('svg[data-testid="enhance-badge"]') || !!n.querySelector('svg[data-testid="enhance-badge"]'));
+            enhanceBadgeMutationObserver = new MutationObserver(muts => {
+                if (!muts.some(m => [...m.addedNodes].some(isBadge))) return;
+                clearTimeout(enhanceBadgeAlignTimer);
+                // Debounced: a track change touches many nodes in one burst; re-measure once it settles.
+                enhanceBadgeAlignTimer = setTimeout(alignEnhanceBadge, 50);
+            });
+            enhanceBadgeMutationObserver.observe(player, { childList: true, subtree: true });
+        }
     }
 
     /**
