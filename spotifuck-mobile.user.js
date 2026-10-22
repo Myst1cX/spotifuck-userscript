@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.31.fix
+// @version      7.30
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -981,7 +981,7 @@
 * console path and the GM flag work as before; in a plain userscript manager (or an app
 * without dbgt) the new code does nothing. No call site changed.
 *
-* RESOLVED (v7.30 and v7.31) - Spotify rebuilt the player bar's DOM and the compact / expanded
+* RESOLVED (v7.30) - Spotify rebuilt the player bar's DOM and the compact / expanded
 * positioning stopped lining up. Everything is back to the same positions the script
 * had before, plus the one place the new layout was genuinely off:
 * a) What changed on Spotify's side: the track widget's testid went from
@@ -1049,20 +1049,7 @@
 *    margin-top in compact is the alternative, but that moves the row, cover and
 *    scrubber up 2px as well.
 *
-* g) Full player, title and artist overlapping: the single-row 13px layout (text column as a
-*    flex row) now puts the title row and the byline side by side. Spotify gives both text
-*    boxes a 6px fade zone (margin-left:-6px, width +6px; confirmed in the dump on the title
-*    and artist boxes alike), so the byline's artist box starts 6px inside the title box's
-*    right edge and the artist text begins exactly where the title's visible window ends:
-*    gap 0, with the title's scrolling text and fade running right up to it. Fixed with an
-*    8px translateX on the byline in the full player only (same 8px as the widget's own gap);
-*    column-gap and margin were tried first but widen the text column, after which Spotify's
-*    scroll-on-hover on the title no longer started (scrollLeft stayed 0 on hover). Compact
-*    stacks the two rows, so it is excluded. The dump predates the v7.30
-*    selectors (it shows the stacked native layout), so the 0 gap is derived from its box
-*    numbers, not measured.
-*
-* h) Full player, top part (cover, title, artist, add button) vanishing on load and on track
+* g) Full player, top part (cover, title, artist, add button) vanishing on load and on track
 *    changes: Spotify empties the widget for about 400-700ms while the new track loads
 *    (widget, cover and row all measure 0px high, nothing hidden or restyled - display,
 *    visibility, opacity and inline style unchanged). The full player's row is height:auto,
@@ -3666,7 +3653,7 @@ div[data-testid=general-controls]{margin:15px 0 25px}
 div[data-testid=general-controls] button{transform:scale(1.4)!important;margin:0 8px!important}
 div[data-testid=player-controls]{margin:5px 0}
 div[data-testid=now-playing-widget-v2]{justify-content:center;overflow:hidden}
-/* v7.30 h): hold the full player's widget row at its 56px so the bar doesn't shrink while Spotify empties the widget on a track change. */
+/* v7.30 g): hold the full player's widget row at its 56px so the bar doesn't shrink while Spotify empties the widget on a track change. */
 aside[data-testid=now-playing-bar]:not(.spf-compact)>div:first-child>div:has(div[data-testid=now-playing-widget-v2]){min-height:56px}
 form[role=search]{z-index:10;margin-left:48px;max-width:88%}
 div[data-testid=now-playing-widget-v2]>div:last-child>button{transform:scale(1.3)}
@@ -3679,12 +3666,6 @@ div[data-testid=now-playing-widget-v2]>div:last-child>button{transform:scale(1.3
 div[data-testid=now-playing-widget-v2]>div:nth-child(2){display:flex!important;overflow:hidden!important}
 div[data-testid=now-playing-widget-v2]>div:nth-child(2) span{font-size:13px!important;height:20px!important;margin:0!important}
 div[data-testid=now-playing-widget-v2]>div:nth-child(2)>div{min-width:auto;max-width:66%}
-/* v7.30 g): title and byline sit side by side here. Each has a 6px fade zone (box margin-left:-6px, width +6px),
-   so the byline box starts 6px inside the title box's right edge and the artist text begins exactly where the
-   title's visible window ends - zero gap. The byline is shifted 8px (the widget's own gap) with transform, not
-   column-gap/margin: those widen the text column and Spotify's scroll-on-hover stopped starting. Compact stacks
-   them, so excluded. */
-aside[data-testid=now-playing-bar]:not(.spf-compact) div[data-testid=now-playing-widget-v2]>div:nth-child(2)>div:last-child{transform:translateX(8px)}
 [data-tippy-root]{overflow:hidden!important}
 [data-tippy-root],[data-tippy-root] *{transition:none!important;transform:none!important}
 div[data-testid=hover-or-focus-tooltip],#Desktop_LeftSidebar_Id header>div>div:last-child{display:none!important}
