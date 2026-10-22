@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.30.99999
+// @version      7.30
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -1057,10 +1057,11 @@
 *    (the measured row height in every dump). Compact has a fixed 68px row and never collapsed.
 *    The widget itself still renders blank for that moment; that is Spotify's own loading state.
 *
-* h) The badge-alignment MutationObserver (e) re-ran on every DOM change in the player bar and
-*    the full player's title marquee never started with it (a build without the badge code
-*    scrolled). setupEnhanceBadgeAlign() is now a plain call to alignEnhanceBadge() from the
-*    existing setup calls (including their retry and periodic re-run); no observer.
+* h) The badge-alignment MutationObserver (e) watched the whole player bar subtree and the full
+*    player's title marquee never started with it (a build without the badge code scrolled).
+*    It now observes only the byline row and its parent, childList without subtree, so a badge
+*    appearing or the byline being replaced re-aligns it and marquee changes inside the text
+*    boxes never reach it. It re-attaches from the existing setup calls if the byline changes.
 */
 
 (function() {
@@ -2784,8 +2785,19 @@
         });
     }
 
+    let enhanceBadgeObserver = null, enhanceBadgeObserved = null;
     function setupEnhanceBadgeAlign() {
         alignEnhanceBadge();
+        // Watches only the byline row and its parent, direct children only (no subtree): a badge
+        // appearing or the byline being swapped re-aligns; marquee changes inside the text boxes
+        // never reach this observer.
+        const byline = document.querySelector('[data-testid="now-playing-widget-v2-byline"]');
+        if (!byline || byline === enhanceBadgeObserved) return;
+        if (enhanceBadgeObserver) enhanceBadgeObserver.disconnect();
+        enhanceBadgeObserver = new MutationObserver(setupEnhanceBadgeAlign);
+        enhanceBadgeObserver.observe(byline, { childList: true });
+        if (byline.parentElement) enhanceBadgeObserver.observe(byline.parentElement, { childList: true });
+        enhanceBadgeObserved = byline;
     }
 
     /**
