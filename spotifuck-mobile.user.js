@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.30-back
+// @version      7.31-marqueefix
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -1125,10 +1125,47 @@
 *    m)  Delete the rule under the "v7.30 m)" comment (margin-inline-start:8px on the byline).
 *    No JavaScript was changed by i-m apart from comments. Do not touch the #main-view bound: it
 *    keeps the --sp-gnav-height term in both versions.
+*
+* RESOLVED (v7.31) - Title / artist marquee never scrolled inside the app. Not a hover problem:
+* a probe run in the app showed (prefers-reduced-motion: reduce) = true in the WebView and ZERO
+* marquee animations on the player bar (on desktop Spotify creates a paused Web Animation per
+* overflowing row and calls play() / pause() on it). With reduced motion on, Spotify's marquee
+* code never creates them, so there is nothing for a hover or a touch to start. The WebView
+* reports reduce when Android's "Remove animations" (or animator scale 0 / power saving) is on.
+* window.matchMedia is now wrapped at document-start so every prefers-reduced-motion query
+* answers "no preference" (reduce -> false, no-preference -> true); all other queries and the
+* real MediaQueryList (change listeners included) are untouched. Only JS checks are affected,
+* a CSS @media (prefers-reduced-motion) rule cannot be changed from here. It also re-enables
+* Spotify's other reduced-motion-gated animations. Undo: delete the block tagged
+* "v7.31 reduced-motion" right after 'use strict'. Not verified on a device.
 */
 
 (function() {
     'use strict';
+
+    // v7.31 reduced-motion: the app's WebView reports prefers-reduced-motion: reduce, and with it
+    // Spotify never creates the title / artist marquee animations. Answer "no preference" to JS
+    // checks. Must stay at the top (document-start) so it is in place before Spotify's code runs.
+    try {
+        const RM_W = (typeof unsafeWindow !== 'undefined') ? unsafeWindow : window;
+        const rmOrig = RM_W.matchMedia;
+        if (typeof rmOrig === 'function' && !rmOrig.__spfRM) {
+            const rmWrap = function(q) {
+                const m = rmOrig.apply(this, arguments);
+                if (!/prefers-reduced-motion/i.test(String(q))) return m;
+                const want = /no-preference/i.test(String(q));
+                return new Proxy(m, {
+                    get(t, p) {
+                        if (p === 'matches') return want;
+                        const v = t[p];
+                        return typeof v === 'function' ? v.bind(t) : v;
+                    }
+                });
+            };
+            rmWrap.__spfRM = true;
+            RM_W.matchMedia = rmWrap;
+        }
+    } catch (e) {}
 
     console.log('🎵 Spotifuck v6 - APK v1.6.4 Port');
 
