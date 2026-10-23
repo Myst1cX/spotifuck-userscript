@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.31
+// @version      7.30-back
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -1125,23 +1125,6 @@
 *    m)  Delete the rule under the "v7.30 m)" comment (margin-inline-start:8px on the byline).
 *    No JavaScript was changed by i-m apart from comments. Do not touch the #main-view bound: it
 *    keeps the --sp-gnav-height term in both versions.
-*
-* RESOLVED (v7.31) - Title / artist marquee now starts on touch. Spotify's marquee is started
-* by hover, and a finger never hovers, so on a phone it only ran once when a song began (and
-* an emulated mouseover on a tap, which also follows the link). The script has no marquee
-* code of its own (only the CSS from v7.30 i, j, m that lets the text overflow). Now a
-* touchstart on the title row or the byline row of div[data-testid=now-playing-widget-v2]
-* (its text column is div:nth-child(2); each row is a direct child) dispatches the events a
-* mouse would: bubbling pointerover + mouseover on the row's link (React derives
-* onMouseEnter / onPointerEnter from these), plus non-bubbling pointerenter + mouseenter on
-* that link and each ancestor up to the row. Rows start separately, as with a mouse. The
-* "mouse" leaves (the matching out / leave events) SPF_MARQUEE_MS later (6 s), or at once when
-* a touch lands on the other row or outside the widget, so a row never stays "hovered".
-* The listener is passive, never calls preventDefault / stopPropagation and does not touch
-* the tap, so taps, links and swipes behave as before. Nothing is injected when the widget
-* is absent. Undo: delete the block tagged "v7.31 touch marquee" (at the end of the script).
-* Not verified on a device: which event type Spotify's marquee listens for. If it still does
-* not start on touch, the marquee does not react to these synthetic events.
 */
 
 (function() {
@@ -4870,55 +4853,5 @@ aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widge
         observeBody(wwwCardObserver, { childList: true, subtree: true });
         window.addEventListener('beforeunload', () => wwwCardObserver.disconnect());
     }
-
-
-    // v7.31 touch marquee: Spotify starts the title / artist marquee on hover, which a finger never
-    // produces. On touchstart over a text row of the now-playing widget, dispatch the pointer / mouse
-    // enter events a mouse would, and the matching leave events SPF_MARQUEE_MS later (or when a
-    // touch lands elsewhere). Passive, no preventDefault: taps, links and swipes are unchanged.
-    (function() {
-        const SPF_MARQUEE_MS = 6000;
-        const ROW_SEL = 'div[data-testid="now-playing-widget-v2"]>div:nth-child(2)>div';
-        let active = null, timer = 0;
-        const fire = (el, type, bubbles) => {
-            try {
-                const init = { bubbles, cancelable: false, composed: true, view: window, relatedTarget: document.body };
-                if (type.indexOf('pointer') === 0 && typeof PointerEvent === 'function') {
-                    init.pointerType = 'mouse'; init.isPrimary = true; init.pointerId = 1;
-                    el.dispatchEvent(new PointerEvent(type, init));
-                } else {
-                    el.dispatchEvent(new MouseEvent(type, init));
-                }
-            } catch (e) {}
-        };
-        const chain = (el, row) => {
-            const out = [];
-            for (let n = el; n && n !== row.parentElement; n = n.parentElement) out.push(n);
-            return out;
-        };
-        const leave = () => {
-            clearTimeout(timer); timer = 0;
-            if (!active) return;
-            const { target, row } = active; active = null;
-            fire(target, 'pointerout', true);
-            fire(target, 'mouseout', true);
-            chain(target, row).forEach(n => { fire(n, 'pointerleave', false); fire(n, 'mouseleave', false); });
-        };
-        const enter = (target, row) => {
-            active = { target, row };
-            fire(target, 'pointerover', true);
-            fire(target, 'mouseover', true);
-            chain(target, row).forEach(n => { fire(n, 'pointerenter', false); fire(n, 'mouseenter', false); });
-            timer = setTimeout(leave, SPF_MARQUEE_MS);
-        };
-        document.addEventListener('touchstart', e => {
-            const t = e.target;
-            const row = t && t.closest ? t.closest(ROW_SEL) : null;
-            if (active && (!row || row !== active.row)) leave();
-            if (!row || (active && active.row === row)) return;
-            const target = row.querySelector('a') || t;
-            enter(target, row);
-        }, { passive: true, capture: true });
-    })();
 
 })();
