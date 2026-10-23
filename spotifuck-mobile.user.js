@@ -1103,6 +1103,28 @@
 *    very first scroll when a song begins plays by itself (both lines together). No pointer
 *    position covered both lines, so hovering one line does not start the other. The global
 *    span{height:20px;margin:0} rule was looked at and left alone - it was not the cause.
+*
+* o) UNDO GUIDE - how to go back to the 7.30 behavior from before items i-m (each step is
+*    independent; the CSS lines are verbatim, keep the !important and spacing). Every CSS rule
+*    these items added carries a comment tagged "v7.30 i)", "v7.30 j)" and so on, so search for
+*    that tag.
+*    i)  Full-player rows: delete the two :not(.spf-compact) rules under the "v7.30 i)" comment
+*        (the one for >div:nth-child(2) and the one for >div:nth-child(2)>div) and put this single
+*        old rule back in the same place:
+*          div[data-testid=now-playing-widget-v2]>div:nth-child(2)>div{min-width:auto;max-width:66%}
+*        Effect: title and artist fit their text exactly again and the hover marquee stops.
+*    j)  Compact artist block: in the rule under the "v7.30 j)" comment, the body becomes
+*          min-width:0!important;
+*          overflow:hidden!important
+*    k)  Library overlay: in the #Desktop_LeftSidebar_Id[data-fuck-expanded="true"] height and
+*        max-height rules (the 100dvh pair and the 100vh pair in the @supports fallback, both under
+*        the "Library overlay" comment) re-insert " - var(--sp-gnav-height, 0px)" between
+*        "var(--sp-np-bar-height, 0px)" and " - 56px". Effect: an empty strip above the player
+*        when the library is opened on /search.
+*    l)  Delete the rule under the "v7.30 l)" comment (the enhance-badge flex-shrink pin).
+*    m)  Delete the rule under the "v7.30 m)" comment (margin-inline-start:8px on the byline).
+*    No JavaScript was changed by i-m apart from comments. Do not touch the #main-view bound: it
+*    keeps the --sp-gnav-height term in both versions.
 */
 
 (function() {
