@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.31-marqueefix
+// @version      7.31
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -1131,13 +1131,16 @@
 * marquee animations on the player bar (on desktop Spotify creates a paused Web Animation per
 * overflowing row and calls play() / pause() on it). With reduced motion on, Spotify's marquee
 * code never creates them, so there is nothing for a hover or a touch to start. The WebView
-* reports reduce when Android's "Remove animations" (or animator scale 0 / power saving) is on.
+* usually reports reduce when Android's "Remove animations" (or animator scale 0 / power saving)
+* is on; the cause on the tested device was not checked. Turning that Android setting off
+* makes this fix unnecessary.
 * window.matchMedia is now wrapped at document-start so every prefers-reduced-motion query
 * answers "no preference" (reduce -> false, no-preference -> true); all other queries and the
 * real MediaQueryList (change listeners included) are untouched. Only JS checks are affected,
 * a CSS @media (prefers-reduced-motion) rule cannot be changed from here. It also re-enables
 * Spotify's other reduced-motion-gated animations. Undo: delete the block tagged
-* "v7.31 reduced-motion" right after 'use strict'. Not verified on a device.
+* "v7.31 reduced-motion" right after 'use strict'. CONFIRMED in the app: with this block the
+* title / artist marquee scrolls again.
 */
 
 (function() {
