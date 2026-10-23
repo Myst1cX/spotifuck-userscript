@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.30.nogapfixedandnotitleartistfix
+// @version      7.30
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -1061,6 +1061,48 @@
 *    on the full player's title marquee never started (a build without it scrolled). It now only
 *    re-runs when a badge node is added. A switch between compact and full no longer re-aligns
 *    by itself, since the badge's offset against the artist text does not depend on the mode.
+*
+* i) Title / artist hover marquee dead in the full player. There the text column is a flex ROW
+*    (title, then the byline), not a stack. The rule carried over from the old layout gave both
+*    rows min-width:auto and max-width:66%. Under min-width:auto a row can never be narrower than
+*    its own text, and 66% of a column that is itself only as wide as its content is not a real
+*    limit, so the title and artist containers always fitted their text exactly. Spotify's marquee
+*    only scrolls text that overflows its container, so nothing overflowed and nothing scrolled.
+*    The 66% cap now sits on the column (a percentage of the widget, which has a real width) and
+*    the two rows may shrink inside it (flex:0 1 auto, min-width:0, max-width:100%). Measured
+*    afterwards on a long track: column 268px, title container 95px for 137px of text, artist
+*    container 177px for about 253px of text, so both lines overflow and both can scroll. Full
+*    player only: compact stacks the rows vertically and has its own max-width:100% rule.
+*
+* j) Compact marquee: the artist block (the parent of Spotify's own artist marquee container) had
+*    been given overflow:hidden in (e). Spotify's container already clips and fades its text and
+*    starts 6px left of that block, so the extra clip only cut into it. The block keeps
+*    min-width:0, so it still shrinks inside the byline, but no longer clips.
+*
+* k) Opening the library left an empty strip between its bottom and the player (both modes). The
+*    --sp-gnav-height term added in (c) was subtracted from the library overlay's height as well
+*    as from #main-view. Only #main-view is pushed down by the 48px nav row on /search; the
+*    library overlay is position:fixed at top:0 and never moves with it, so the subtraction left
+*    a gap of exactly that height above the player. The overlay's bound is back to 100dvh minus
+*    the player minus the 56px nav; #main-view keeps the nav term.
+*
+* l) Smart Shuffle badge in the full player: the byline can shrink now (i), so the badge is pinned
+*    there too (flex-shrink:0, min-width:12px) - the same never-squashed guarantee compact already
+*    has from (e).
+*
+* m) Gap between title and artist in the full player. Each marquee container reaches 6px past its
+*    text (negative margin plus fade mask) and in the full player the two sit side by side, so
+*    their containers overlapped while scrolling. The byline now has margin-inline-start:8px.
+*    A real margin was chosen over translateX(8px) because a transform does not take part in
+*    layout or in the shrinking from (i). Measured afterwards: the title container ends 2px before
+*    the artist container starts (that one begins 6px left of its text), and the texts themselves
+*    are well apart. Compact stacks the rows, so it needs none. The native 4px between the badge
+*    and the artist text is untouched.
+*
+* n) How the marquee behaves, checked with a live console dump: it starts on hover, and only the
+*    very first scroll when a song begins plays by itself (both lines together). No pointer
+*    position covered both lines, so hovering one line does not start the other. The global
+*    span{height:20px;margin:0} rule was looked at and left alone - it was not the cause.
 */
 
 (function() {
@@ -2482,7 +2524,8 @@
     // #main-view bound only subtracted player + bottom nav, so on /search the view
     // overhung the player by exactly the nav height (log: mainview.bottom - aside.top
     // = +47/+48 on search, <=0 everywhere else). Measure the nav live (0 while it is
-    // display:none) and let the CSS subtract it.
+    // display:none) and let the #main-view bound subtract it (not the library overlay: it is
+    // position:fixed at top:0 and does not move with the nav row - see k) in the changelog).
     let gNavResizeObserver = null, gNavObserved = null;
     function updateGNavHeightVar() {
         const nav = document.getElementById('global-nav-bar');
@@ -3674,7 +3717,20 @@ div[data-testid=now-playing-widget-v2]>div:last-child>button{transform:scale(1.3
 
 div[data-testid=now-playing-widget-v2]>div:nth-child(2){display:flex!important;overflow:hidden!important}
 div[data-testid=now-playing-widget-v2]>div:nth-child(2) span{font-size:13px!important;height:20px!important;margin:0!important}
-div[data-testid=now-playing-widget-v2]>div:nth-child(2)>div{min-width:auto;max-width:66%}
+/* v7.30 i) (marquee, full player): the text column is a flex ROW here (title, then byline), and the old rule gave
+   its rows min-width:auto + max-width:66%. A row can never be narrower than its text under min-width:auto, and
+   66% of a shrink-to-fit column is not a real bound - so the title/artist containers always fit their text
+   exactly, there is nothing overflowing, and Spotify's hover marquee has nothing to scroll. The 66% cap now sits
+   on the column (a % of the widget, which has a real width), and the rows may shrink inside it. */
+aside[data-testid=now-playing-bar]:not(.spf-compact) div[data-testid=now-playing-widget-v2]>div:nth-child(2){min-width:0;max-width:66%}
+aside[data-testid=now-playing-bar]:not(.spf-compact) div[data-testid=now-playing-widget-v2]>div:nth-child(2)>div{flex:0 1 auto;min-width:0;max-width:100%}
+/* v7.30 l): the byline row can shrink now, so pin the Smart Shuffle badge (compact already pins it) - it must never be squeezed. */
+aside[data-testid=now-playing-bar]:not(.spf-compact) svg[data-testid="enhance-badge"]{flex-shrink:0!important;min-width:12px!important}
+/* v7.30 m) gap: in the full player the title and the byline (badge + artist) sit side by side, and each Spotify
+   marquee container reaches 6px past its text (negative margin + fade mask), so the two containers overlapped
+   while scrolling. A real margin (not translateX: it must take part in layout and shrinking) keeps them apart.
+   Compact stacks the rows vertically, so it needs none. */
+aside[data-testid=now-playing-bar]:not(.spf-compact) div[data-testid=now-playing-widget-v2]>div:nth-child(2)>div:nth-child(2){margin-inline-start:8px!important}
 [data-tippy-root]{overflow:hidden!important}
 [data-tippy-root],[data-tippy-root] *{transition:none!important;transform:none!important}
 div[data-testid=hover-or-focus-tooltip],#Desktop_LeftSidebar_Id header>div>div:last-child{display:none!important}
@@ -3763,15 +3819,16 @@ div[data-testid=main-view],
 
 /* Library overlay: switchLs() sets inline height:100% (full viewport), so its
    bottom ran underneath the player + bottom nav. Same bound as #main-view;
-   !important beats the inline height. */
+   !important beats the inline height. v7.30 k): no --sp-gnav-height here. The overlay is position:fixed;top:0, so it
+   is NOT pushed down by the /search nav row (only #main-view is); subtracting it left a gap above the player. */
 #Desktop_LeftSidebar_Id[data-fuck-expanded="true"]{
-  height:calc(100dvh - var(--sp-np-bar-height, 0px) - var(--sp-gnav-height, 0px) - 56px)!important;
-  max-height:calc(100dvh - var(--sp-np-bar-height, 0px) - var(--sp-gnav-height, 0px) - 56px)!important;
+  height:calc(100dvh - var(--sp-np-bar-height, 0px) - 56px)!important;
+  max-height:calc(100dvh - var(--sp-np-bar-height, 0px) - 56px)!important;
 }
 @supports not (height: 100dvh) {
   #Desktop_LeftSidebar_Id[data-fuck-expanded="true"]{
-    height:calc(100vh - var(--sp-np-bar-height, 0px) - var(--sp-gnav-height, 0px) - 56px)!important;
-    max-height:calc(100vh - var(--sp-np-bar-height, 0px) - var(--sp-gnav-height, 0px) - 56px)!important;
+    height:calc(100vh - var(--sp-np-bar-height, 0px) - 56px)!important;
+    max-height:calc(100vh - var(--sp-np-bar-height, 0px) - 56px)!important;
   }
 }
 
@@ -4186,9 +4243,11 @@ aside[data-testid=now-playing-bar].spf-compact svg[data-testid="enhance-badge"]{
   height:12px!important;
   min-width:12px!important
 }
+/* v7.30 j) (marquee, compact): the artist block used to get overflow:hidden here (e). Spotify's own marquee
+   container inside it already clips and fades its text (and sits 6px left of the block), so the extra clip
+   only cut into it. The block keeps min-width:0 so it can still shrink in the flex byline. */
 aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widget-v2]>div:nth-child(2)>div>div{
-  min-width:0!important;
-  overflow:hidden!important
+  min-width:0!important
 }
 
 /* Toggle strip - thin bar pinned to the top of the player bar in both full
