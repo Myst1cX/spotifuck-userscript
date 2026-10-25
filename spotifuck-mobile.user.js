@@ -1156,18 +1156,20 @@
 *    the guard fires it logs "class wiped by Spotify re-render" / "stray spf-compact class removed"
 *    via dbg() - search the Logger for those to confirm the fix is what saved a given occurrence.
 *    Undo: delete the observer (tagged "v7.32") and the compactOn lines.
-* b) Lyrics-view flash (EXPERIMENTAL, cause not found): toggling Spotify's own lyrics view briefly
-*    flashes over the player bar + bottom nav, then settles. Ruled out by dumps: page widening or
-*    sideways scroll (innerWidth = scrollWidth = 384, scrollX = 0, open and closed), z-index (no
-*    ancestor of #Desktop_PanelContainer_Id is fixed; highest z-index is 4 vs 9998/9999 for the
-*    bars). Not yet known: where the lyric lines actually render - the dock panel sits at x=344 and
-*    is already clipped, so the visible lyrics are probably elsewhere. Possible link: the v7.31
-*    matchMedia override re-enables Spotify's open/close animation; and (a) above - the re-render
-*    that wipes the aside's classes may also cause a one-frame wrong layout. A CSS block tagged
-*    "v7.32 flash-fix" (max-height + overflow on #Desktop_PanelContainer_Id, clip-path on
-*    #main-view+div) was added as a guess and also changes NPV/Queue/Connect height (now bounded
-*    above the player). Undo: delete that block. If the flash persists, capture the ancestors of
-*    [data-testid="lyrics-line"] and the 3s overlap recorder (see conversation) before changing more.
+* b) Lyrics-view flash (cause still unknown, under investigation): toggling Spotify's own lyrics view
+*    briefly flashes over the player bar + bottom nav, then settles. Established from the flashprobe
+*    log (6 toggles) and dumps: the bars never move or resize during the toggle, the page width stays
+*    384/384/384 and scrollX is 0 (no wide-viewport widening or sideways scroll); the real lyrics view is
+*    NOT in #Desktop_PanelContainer_Id (that only holds the small Now Playing preview card) but a
+*    full-screen root layer (0,0,384,698, z=5, overflow hidden) with an animated transformed child and a
+*    z=-1 background 806px tall; in steady state the bars (z 9998/9999) correctly paint over it. So the
+*    flash is a transient paint/compositing issue, not layout. An earlier guess (max-height + clip-path
+*    on the panel container / #main-view+div) targeted the wrong element and was removed.
+*    Possible link: the v7.31 matchMedia override re-enables Spotify's open/close animation.
+*    A diagnostic "flashprobe" (document click listener on the lyrics button, active only with Debug
+*    Logging on) logs every frame where something other than a bar is on top at a bar's centre, every
+*    running animation, and both bars' stacking-context chains. Filter the Logger by "flashprobe".
+*    Undo: delete the flashprobe block.
 */
 
 (function() {
@@ -4139,16 +4141,6 @@ body.sp-search #global-nav-bar{display:flex!important}
 #global-nav-bar a[aria-label*="Inicio"]{display:none!important}
 input[data-testid="search-input"]{display:none!important}
 body.sp-search input[data-testid="search-input"]{display:flex!important}
-/* v7.32 flash-fix (EXPERIMENTAL): opening/closing Spotify's own lyrics view (rendered in the right-hand
-   panel, which we force to 100vw) briefly flashed over the player bar + bottom nav. Bound the panel
-   container like #main-view and clip its wrapper. Undo: delete this block. */
-#Desktop_PanelContainer_Id{
-  max-height:calc(100dvh - var(--sp-np-bar-height, 0px) - 56px)!important;
-  overflow:hidden!important
-}
-#main-view+div{
-  clip-path:inset(0)!important
-}
         `;
         document.head.appendChild(bottomNavLayout);
         // --- Compact player mode (v7.4) - ported from kitbodega/SpotiKit
@@ -4518,53 +4510,72 @@ aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widge
     }
 
     // v7.32 flash probe (diagnostic only, does nothing unless app Debug Logging / the GM debug flag is on).
-    // Tapping Spotify's lyrics button starts a 1.6s recording, sampled every ~50ms: (1) any large element
-    // (not the bars) whose bottom reaches into the player bar's area, with position/z-index/testid,
-    // (2) any movement of the player bar / bottom nav rects and any change of page width, and at the end
-    // (3) the ancestor chain of the first real lyrics-line. Filter the Logger by "flashprobe".
-    // Undo: delete this block.
+    // Tapping Spotify's lyrics button starts a 1.6s recording. Every frame it checks what element is really on top
+    // at the centre of the player bar and of the bottom nav (elementFromPoint) and logs any frame where something
+    // other than the bar is on top; it also logs every running animation/transition (target, properties, duration)
+    // and, once, the stacking-context chain of both bars. Filter the Logger by "flashprobe". Undo: delete this block.
     document.addEventListener('click', (ev) => {
         if (!(appLogOn() || debugLoggingEnabled())) return;
         const btn = ev.target && ev.target.closest && ev.target.closest('button[data-testid="lyrics-button"]');
         if (!btn) return;
         const player = document.querySelector('aside[data-testid=now-playing-bar]');
         const nav = document.getElementById('sp-bottom-nav');
-        const rectKey = (el) => { if (!el) return 'none'; const r = el.getBoundingClientRect(); return [r.left, r.top, r.width, r.height].map(Math.round).join(','); };
+        const desc = (e) => e ? [e.tagName, e.id, e.dataset && e.dataset.testid || '', String(e.className).slice(0, 28)].join(' ').replace(/\s+/g, ' ') : 'none';
+        const ctxChain = (el) => {
+            const out = [];
+            for (let e = el; e && e !== document.documentElement; e = e.parentElement) {
+                const c = getComputedStyle(e);
+                const f = [];
+                if (c.position !== 'static') f.push(c.position);
+                if (c.zIndex !== 'auto') f.push('z=' + c.zIndex);
+                if (c.transform !== 'none') f.push('transform');
+                if (c.opacity !== '1') f.push('opacity=' + c.opacity);
+                if (c.filter !== 'none') f.push('filter');
+                if (c.willChange !== 'auto') f.push('will-change=' + c.willChange);
+                if (c.contain !== 'none') f.push('contain=' + c.contain);
+                if (c.isolation === 'isolate') f.push('isolate');
+                if (c.mixBlendMode !== 'normal') f.push('blend');
+                if (f.length) out.push(desc(e) + ' [' + f.join(' ') + ']');
+            }
+            return out;
+        };
+        const mid = (el) => { if (!el) return null; const r = el.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
         const t0 = performance.now();
-        let last = 0, lastBars = '', lastW = '';
-        const seen = new Set();
+        const seenCover = new Set(), seenAnim = new Set();
+        let frames = 0, coverFrames = 0;
         dbg('flashprobe: start', 'button[data-testid="lyrics-button"]', { aria: btn.getAttribute('aria-label') });
+        dbg('flashprobe: player stacking chain', 'aside[data-testid=now-playing-bar]', { chain: ctxChain(player) });
+        dbg('flashprobe: nav stacking chain', '#sp-bottom-nav', { chain: ctxChain(nav) });
         const frame = (now) => {
-            if (now - last >= 50) {
-                last = now;
-                const t = Math.round(now - t0);
-                const barsKey = 'player=' + rectKey(player) + ' nav=' + rectKey(nav);
-                if (barsKey !== lastBars) { dbg('flashprobe: bars rect', 't+' + t + 'ms', { barsKey }); lastBars = barsKey; }
-                const w = innerWidth + '/' + document.documentElement.scrollWidth + '/' + Math.round(visualViewport ? visualViewport.width : 0);
-                if (w !== lastW) { dbg('flashprobe: page width (inner/scroll/visual)', 't+' + t + 'ms', { w }); lastW = w; }
-                const pTop = player ? player.getBoundingClientRect().top : innerHeight - 56;
-                document.querySelectorAll('body *').forEach((e) => {
-                    if ((player && (player.contains(e) || e.contains(player))) || (nav && (nav.contains(e) || e.contains(nav)))) return;
-                    const r = e.getBoundingClientRect();
-                    if (r.height < 100 || r.width < 200 || r.bottom <= pTop + 10 || r.top >= innerHeight) return;
-                    const c = getComputedStyle(e);
-                    if (c.visibility === 'hidden' || c.display === 'none' || parseFloat(c.opacity) < 0.05) return;
-                    const key = [e.tagName, e.id, e.dataset.testid || '', String(e.className).slice(0, 24), c.position, 'z=' + c.zIndex, c.transform === 'none' ? '' : 'T'].join(' ');
-                    if (seen.has(key)) return;
-                    seen.add(key);
-                    dbg('flashprobe: overlaps player area', 't+' + t + 'ms', { key, rect: [r.left, r.top, r.width, r.height].map(Math.round).join(','), bottom: Math.round(r.bottom), playerTop: Math.round(pTop) });
+            frames++;
+            const t = Math.round(now - t0);
+            [['player', player], ['nav', nav]].forEach(([name, bar]) => {
+                const m = mid(bar);
+                if (!m) return;
+                const top = document.elementFromPoint(m[0], m[1]);
+                if (top && !bar.contains(top)) {
+                    coverFrames++;
+                    const key = name + ' covered by ' + desc(top);
+                    if (!seenCover.has(key)) {
+                        seenCover.add(key);
+                        dbg('flashprobe: BAR COVERED', 't+' + t + 'ms', { key, chain: ctxChain(top).slice(0, 6) });
+                    }
+                }
+            });
+            try {
+                document.getAnimations().forEach((an) => {
+                    const ef = an.effect, tg = ef && ef.target;
+                    if (!tg) return;
+                    const props = ef.getKeyframes ? [...new Set(ef.getKeyframes().flatMap(k => Object.keys(k).filter(x => !['offset', 'easing', 'composite', 'computedOffset'].includes(x))))].join('+') : '';
+                    const key = (an.transitionProperty || an.animationName || 'waapi') + '|' + props + '|' + desc(tg);
+                    if (seenAnim.has(key)) return;
+                    seenAnim.add(key);
+                    const tm = ef.getComputedTiming ? ef.getComputedTiming() : {};
+                    dbg('flashprobe: animation', 't+' + t + 'ms', { kind: an.constructor.name, name: an.transitionProperty || an.animationName || '', props, duration: tm.duration, target: desc(tg), inBars: !!((player && player.contains(tg)) || (nav && nav.contains(tg))) });
                 });
-            }
+            } catch (e) {}
             if (now - t0 < 1600) { requestAnimationFrame(frame); return; }
-            let e = document.querySelector('[data-testid="lyrics-line"]');
-            const chain = [];
-            while (e && e !== document.documentElement) {
-                const c = getComputedStyle(e), r = e.getBoundingClientRect();
-                chain.push([e.tagName, e.id, e.dataset.testid || '', c.position, 'z=' + c.zIndex, c.transform === 'none' ? '' : 'T', 'ov=' + c.overflow, [r.left, r.top, r.width, r.height].map(Math.round).join(',')].join(' '));
-                e = e.parentElement;
-            }
-            dbg('flashprobe: lyrics-line ancestors', 'end', { chain });
-            dbg('flashprobe: done', 'end', {});
+            dbg('flashprobe: done', 'end', { frames, coverFrames });
         };
         requestAnimationFrame(frame);
     }, true);
