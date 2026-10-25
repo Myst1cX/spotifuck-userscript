@@ -4542,26 +4542,38 @@ aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widge
         const mid = (el) => { if (!el) return null; const r = el.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
         const t0 = performance.now();
         const seenCover = new Set(), seenAnim = new Set();
-        let frames = 0, coverFrames = 0;
+        let frames = 0, coverFrames = 0, lastStKey = '', tlLines = 0;
         dbg('flashprobe: start', 'button[data-testid="lyrics-button"]', { aria: btn.getAttribute('aria-label') });
         dbg('flashprobe: player stacking chain', 'aside[data-testid=now-playing-bar]', { chain: ctxChain(player) });
         dbg('flashprobe: nav stacking chain', '#sp-bottom-nav', { chain: ctxChain(nav) });
         const frame = (now) => {
             frames++;
             const t = Math.round(now - t0);
-            [['player', player], ['nav', nav]].forEach(([name, bar]) => {
-                const m = mid(bar);
-                if (!m) return;
-                const top = document.elementFromPoint(m[0], m[1]);
-                if (top && !bar.contains(top)) {
-                    coverFrames++;
-                    const key = name + ' covered by ' + desc(top);
-                    if (!seenCover.has(key)) {
-                        seenCover.add(key);
-                        dbg('flashprobe: BAR COVERED', 't+' + t + 'ms', { key, chain: ctxChain(top).slice(0, 6) });
-                    }
-                }
-            });
+            // v7.32 probe v3: log a state TIMELINE (only when something changed since the last frame), not
+            // just "was covered once". Reports who is on top at each bar's centre (elementsFromPoint, top 3),
+            // fullscreen / :modal / :popover-open elements, [inert] ancestors of each bar, and each bar's own
+            // display / visibility / opacity / pointer-events, so we can see WHEN in the toggle the bars stop
+            // being hit-testable and WHY.
+            const topOf = (bar) => { const m = mid(bar); return m ? document.elementsFromPoint(m[0], m[1]).slice(0, 3).map(desc).join(' > ') : 'no-bar'; };
+            const barState = (bar) => { if (!bar) return 'none'; const c = getComputedStyle(bar); return c.display + '/' + c.visibility + '/' + c.opacity + '/pe:' + c.pointerEvents; };
+            let modalEl = null, popEl = null;
+            try { modalEl = document.querySelector(':modal'); } catch (e) {}
+            try { popEl = document.querySelector(':popover-open'); } catch (e) {}
+            const st = {
+                playerTop: topOf(player), navTop: topOf(nav),
+                fullscreen: document.fullscreenElement ? desc(document.fullscreenElement) : '-',
+                modal: modalEl ? desc(modalEl) : '-', popover: popEl ? desc(popEl) : '-',
+                playerInert: player && player.closest('[inert]') ? desc(player.closest('[inert]')) : '-',
+                navInert: nav && nav.closest('[inert]') ? desc(nav.closest('[inert]')) : '-',
+                player: barState(player), nav: barState(nav)
+            };
+            const stKey = JSON.stringify(st);
+            const barOnTop = (player && st.playerTop.startsWith('ASIDE')) && (nav && st.navTop.startsWith('DIV sp-bottom-nav'));
+            if (!barOnTop) coverFrames++;
+            if (stKey !== lastStKey && tlLines < 40) {
+                lastStKey = stKey; tlLines++;
+                dbg('flashprobe: state change', 't+' + t + 'ms', st);
+            }
             try {
                 document.getAnimations().forEach((an) => {
                     const ef = an.effect, tg = ef && ef.target;
