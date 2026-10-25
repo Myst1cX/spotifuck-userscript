@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.31
+// @version      7.32
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -1141,6 +1141,33 @@
 * Spotify's other reduced-motion-gated animations. Undo: delete the block tagged
 * "v7.31 reduced-motion" right after 'use strict'. CONFIRMED in the app: with this block the
 * title / artist marquee scrolls again.
+*
+* v7.32 - UNCONFIRMED (written without being able to reproduce either bug on demand; marked RESOLVED
+* only once seen working in the app). Two changes:
+* a) Compact mode: Spotify re-renders the player bar's <aside> and overwrites its class attribute,
+*    dropping spf-compact and spf-compact-ready while the script's state is still "compact". Seen in a
+*    live dump (expanded layout showing): aside classes were only Spotify's two hashed ones, yet
+*    #spf-compact-play and #spf-compact-libaction still existed. Symptoms: two "Add to playlist"
+*    checkmarks (real button + compact proxy) and no play button between back/forward (it was moved
+*    out into #spf-compact-play). Fix in setupCompactToggle(): a logical compactOn variable (set in
+*    enterCompact/exitCompact) is now the source of truth; a MutationObserver on the aside's class
+*    attribute re-adds spf-compact / spf-compact-ready when wiped, and removes a stray spf-compact
+*    when compactOn is false. The strip click and fixStalePlay() read compactOn, not the class. When
+*    the guard fires it logs "class wiped by Spotify re-render" / "stray spf-compact class removed"
+*    via dbg() - search the Logger for those to confirm the fix is what saved a given occurrence.
+*    Undo: delete the observer (tagged "v7.32") and the compactOn lines.
+* b) Lyrics-view flash (EXPERIMENTAL, cause not found): toggling Spotify's own lyrics view briefly
+*    flashes over the player bar + bottom nav, then settles. Ruled out by dumps: page widening or
+*    sideways scroll (innerWidth = scrollWidth = 384, scrollX = 0, open and closed), z-index (no
+*    ancestor of #Desktop_PanelContainer_Id is fixed; highest z-index is 4 vs 9998/9999 for the
+*    bars). Not yet known: where the lyric lines actually render - the dock panel sits at x=344 and
+*    is already clipped, so the visible lyrics are probably elsewhere. Possible link: the v7.31
+*    matchMedia override re-enables Spotify's open/close animation; and (a) above - the re-render
+*    that wipes the aside's classes may also cause a one-frame wrong layout. A CSS block tagged
+*    "v7.32 flash-fix" (max-height + overflow on #Desktop_PanelContainer_Id, clip-path on
+*    #main-view+div) was added as a guess and also changes NPV/Queue/Connect height (now bounded
+*    above the player). Undo: delete that block. If the flash persists, capture the ancestors of
+*    [data-testid="lyrics-line"] and the 3s overlap recorder (see conversation) before changing more.
 */
 
 (function() {
@@ -3554,6 +3581,10 @@
                 }
             };
 
+            // v7.32: logical compact state, kept independent of the aside's class attribute. React
+            // re-renders the aside and overwrites its class, silently dropping spf-compact /
+            // spf-compact-ready while the moved play button + proxies stay -> both layouts showed.
+            let compactOn = false;
             const enterCompact = () => {
                 // v7.5: compact mode now only surfaces Play/Pause and the library-action button
                 // (Add to playlist / Add to Liked Songs) - NPV, Queue, native Lyrics, and
@@ -3564,6 +3595,7 @@
                 moveOut(window.pBtn || document.querySelector('button[data-testid="control-button-playpause"]'), 'spf-compact-play');
                 ensureLibActionProxy();
                 ensureRemoveRecProxy();
+                compactOn = true;
                 player.classList.add('spf-compact');
                 document.documentElement.classList.remove('spf-compact-pre');
                 setCompactMode(true);
@@ -3573,14 +3605,29 @@
                 moveBack();
                 removeLibActionProxy();
                 removeRemoveRecProxy();
+                compactOn = false;
                 player.classList.remove('spf-compact');
                 setCompactMode(false);
                 dbg('compactToggle: exited compact', '#spf-compact-toggle', {});
             };
 
+            // v7.32: re-assert our classes whenever Spotify's render rewrites the aside's class attribute.
+            // Undo: delete this observer and the compactOn lines.
+            new MutationObserver(() => {
+                if (!player.classList.contains('spf-compact-ready')) player.classList.add('spf-compact-ready');
+                const has = player.classList.contains('spf-compact');
+                if (compactOn && !has) {
+                    player.classList.add('spf-compact');
+                    dbg('compactToggle: class wiped by Spotify re-render - restored spf-compact', 'aside[data-testid=now-playing-bar]', {});
+                } else if (!compactOn && has) {
+                    player.classList.remove('spf-compact');
+                    dbg('compactToggle: stray spf-compact class removed (state is expanded)', 'aside[data-testid=now-playing-bar]', {});
+                }
+            }).observe(player, { attributes: true, attributeFilter: ['class'] });
+
             strip.addEventListener('click', (e) => {
                 e.stopPropagation();
-                if (player.classList.contains('spf-compact')) exitCompact();
+                if (compactOn) exitCompact();
                 else enterCompact();
             });
 
@@ -3601,7 +3648,7 @@
             // app is restarted. Detect that (a live play button exists that isn't our moved one),
             // drop the dead copy and move the live one in its place.
             const fixStalePlay = () => {
-                if (!player.classList.contains('spf-compact')) return;
+                if (!compactOn) return;
                 const live = player.querySelector('button[data-testid="control-button-playpause"]:not(#spf-compact-play)');
                 if (!live) return;
                 const stale = document.getElementById('spf-compact-play');
@@ -4092,6 +4139,16 @@ body.sp-search #global-nav-bar{display:flex!important}
 #global-nav-bar a[aria-label*="Inicio"]{display:none!important}
 input[data-testid="search-input"]{display:none!important}
 body.sp-search input[data-testid="search-input"]{display:flex!important}
+/* v7.32 flash-fix (EXPERIMENTAL): opening/closing Spotify's own lyrics view (rendered in the right-hand
+   panel, which we force to 100vw) briefly flashed over the player bar + bottom nav. Bound the panel
+   container like #main-view and clip its wrapper. Undo: delete this block. */
+#Desktop_PanelContainer_Id{
+  max-height:calc(100dvh - var(--sp-np-bar-height, 0px) - 56px)!important;
+  overflow:hidden!important
+}
+#main-view+div{
+  clip-path:inset(0)!important
+}
         `;
         document.head.appendChild(bottomNavLayout);
         // --- Compact player mode (v7.4) - ported from kitbodega/SpotiKit
@@ -4459,6 +4516,58 @@ aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widge
         }, 100);
         });
     }
+
+    // v7.32 flash probe (diagnostic only, does nothing unless app Debug Logging / the GM debug flag is on).
+    // Tapping Spotify's lyrics button starts a 1.6s recording, sampled every ~50ms: (1) any large element
+    // (not the bars) whose bottom reaches into the player bar's area, with position/z-index/testid,
+    // (2) any movement of the player bar / bottom nav rects and any change of page width, and at the end
+    // (3) the ancestor chain of the first real lyrics-line. Filter the Logger by "flashprobe".
+    // Undo: delete this block.
+    document.addEventListener('click', (ev) => {
+        if (!(appLogOn() || debugLoggingEnabled())) return;
+        const btn = ev.target && ev.target.closest && ev.target.closest('button[data-testid="lyrics-button"]');
+        if (!btn) return;
+        const player = document.querySelector('aside[data-testid=now-playing-bar]');
+        const nav = document.getElementById('sp-bottom-nav');
+        const rectKey = (el) => { if (!el) return 'none'; const r = el.getBoundingClientRect(); return [r.left, r.top, r.width, r.height].map(Math.round).join(','); };
+        const t0 = performance.now();
+        let last = 0, lastBars = '', lastW = '';
+        const seen = new Set();
+        dbg('flashprobe: start', 'button[data-testid="lyrics-button"]', { aria: btn.getAttribute('aria-label') });
+        const frame = (now) => {
+            if (now - last >= 50) {
+                last = now;
+                const t = Math.round(now - t0);
+                const barsKey = 'player=' + rectKey(player) + ' nav=' + rectKey(nav);
+                if (barsKey !== lastBars) { dbg('flashprobe: bars rect', 't+' + t + 'ms', { barsKey }); lastBars = barsKey; }
+                const w = innerWidth + '/' + document.documentElement.scrollWidth + '/' + Math.round(visualViewport ? visualViewport.width : 0);
+                if (w !== lastW) { dbg('flashprobe: page width (inner/scroll/visual)', 't+' + t + 'ms', { w }); lastW = w; }
+                const pTop = player ? player.getBoundingClientRect().top : innerHeight - 56;
+                document.querySelectorAll('body *').forEach((e) => {
+                    if ((player && (player.contains(e) || e.contains(player))) || (nav && (nav.contains(e) || e.contains(nav)))) return;
+                    const r = e.getBoundingClientRect();
+                    if (r.height < 100 || r.width < 200 || r.bottom <= pTop + 10 || r.top >= innerHeight) return;
+                    const c = getComputedStyle(e);
+                    if (c.visibility === 'hidden' || c.display === 'none' || parseFloat(c.opacity) < 0.05) return;
+                    const key = [e.tagName, e.id, e.dataset.testid || '', String(e.className).slice(0, 24), c.position, 'z=' + c.zIndex, c.transform === 'none' ? '' : 'T'].join(' ');
+                    if (seen.has(key)) return;
+                    seen.add(key);
+                    dbg('flashprobe: overlaps player area', 't+' + t + 'ms', { key, rect: [r.left, r.top, r.width, r.height].map(Math.round).join(','), bottom: Math.round(r.bottom), playerTop: Math.round(pTop) });
+                });
+            }
+            if (now - t0 < 1600) { requestAnimationFrame(frame); return; }
+            let e = document.querySelector('[data-testid="lyrics-line"]');
+            const chain = [];
+            while (e && e !== document.documentElement) {
+                const c = getComputedStyle(e), r = e.getBoundingClientRect();
+                chain.push([e.tagName, e.id, e.dataset.testid || '', c.position, 'z=' + c.zIndex, c.transform === 'none' ? '' : 'T', 'ov=' + c.overflow, [r.left, r.top, r.width, r.height].map(Math.round).join(',')].join(' '));
+                e = e.parentElement;
+            }
+            dbg('flashprobe: lyrics-line ancestors', 'end', { chain });
+            dbg('flashprobe: done', 'end', {});
+        };
+        requestAnimationFrame(frame);
+    }, true);
 
     // Add cleanup on page unload to prevent memory leaks
     window.addEventListener('beforeunload', () => {
