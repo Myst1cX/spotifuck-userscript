@@ -1156,20 +1156,24 @@
 *    the guard fires it logs "class wiped by Spotify re-render" / "stray spf-compact class removed"
 *    via dbg() - search the Logger for those to confirm the fix is what saved a given occurrence.
 *    Undo: delete the observer (tagged "v7.32") and the compactOn lines.
-* b) Lyrics-view flash (cause still unknown, under investigation): toggling Spotify's own lyrics view
-*    briefly flashes over the player bar + bottom nav, then settles. Established from the flashprobe
-*    log (6 toggles) and dumps: the bars never move or resize during the toggle, the page width stays
-*    384/384/384 and scrollX is 0 (no wide-viewport widening or sideways scroll); the real lyrics view is
-*    NOT in #Desktop_PanelContainer_Id (that only holds the small Now Playing preview card) but a
-*    full-screen root layer (0,0,384,698, z=5, overflow hidden) with an animated transformed child and a
-*    z=-1 background 806px tall; in steady state the bars (z 9998/9999) correctly paint over it. So the
-*    flash is a transient paint/compositing issue, not layout. An earlier guess (max-height + clip-path
-*    on the panel container / #main-view+div) targeted the wrong element and was removed.
-*    Possible link: the v7.31 matchMedia override re-enables Spotify's open/close animation.
-*    A diagnostic "flashprobe" (document click listener on the lyrics button, active only with Debug
-*    Logging on) logs every frame where something other than a bar is on top at a bar's centre, every
-*    running animation, and both bars' stacking-context chains. Filter the Logger by "flashprobe".
-*    Undo: delete the flashprobe block.
+* b) Lyrics-view flash (cause narrowed, fix UNCONFIRMED): toggling Spotify's own lyrics view briefly flashes
+*    over the player bar + bottom nav, then settles. Established by the flashprobe logs: the bars never move or
+*    resize, page width stays 384/384/384, no fullscreen/:modal/:popover-open/[inert] at any point, and the
+*    bars' own display/visibility/opacity/pointer-events never change (flex/visible/1/auto throughout). Stacking
+*    is correct (nav = fixed z9999 in the root context; player = fixed z9998 inside a z=6 grid item above the
+*    z=5 lyrics layer). The real lyrics view is a full-screen root layer (0,0,384,698, z=5, overflow hidden) with
+*    a transformed child and a z=-1 background 806px tall - NOT the right-hand panel container. What the probe
+*    does see: ~440-510ms after tapping the lyrics button (when Spotify mounts that layer, before its 400ms
+*    fade/move transition starts) elementsFromPoint at BOTH bars returns only <html> for ~30-70ms (2-4 frames),
+*    then normal again. Same timing in every run, before Cigi mounts its header (so not Cigi). Conclusion: a
+*    transient WebView compositing/hit-test dropout of the bars while the big layer is built - not CSS stacking.
+*    Earlier guesses (clip-path/max-height on the panel container, overflow-x clip, class-wipe guard as the cause)
+*    were wrong for this symptom. Attempt 2 (the "v7.32 flash-fix attempt 2" CSS rule): own compositor layer for
+*    both bars (transform:translateZ(0), will-change:transform, backface-visibility:hidden). If the flash persists,
+*    undo it and next try bounding/disabling the lyrics layer itself (its 806px z=-1 background, or its mount
+*    transition). The "flashprobe" diagnostic (document click listener on the lyrics button, only active with Debug
+*    Logging on) logs a state timeline (who is on top at each bar, fullscreen/modal/popover/inert, bar styles) plus
+*    running animations; filter the Logger by "flashprobe". Undo: delete the flashprobe block.
 */
 
 (function() {
@@ -4141,6 +4145,16 @@ body.sp-search #global-nav-bar{display:flex!important}
 #global-nav-bar a[aria-label*="Inicio"]{display:none!important}
 input[data-testid="search-input"]{display:none!important}
 body.sp-search input[data-testid="search-input"]{display:flex!important}
+/* v7.32 flash-fix attempt 2 (EXPERIMENTAL): the lyrics-view flash is a transient WebView compositing/hit-test dropout
+   of BOTH bars for ~2-4 frames (~440-510ms after tapping the lyrics button, when Spotify mounts its full-screen lyrics
+   layer) - not a stacking/z-index/inert problem (see changelog b)). Give both bars their own compositor layer so they
+   don't get rebuilt with the page. Undo: delete this rule. */
+#sp-bottom-nav,
+aside[data-testid=now-playing-bar]{
+  transform:translateZ(0);
+  will-change:transform;
+  backface-visibility:hidden
+}
         `;
         document.head.appendChild(bottomNavLayout);
         // --- Compact player mode (v7.4) - ported from kitbodega/SpotiKit
@@ -4568,7 +4582,7 @@ aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widge
                 player: barState(player), nav: barState(nav)
             };
             const stKey = JSON.stringify(st);
-            const barOnTop = (player && st.playerTop.startsWith('ASIDE')) && (nav && st.navTop.startsWith('DIV sp-bottom-nav'));
+            const barOnTop = !st.playerTop.startsWith('HTML') && !st.navTop.startsWith('HTML');
             if (!barOnTop) coverFrames++;
             if (stKey !== lastStKey && tlLines < 40) {
                 lastStKey = stKey; tlLines++;
