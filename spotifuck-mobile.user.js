@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.32-knewitwasanimationsfault
+// @version      7.32-animlogger
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -1142,43 +1142,38 @@
 * "v7.31 reduced-motion" right after 'use strict'. CONFIRMED in the app: with this block the
 * title / artist marquee scrolls again.
 *
-* v7.32 - UNCONFIRMED (written without being able to reproduce either bug on demand; marked RESOLVED
-* only once seen working in the app). Two changes:
-* a) Compact mode: Spotify re-renders the player bar's <aside> and overwrites its class attribute,
-*    dropping spf-compact and spf-compact-ready while the script's state is still "compact". Seen in a
-*    live dump (expanded layout showing): aside classes were only Spotify's two hashed ones, yet
-*    #spf-compact-play and #spf-compact-libaction still existed. Symptoms: two "Add to playlist"
-*    checkmarks (real button + compact proxy) and no play button between back/forward (it was moved
-*    out into #spf-compact-play). Fix in setupCompactToggle(): a logical compactOn variable (set in
-*    enterCompact/exitCompact) is now the source of truth; a MutationObserver on the aside's class
-*    attribute re-adds spf-compact / spf-compact-ready when wiped, and removes a stray spf-compact
-*    when compactOn is false. The strip click and fixStalePlay() read compactOn, not the class. When
-*    the guard fires it logs "class wiped by Spotify re-render" / "stray spf-compact class removed"
-*    via dbg() - search the Logger for those to confirm the fix is what saved a given occurrence.
+* v7.32 - three changes (b and c CONFIRMED in the app; a not yet - it needs the original bug to reappear):
+* a) UNCONFIRMED - Compact mode: Spotify re-renders the player bar's <aside> and overwrites its class
+*    attribute, dropping spf-compact and spf-compact-ready while the script's state is still "compact". Seen
+*    in a live dump (expanded layout showing): aside classes were only Spotify's two hashed ones, yet
+*    #spf-compact-play and #spf-compact-libaction still existed. Symptoms: two "Add to playlist" checkmarks
+*    (real button + compact proxy) and no play button between back/forward (it was moved out into
+*    #spf-compact-play). Fix in setupCompactToggle(): a logical compactOn variable (set in
+*    enterCompact/exitCompact) is now the source of truth; a MutationObserver on the aside's class attribute
+*    re-adds spf-compact / spf-compact-ready when wiped, and removes a stray spf-compact when compactOn is
+*    false. The strip click and fixStalePlay() read compactOn, not the class. When the guard fires it logs
+*    "class wiped by Spotify re-render" / "stray spf-compact class removed" via dbg() - search the Logger for
+*    those to confirm the fix is what saved a given occurrence. Mark RESOLVED once seen working.
 *    Undo: delete the observer (tagged "v7.32") and the compactOn lines.
-* b) Lyrics-view flash (cause narrowed, fix UNCONFIRMED): toggling Spotify's own lyrics view briefly flashes
-*    over the player bar + bottom nav, then settles. Established by the flashprobe logs: the bars never move or
-*    resize, page width stays 384/384/384, no fullscreen/:modal/:popover-open/[inert] at any point, and the
-*    bars' own display/visibility/opacity/pointer-events never change (flex/visible/1/auto throughout). Stacking
-*    is correct (nav = fixed z9999 in the root context; player = fixed z9998 inside a z=6 grid item above the
-*    z=5 lyrics layer). The real lyrics view is a full-screen root layer (0,0,384,698, z=5, overflow hidden) with
-*    a transformed child and a z=-1 background 806px tall - NOT the right-hand panel container. What the probe
-*    does see: ~440-510ms after tapping the lyrics button (when Spotify mounts that layer, before its 400ms
-*    fade/move transition starts) elementsFromPoint at BOTH bars returns only <html> for ~30-70ms (2-4 frames),
-*    then normal again. Same timing in every run, before Cigi mounts its header (so not Cigi). Conclusion: a
-*    transient WebView compositing/hit-test dropout of the bars while the big layer is built - not CSS stacking.
-*    Earlier guesses (clip-path/max-height on the panel container, overflow-x clip, class-wipe guard as the cause)
-*    were wrong for this symptom. Attempt 2 (own compositor layer for both bars via transform/will-change) did NOT
-*    help - the user still saw the flash - so it was removed again. Probe v4 now also logs html/body computed
-*    styles + body child count + the nav's parent, and "frame gap" lines (main-thread stalls >45ms) to tell a jank/
-*    hit-test dropout from a body-level state change.
-*    FOUND (05:51 freezeprobe): Spotify's lyrics toggle runs inside document.startViewTransition (ViewTransitionCallback 208ms);
-*    its snapshot overlay covers the fixed bars = the flash. Attempt 4 overrides startViewTransition to run the callback
-*    with no transition. RESULT (05:27 log): html/body never change; each flash = a 466-516ms main-thread FREEZE (frame gap) ~500ms after the
-*    tap, with html-only hit-test on the first frame after it. Suspect: un-debounced whole-DOM observers reacting to the
-*    lyrics mount burst - attempt 3 REMOVED the removeAdElements observer ('[class*="ad-"]' full scan per mutation). The "flashprobe" diagnostic (document click listener on the lyrics button, only active with Debug
-*    Logging on) logs a state timeline (who is on top at each bar, fullscreen/modal/popover/inert, bar styles) plus
-*    running animations; filter the Logger by "flashprobe". Undo: delete the flashprobe block.
+* b) RESOLVED (v7.32) - Toggling Spotify's own lyrics view (not Lyrics+ / Cigi) briefly flashed over BOTH the
+*    player bar and the bottom nav, then settled correctly. Not a layout, scroll, z-index, inert, fullscreen,
+*    modal or Cigi problem: the bars never moved, resized or changed style, and stacking was correct (nav fixed
+*    z9999 in the root context, player fixed z9998 above the z=5 lyrics layer). A frame probe showed that
+*    ~450-520ms after the tap, for 2-4 frames, only <html> was hit-testable at the bars, coinciding with a
+*    ~430-580ms main-thread freeze. A long-animation-frame probe then attributed the freeze to a
+*    "ViewTransitionCallback" (~208ms, 91ms forced layout) in Spotify's web-player.js: the lyrics open/close
+*    runs inside document.startViewTransition(). A view transition paints a snapshot overlay (::view-transition,
+*    top layer) over the whole page, ABOVE fixed elements, which is the flash (and why elementsFromPoint saw only
+*    <html>). Fix: document.startViewTransition is wrapped early (tagged "v7.32 LYRICS FLASH FIX", just
+*    before the compact-player state helpers) to run Spotify's update callback immediately and return a resolved, skippable
+*    stand-in, so no overlay is ever painted. Lyrics still open and close, only the cross-fade snapshot is gone.
+*    CONFIRMED in the app: the flash is gone. Ruled out on the way (all tried and reverted, none helped):
+*    clip-path/max-height on the right-hand panel container, overflow-x clip, own compositor layers for the bars
+*    (transform / will-change). Undo: delete the startViewTransition block.
+* c) The open.spotify.com ad-element remover (removeAdElements: removed [data-testid="ad-slot-container"],
+*    [class*="ad-"] and one button class) was REMOVED. Its observer re-scanned the whole DOM on every mutation;
+*    it was not the cause of b) but was needless freeze-prone work and did not remove ads reliably. Premium
+*    spoofing is untouched. Undo: restore the observer from v7.31.
 */
 
 (function() {
@@ -1195,6 +1190,14 @@
                 const m = rmOrig.apply(this, arguments);
                 if (!/prefers-reduced-motion/i.test(String(q))) return m;
                 const want = /no-preference/i.test(String(q));
+                // v7.32 rm-probe (diagnostic): record who asks, to find the marquee's own query. Flushed via dbg() later.
+                try {
+                    const st = String(new Error().stack || '').split('\n').slice(2, 7).map(l => l.trim().replace(/^at\s+/, '').slice(-110));
+                    const key = String(q) + ' | ' + st.slice(0, 2).join(' < ');
+                    const L = (RM_W.__spfRMLog = RM_W.__spfRMLog || { seen: {}, queue: [] });
+                    if (L.seen[key]) L.seen[key]++;
+                    else { L.seen[key] = 1; L.queue.push({ q: String(q), stack: st }); }
+                } catch (e) {}
                 return new Proxy(m, {
                     get(t, p) {
                         if (p === 'matches') return want;
@@ -1375,8 +1378,18 @@
         catch (e) { return false; }
     }
 
-    // v7.32 LYRICS FLASH FIX: Spotify opens/closes the lyrics view inside document.startViewTransition(). The freeze probe
-    // showed a "ViewTransitionCallback" (208ms, 91ms forced layout) in web-player.js right at the flash. A view
+    // v7.32 rm-probe flush (diagnostic only): logs each distinct prefers-reduced-motion query + its call stack.
+    // Filter the Logger by "rmprobe". Undo: delete this block and the "rm-probe" lines in the matchMedia wrapper.
+    [2500, 8000, 20000].forEach((ms) => setTimeout(() => {
+        try {
+            const L = window.__spfRMLog;
+            if (!L || !(appLogOn() || debugLoggingEnabled())) return;
+            L.queue.splice(0).forEach((e) => dbg('rmprobe: query', e.q, { stack: e.stack }));
+        } catch (e) {}
+    }, ms));
+
+    // v7.32 LYRICS FLASH FIX: Spotify opens/closes the lyrics view inside document.startViewTransition(). A diagnostic
+    // probe showed a "ViewTransitionCallback" (208ms, 91ms forced layout) in web-player.js right at the flash. A view
     // transition paints a snapshot overlay (::view-transition, top layer) over the WHOLE page, above the fixed player
     // bar + bottom nav (that is also why elementsFromPoint saw only <html> there), then reveals the new state. We run
     // the state-change callback immediately and skip the transition. Undo: delete this block.
@@ -1392,41 +1405,6 @@
                 return { ready: settled.then(() => undefined), finished: settled, updateCallbackDone: settled, skipTransition() {}, types: new Set() };
             };
         }
-    } catch (e) {}
-
-    // v7.32 freeze probe (diagnostic only; logs only with Debug Logging on). The lyrics flash = a ~500ms main-thread
-    // freeze. This finds WHO is busy: (1) wraps MutationObserver so any callback (ours, Spotify's) slower than 25ms is
-    // logged with its source snippet; (2) PerformanceObserver 'longtask' and 'long-animation-frame' (script attribution
-    // incl. source URL / function) when the WebView supports them. Filter the Logger by "freezeprobe". Undo: delete block.
-    try {
-        const NativeMO = window.MutationObserver;
-        window.MutationObserver = class extends NativeMO {
-            constructor(cb) {
-                super(function (recs, obs) {
-                    const t = performance.now();
-                    try { return cb.call(this, recs, obs); }
-                    finally {
-                        const d = performance.now() - t;
-                        if (d > 25 && (appLogOn() || debugLoggingEnabled())) dbg('freezeprobe: slow MutationObserver', Math.round(d) + 'ms', { records: recs.length, cb: String(cb).replace(/\s+/g, ' ').slice(0, 140) });
-                    }
-                });
-            }
-        };
-    } catch (e) {}
-    try {
-        new PerformanceObserver((list) => {
-            if (!(appLogOn() || debugLoggingEnabled())) return;
-            list.getEntries().forEach((e) => dbg('freezeprobe: longtask', Math.round(e.duration) + 'ms', { start: Math.round(e.startTime), attribution: (e.attribution || []).map(a => a.name + ':' + a.containerType).join(',') }));
-        }).observe({ entryTypes: ['longtask'] });
-    } catch (e) {}
-    try {
-        new PerformanceObserver((list) => {
-            if (!(appLogOn() || debugLoggingEnabled())) return;
-            list.getEntries().forEach((e) => dbg('freezeprobe: long-animation-frame', Math.round(e.duration) + 'ms', {
-                blocking: Math.round(e.blockingDuration || 0), renderStart: Math.round((e.renderStart || 0) - e.startTime), styleAndLayout: Math.round(e.styleAndLayoutStart ? (e.startTime + e.duration - e.styleAndLayoutStart) : 0),
-                scripts: (e.scripts || []).slice(0, 6).map(sc => ({ dur: Math.round(sc.duration), type: sc.invokerType, invoker: String(sc.invoker || '').slice(0, 60), src: String(sc.sourceURL || '').slice(-50), fn: sc.sourceFunctionName || '', forcedLayout: Math.round(sc.forcedStyleAndLayoutDuration || 0) }))
-            }));
-        }).observe({ type: 'long-animation-frame', buffered: false });
     } catch (e) {}
 
     // --- Compact player toggle state (v7.4) - GM_setValue persists across
@@ -4572,94 +4550,6 @@ aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widge
         });
     }
 
-    // v7.32 flash probe (diagnostic only, does nothing unless app Debug Logging / the GM debug flag is on).
-    // Tapping Spotify's lyrics button starts a 1.6s recording. Every frame it checks what element is really on top
-    // at the centre of the player bar and of the bottom nav (elementFromPoint) and logs any frame where something
-    // other than the bar is on top; it also logs every running animation/transition (target, properties, duration)
-    // and, once, the stacking-context chain of both bars. Filter the Logger by "flashprobe". Undo: delete this block.
-    document.addEventListener('click', (ev) => {
-        if (!(appLogOn() || debugLoggingEnabled())) return;
-        const btn = ev.target && ev.target.closest && ev.target.closest('button[data-testid="lyrics-button"]');
-        if (!btn) return;
-        const player = document.querySelector('aside[data-testid=now-playing-bar]');
-        const nav = document.getElementById('sp-bottom-nav');
-        const desc = (e) => e ? [e.tagName, e.id, e.dataset && e.dataset.testid || '', String(e.className).slice(0, 28)].join(' ').replace(/\s+/g, ' ') : 'none';
-        const ctxChain = (el) => {
-            const out = [];
-            for (let e = el; e && e !== document.documentElement; e = e.parentElement) {
-                const c = getComputedStyle(e);
-                const f = [];
-                if (c.position !== 'static') f.push(c.position);
-                if (c.zIndex !== 'auto') f.push('z=' + c.zIndex);
-                if (c.transform !== 'none') f.push('transform');
-                if (c.opacity !== '1') f.push('opacity=' + c.opacity);
-                if (c.filter !== 'none') f.push('filter');
-                if (c.willChange !== 'auto') f.push('will-change=' + c.willChange);
-                if (c.contain !== 'none') f.push('contain=' + c.contain);
-                if (c.isolation === 'isolate') f.push('isolate');
-                if (c.mixBlendMode !== 'normal') f.push('blend');
-                if (f.length) out.push(desc(e) + ' [' + f.join(' ') + ']');
-            }
-            return out;
-        };
-        const mid = (el) => { if (!el) return null; const r = el.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
-        const t0 = performance.now();
-        const seenCover = new Set(), seenAnim = new Set();
-        let frames = 0, coverFrames = 0, lastStKey = '', tlLines = 0, lastFrameAt = 0, gapLines = 0;
-        dbg('flashprobe: start', 'button[data-testid="lyrics-button"]', { aria: btn.getAttribute('aria-label') });
-        dbg('flashprobe: player stacking chain', 'aside[data-testid=now-playing-bar]', { chain: ctxChain(player) });
-        dbg('flashprobe: nav stacking chain', '#sp-bottom-nav', { chain: ctxChain(nav) });
-        const frame = (now) => {
-            frames++;
-            const t = Math.round(now - t0);
-            if (lastFrameAt && now - lastFrameAt > 45 && gapLines < 20) { gapLines++; dbg('flashprobe: frame gap', 't+' + t + 'ms', { gapMs: Math.round(now - lastFrameAt) }); }
-            lastFrameAt = now;
-            // v7.32 probe v3: log a state TIMELINE (only when something changed since the last frame), not
-            // just "was covered once". Reports who is on top at each bar's centre (elementsFromPoint, top 3),
-            // fullscreen / :modal / :popover-open elements, [inert] ancestors of each bar, and each bar's own
-            // display / visibility / opacity / pointer-events, so we can see WHEN in the toggle the bars stop
-            // being hit-testable and WHY.
-            const topOf = (bar) => { const m = mid(bar); return m ? document.elementsFromPoint(m[0], m[1]).slice(0, 3).map(desc).join(' > ') : 'no-bar'; };
-            const barState = (bar) => { if (!bar) return 'none'; const c = getComputedStyle(bar); return c.display + '/' + c.visibility + '/' + c.opacity + '/pe:' + c.pointerEvents; };
-            let modalEl = null, popEl = null;
-            try { modalEl = document.querySelector(':modal'); } catch (e) {}
-            try { popEl = document.querySelector(':popover-open'); } catch (e) {}
-            const st = {
-                playerTop: topOf(player), navTop: topOf(nav),
-                fullscreen: document.fullscreenElement ? desc(document.fullscreenElement) : '-',
-                modal: modalEl ? desc(modalEl) : '-', popover: popEl ? desc(popEl) : '-',
-                playerInert: player && player.closest('[inert]') ? desc(player.closest('[inert]')) : '-',
-                navInert: nav && nav.closest('[inert]') ? desc(nav.closest('[inert]')) : '-',
-                player: barState(player), nav: barState(nav),
-                html: (() => { const c = getComputedStyle(document.documentElement); return c.display + '/' + c.visibility + '/' + c.opacity + '/pe:' + c.pointerEvents + '/cv:' + c.contentVisibility; })(),
-                body: (() => { const c = getComputedStyle(document.body); return c.display + '/' + c.visibility + '/' + c.opacity + '/pe:' + c.pointerEvents + '/cv:' + c.contentVisibility + '/kids:' + document.body.children.length; })(),
-                navParent: nav && nav.parentElement ? desc(nav.parentElement) : '-'
-            };
-            const stKey = JSON.stringify(st);
-            const barOnTop = !st.playerTop.startsWith('HTML') && !st.navTop.startsWith('HTML');
-            if (!barOnTop) coverFrames++;
-            if (stKey !== lastStKey && tlLines < 40) {
-                lastStKey = stKey; tlLines++;
-                dbg('flashprobe: state change', 't+' + t + 'ms', st);
-            }
-            try {
-                document.getAnimations().forEach((an) => {
-                    const ef = an.effect, tg = ef && ef.target;
-                    if (!tg) return;
-                    const props = ef.getKeyframes ? [...new Set(ef.getKeyframes().flatMap(k => Object.keys(k).filter(x => !['offset', 'easing', 'composite', 'computedOffset'].includes(x))))].join('+') : '';
-                    const key = (an.transitionProperty || an.animationName || 'waapi') + '|' + props + '|' + desc(tg);
-                    if (seenAnim.has(key)) return;
-                    seenAnim.add(key);
-                    const tm = ef.getComputedTiming ? ef.getComputedTiming() : {};
-                    dbg('flashprobe: animation', 't+' + t + 'ms', { kind: an.constructor.name, name: an.transitionProperty || an.animationName || '', props, duration: tm.duration, target: desc(tg), inBars: !!((player && player.contains(tg)) || (nav && nav.contains(tg))) });
-                });
-            } catch (e) {}
-            if (now - t0 < 1600) { requestAnimationFrame(frame); return; }
-            dbg('flashprobe: done', 'end', { frames, coverFrames });
-        };
-        requestAnimationFrame(frame);
-    }, true);
-
     // Add cleanup on page unload to prevent memory leaks
     window.addEventListener('beforeunload', () => {
         if (pfint) {
@@ -5046,8 +4936,7 @@ aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widge
     // Scoped to open.spotify.com (where the web player's ad slots actually
     // render) and gated by the same open.spotify.com toggle as the rest of
     // the spoof, since it ships bundled with it in the source.
-    // v7.32: removeAdElements observer REMOVED (whole-DOM '[class*="ad-"]' scan on every mutation; froze the page ~500ms
-    // when Spotify mounted the lyrics view, and didn't remove ads reliably anyway).
+    // v7.32: removeAdElements observer REMOVED (whole-DOM '[class*="ad-"]' scan on every mutation; see header c).
 
     // add-new-card-button blocker for www.spotify.com's own account pages
     // (/account/payment-methods/, aliased with /account/saved-payment-cards/ -
