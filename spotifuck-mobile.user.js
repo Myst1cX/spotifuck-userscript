@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.36
+// @version      7.37
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -1332,6 +1332,56 @@
 * #context-menu exists only on open.spotify.com, so the all-host block needs no gating. This also corrects an implication in v7.35 b): the variables turning
 * everything black holds for surfaces that read them, not for this one. In Mobile the avatar button is only
 * reachable on the Search tab (#global-nav-bar is hidden elsewhere), so that is where the menu appears.
+*
+* RESOLVED (v7.37) - dbg() coverage pass for CSS, plus one dead selector removed. Companion to SpotiwebJS's
+* Twenty-eighth change. The earlier dbg() coverage audits (v7.1 e) and v7.3) covered click handlers, menu
+* commands and state-changing functions but not the <style> injections or the class / CSS-variable changes that switch CSS on and off,
+* so those could change the page with nothing in the SPFDBG output (or in the app Logger, v7.29). Every gap
+* found now logs through dbg(). No behavior change.
+* a) Static <style> blocks log once when appended to <head>, with the block's size in bytes: injectCSS()'s
+*    base block ('injectCSS: APK base CSS injected'), the bottom-nav layout block, the compact-player block
+*    and the standalone AMOLED block (which also reports location.hostname, since it is injected on every
+*    matched host). The two spoof blocks (open.spotify.com hide rules, www/payments cover) already logged.
+* b) updateNpvLayoutState() logs 'html.fuckd-panel-open added/removed' and syncNpBtnVisualState() logs
+*    'npBtn .active added/removed', both only when the state actually changes, because panelGuardObserver
+*    calls updateNpvLayoutState() (which calls syncNpBtnVisualState()) from its mutation callback, which
+*    fires on every DOM change under <body>.
+* c) Compact-mode pre-hide: logs when its <style> and html.spf-compact-pre are applied, when the 8-second
+*    timeout removes the class, and when turning compact off removes it. That last removal is now guarded
+*    by classList.contains(), so it logs only when something was actually removed (removing an absent class
+*    was already a no-op, so behavior is the same). On the app path (window.AndBridge) the pre-hide CSS is
+*    handed to the app through setCompactPreCss() and nothing is injected here, so nothing is logged there.
+* d) State that drives CSS now logs when it changes: --sp-gnav-height and --sp-np-bar-height (including the
+*    reset to 0px when the player leaves the DOM; the written values are unchanged), the bottom nav's active
+*    tab, the body route class (sp-home / sp-search / ...), the library prewarm's .sp-prewarm add and
+*    remove, and the toast style classes (sp-toast-pill / sp-toast-amoled) once at toast setup.
+* e) One-time tagging logs: spf-compact-ready on the player bar, fuckd on the library grid, fuckd-npv on the
+*    lyrics button and fuckd-npv-art on the now-playing widget.
+* f) The www.spotify.com plan-card restyle in runPremium() (position:relative + logo + message) now records
+*    itself through logChange(), like every other swap that function makes, so it also appears in the
+*    "Show everything replaced so far" table. Same line as SpotiwebJS's Twenty-eighth change (e).
+* g) Three runPremium() lookups use Spotify's generated styled-components class names, which change on any
+*    deploy, and each was guarded by a bare if, so a stale one failed silently: the title's parent card
+*    ([class*="Hjkjj"], the pink card background), the plan card's button row ([class*="dCZPlm"] /
+*    .sc-3b07dd39-3, the anchor for the "NEVER expires" message) and the Edit profile banner's wrapper
+*    (.sc-dad329a7-0 / [class*="dad329a7"], its width:100%). Each miss now logs 'selector MISS (outdated?)'
+*    with the selector and the page path. The plan-card and banner lookups sit inside once-per-element
+*    blocks, so they log once; the title loop runs on every pass, so it marks the title element
+*    (data-sp-miss-logged) to log once per element. All three still matched when tested; the logs
+*    only fire when one stops matching. Same pass as SpotiwebJS's Twenty-eighth change (f).
+* h) Deliberately still unlogged: the toast swipe / fade inline styles (translate, opacity, --sp-toast-idx,
+*    visibility forcing) because they change per frame and would flood the console, the hidden
+*    /preferences iframe's display:none (plumbing), and the "target not found yet" polling returns (same
+*    reason as SpotiwebJS's Ninth change (c)).
+* i) Removed the Spanish selector #global-nav-bar a[aria-label*="Inicio"] from the search-view rule that
+*    strips the native Home icon out of #global-nav-bar while the bar is shown for search. The rule's
+*    selectors are now button[data-testid=home-button] and a[aria-label*="Home"]. The page is kept in
+*    English (forceEnglish() and the account-language flip, v7.19 - v7.22, exist because this script
+*    depends on English selectors), so the Spanish alternative could never match; SpotiwebJS dropped its
+*    Spanish alternatives in its Third change and this one was missed here. A scan of this script's code for
+*    Spanish terms and accented text found no other non-English matchers (the text/aria matchers are
+*    'Your Library', 'Connect to a device', 'Remove recommendation', 'Home' and 'Premium Plans').
+* Net: 24 new dbg() calls, plus one logChange().
 */
 
 (function() {
@@ -2286,7 +2336,9 @@
     function syncNpBtnVisualState() {
         const npBtn = document.querySelector('.npbtn');
         if (!npBtn) return;
-        npBtn.classList.toggle('active', userOpenedNPV);
+        const wasActive = npBtn.classList.contains('active');
+        npBtn.classList.toggle('active', !!userOpenedNPV);
+        if (wasActive !== !!userOpenedNPV) dbg('npBtn .active ' + (userOpenedNPV ? 'added' : 'removed'), '.npbtn', { userOpenedNPV: !!userOpenedNPV });
     }
 
     // Same shared-container pattern as isNpvOpen() above, checking the container's own
@@ -2351,7 +2403,10 @@
         return !panelContainer.closest('[inert]');
     }
     function updateNpvLayoutState() {
-        document.documentElement.classList.toggle('fuckd-panel-open', isAnyPanelOpen());
+        const panelOpen = isAnyPanelOpen();
+        const hadPanelClass = document.documentElement.classList.contains('fuckd-panel-open');
+        document.documentElement.classList.toggle('fuckd-panel-open', panelOpen);
+        if (panelOpen !== hadPanelClass) dbg('html.fuckd-panel-open ' + (panelOpen ? 'added' : 'removed'), 'html', { panelOpen, effect: panelOpen ? 'native-toggle 100vw/--panel-gap crop rules OFF' : 'native-toggle crop rules ARMED' });
         syncNpBtnVisualState();
     }
     updateNpvLayoutState(); // reflect default (closed) state before the panel even exists
@@ -2669,6 +2724,7 @@
             const btn = buttons[i];
             btn.classList.toggle('active', btn.dataset.tab === active);
         }
+        dbg('bottom-nav active tab changed', '#sp-bottom-nav', { active });
     }
 
     // Ported from SpotiKit: drives the header-visibility CSS (#global-nav-bar /
@@ -2685,6 +2741,7 @@
         else if (path.startsWith('/track')) cls = 'sp-track';
 
         if (cls === lastBodyClass) return;
+        dbg('body route class changed', 'body', { from: lastBodyClass || '(none)', to: cls || '(none)', path });
         if (lastBodyClass) document.body.classList.remove(lastBodyClass);
         if (cls) document.body.classList.add(cls);
         lastBodyClass = cls;
@@ -2747,6 +2804,7 @@
         libraryPrewarmed = true;
 
         leftSidebar.classList.add('sp-prewarm');
+        dbg('library prewarm: .sp-prewarm added', '#Desktop_LeftSidebar_Id', { attempts: libraryPrewarmAttempts });
         leftSidebar.dataset.fuckExpanded = 'true';
 
         requestAnimationFrame(() => {
@@ -2761,6 +2819,7 @@
                 setTimeout(() => {
                     delete leftSidebar.dataset.fuckExpanded;
                     leftSidebar.classList.remove('sp-prewarm');
+                    dbg('library prewarm: .sp-prewarm removed', '#Desktop_LeftSidebar_Id');
                     window.dispatchEvent(new Event('resize'));
                     console.log('#Library: pre-warmed silently - first real open should render correctly now');
                 }, 60);
@@ -2803,13 +2862,20 @@
         const h = nav ? Math.round(nav.getBoundingClientRect().height) : 0;
         const root = document.documentElement.style;
         const next = h + 'px';
-        if (root.getPropertyValue('--sp-gnav-height') !== next) root.setProperty('--sp-gnav-height', next);
+        const prevG = root.getPropertyValue('--sp-gnav-height');
+        if (prevG !== next) {
+            root.setProperty('--sp-gnav-height', next);
+            dbg('CSS var --sp-gnav-height changed', ':root', { from: prevG || '(unset)', to: next });
+        }
     }
     function updateNPBarHeightVar() {
         updateGNavHeightVar();
         const player = document.querySelector('aside[data-testid=now-playing-bar]');
         if (player) {
-            document.documentElement.style.setProperty('--sp-np-bar-height', player.offsetHeight + 'px');
+            const nextBar = player.offsetHeight + 'px';
+            const prevBar = document.documentElement.style.getPropertyValue('--sp-np-bar-height');
+            document.documentElement.style.setProperty('--sp-np-bar-height', nextBar);
+            if (prevBar !== nextBar) dbg('CSS var --sp-np-bar-height changed', ':root', { from: prevBar || '(unset)', to: nextBar });
             // Exposed so other userscripts (e.g. Lyrics+'s PiP popup) can keep
             // themselves out of the fixed bottom nav (56px) + player strip
             // without having to scan the DOM for it themselves. Only reassigned
@@ -2834,6 +2900,7 @@
             }
         } else {
             // Player removed from the DOM: don't keep reserving its last height.
+            if (document.documentElement.style.getPropertyValue('--sp-np-bar-height') !== '0px') dbg('CSS var --sp-np-bar-height reset to 0px (player removed)', ':root');
             document.documentElement.style.setProperty('--sp-np-bar-height', '0px');
         }
     }
@@ -2883,6 +2950,7 @@
         })();
         if (TOAST_STYLE === 'dark' || TOAST_STYLE === 'amoled') document.documentElement.classList.add('sp-toast-pill');
         if (TOAST_STYLE === 'amoled') document.documentElement.classList.add('sp-toast-amoled');
+        dbg('toast style classes applied', 'html', { TOAST_STYLE, pill: TOAST_STYLE === 'dark' || TOAST_STYLE === 'amoled', amoled: TOAST_STYLE === 'amoled' });
         let timer = null;
 
         const state = el => {   // 'vis' | 'faded' | 'hidden'
@@ -3243,6 +3311,7 @@
             const libGrid = document.querySelector('#Desktop_LeftSidebar_Id div[role=grid]:not(.fuckd)');
             if (libGrid) {
                 libGrid.classList.add('fuckd');
+                dbg('library grid tagged fuckd', '#Desktop_LeftSidebar_Id div[role=grid]');
 
                 libGrid.addEventListener('click', (event) => {
                     // Check if clicked element or its parent is a folder
@@ -3382,6 +3451,7 @@
             const lyBtn = document.querySelector('button[data-testid="lyrics-button"]:not(.fuckd-npv)');
             if (!lyBtn) return;
             lyBtn.classList.add('fuckd-npv');
+            dbg('lyrics button tagged fuckd-npv (npBtn about to be inserted)', 'button[data-testid="lyrics-button"]');
 
             const npBtn = document.createElement('button');
             // Clone lyBtn's own classes (Spotify's real Encore button classes) so
@@ -3462,6 +3532,7 @@
             const widget = document.querySelector('div[data-testid="now-playing-widget-v2"]:not(.fuckd-npv-art)');
             if (!widget) return;
             widget.classList.add('fuckd-npv-art');
+            dbg('now-playing widget tagged fuckd-npv-art', 'div[data-testid="now-playing-widget-v2"]');
             widget.addEventListener('click', (event) => {
                 const artBtn = event.target.closest('button[data-testid="cover-art-button"]');
                 if (!artBtn) return;
@@ -3531,6 +3602,7 @@
             const player = document.querySelector('aside[data-testid=now-playing-bar]:not(.spf-compact-ready)');
             if (!player) return;
             player.classList.add('spf-compact-ready');
+            dbg('player tagged spf-compact-ready', 'aside[data-testid=now-playing-bar]');
             // v7.14: Spotify reuses this exact same aside[data-testid=now-playing-bar]
             // for the signed-out signup preview (div[data-testid=signup-bar] as a
             // child) - there's no separate markup/class distinguishing it from the
@@ -4024,6 +4096,7 @@ div[data-testid=hover-or-focus-tooltip],#Desktop_LeftSidebar_Id header>div>div:l
 .YourLibraryX header{padding:14px}
         `;
         document.head.appendChild(style);
+        dbg('injectCSS: APK base CSS injected', '#Desktop_LeftSidebar_Id, .YourLibraryX', { bytes: style.textContent.length });
         // AMOLED pure black mode is no longer injected from here (v7.35): it lives in its own
         // standalone block below injectCSS()'s init, so it also applies on www / payments.
         // Search this file for 'AMOLED pure black mode (from r0/e.java)'.
@@ -4287,12 +4360,12 @@ body.sp-search #global-nav-bar{display:flex!important}
    missing here previously (the bar-level show/hide above was ported but this
    button-level follow-up rule wasn't, leaving native Home visible during search). */
 #global-nav-bar button[data-testid=home-button],
-#global-nav-bar a[aria-label*="Home"],
-#global-nav-bar a[aria-label*="Inicio"]{display:none!important}
+#global-nav-bar a[aria-label*="Home"]{display:none!important}
 input[data-testid="search-input"]{display:none!important}
 body.sp-search input[data-testid="search-input"]{display:flex!important}
         `;
         document.head.appendChild(bottomNavLayout);
+        dbg('bottom-nav layout CSS injected', '#sp-bottom-nav, #Desktop_LeftSidebar_Id', { bytes: bottomNavLayout.textContent.length });
         // --- Compact player mode (v7.4) - ported from kitbodega/SpotiKit
         // 7.3.2.fork's .minimized feature, adapted to this file's fixed
         // full-width bottom bar (SpotiKit's own version targets a floating
@@ -4605,6 +4678,7 @@ aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widge
 }
         `;
         document.head.appendChild(compactPlayer);
+        dbg('compact-player CSS injected', 'aside[data-testid=now-playing-bar].spf-compact', { bytes: compactPlayer.textContent.length });
 
         // v7.28: pre-hide for compact mode, derived from the real compact CSS above (same rules, keyed
         // on html.spf-compact-pre instead of the aside's .spf-compact) so it can't drift from it.
@@ -4626,9 +4700,16 @@ aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widge
                 st.textContent = pre;
                 document.head.appendChild(st);
                 document.documentElement.classList.add('spf-compact-pre');
-                setTimeout(() => document.documentElement.classList.remove('spf-compact-pre'), 8000);
+                dbg('compact pre-hide CSS injected + html.spf-compact-pre added', 'html', { bytes: pre.length, removeAfterMs: 8000 });
+                setTimeout(() => {
+                    document.documentElement.classList.remove('spf-compact-pre');
+                    dbg('html.spf-compact-pre removed (8s timeout)', 'html');
+                }, 8000);
             }
-            if (!on) document.documentElement.classList.remove('spf-compact-pre');
+            if (!on && document.documentElement.classList.contains('spf-compact-pre')) {
+                document.documentElement.classList.remove('spf-compact-pre');
+                dbg('html.spf-compact-pre removed (compact turned off)', 'html');
+            }
         } catch (e) {}
         console.log('#CSS Injected');
     }
@@ -4686,6 +4767,7 @@ aside[data-testid=now-playing-bar]{background:#000!important;box-shadow:none;bor
 #context-menu ul[role="menu"]{background:#000!important}
         `;
         document.head.appendChild(amoled);
+        dbg('AMOLED CSS injected', '.encore-dark-theme, aside[data-testid=now-playing-bar], #context-menu ul[role="menu"]', { bytes: amoled.textContent.length, host: location.hostname });
     });
 
     // v7.33: own port of Spotify's marquee (web-player.js module 11150), see header.
@@ -4853,12 +4935,16 @@ aside[data-testid=now-playing-bar]{background:#000!important;box-shadow:none;bor
                 if (parent) {
                     parent.style.background = PINK;
                     parent.style.color = '#000';
+                } else if (!el.dataset.spMissLogged) {
+                    el.dataset.spMissLogged = '1';
+                    dbg('selector MISS (outdated?): Premium Individual card parent not found, card background not restyled', '[class*="Hjkjj"], [class*="hjkjj"]', { page: location.pathname });
                 }
             }
         });
         const planCard = document.querySelector('[data-testid="plan-card"]');
         if (planCard && !planCard.querySelector('.__sp_logo')) {
             planCard.style.position = 'relative';
+            logChange('[data-testid="plan-card"]', 'plan card', '(position:relative + logo + message injected)');
             const logo = document.createElement('img');
             logo.className = '__sp_logo';
             logo.src = 'https://i.ibb.co/jPMD5S3K/3-sin-t-tulo-20260704011012.png';
@@ -4869,6 +4955,7 @@ aside[data-testid=now-playing-bar]{background:#000!important;box-shadow:none;bor
             msg.style.cssText = 'color:#B3B3B3;font-size:14px;margin:8px 0;text-align:left;line-height:1.4;padding:0 4px;';
             const btnRow = planCard.querySelector('[class*="dCZPlm"], .sc-3b07dd39-3');
             if (btnRow) btnRow.parentNode.insertBefore(msg, btnRow);
+            else dbg('selector MISS (outdated?): plan-card button row not found, "NEVER expires" message not inserted', '[class*="dCZPlm"], .sc-3b07dd39-3', { page: location.pathname });
         }
         document.querySelectorAll('h1, h2, h3, h4, strong, span, div[class*="plan"], div[class*="Plan"]').forEach(el => {
             const t = (el.textContent || '').trim();
@@ -4965,6 +5052,8 @@ aside[data-testid=now-playing-bar]{background:#000!important;box-shadow:none;bor
             const wrapper = premiumBanner.closest('.sc-dad329a7-0, [class*="dad329a7"]');
             if (wrapper) {
                 wrapper.style.width = '100%';
+            } else {
+                dbg('selector MISS (outdated?): banner wrapper not found, banner width not set to 100%', '.sc-dad329a7-0, [class*="dad329a7"]', { page: location.pathname });
             }
             // AMOLED: the background below is black to match the theme (v7.35). A future non-AMOLED theme must restore #2A2A2A here.
             premiumBanner.style.cssText += `
