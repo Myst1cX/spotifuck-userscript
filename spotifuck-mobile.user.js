@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.32
+// @version      7.33
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -1134,44 +1134,70 @@
 * usually reports reduce when Android's "Remove animations" (or animator scale 0 / power saving)
 * is on; the cause on the tested device was not checked. Turning that Android setting off
 * makes the marquee work natively. Fixed by wrapping window.matchMedia so every
-* prefers-reduced-motion query answered "no preference". Replaced in v7.32 d).
+* prefers-reduced-motion query answered "no preference". Replaced in v7.33.
 *
-* RESOLVED (v7.32) - Four fixes. a) and d) have not been seen working in the app yet.
-* a) Compact mode lost its state: Spotify re-renders the player bar's <aside> and overwrites its
-*    class attribute, dropping spf-compact / spf-compact-ready while the script still considered
-*    the bar compact. Result: two "Add to playlist" checkmarks (real button + compact proxy) and
-*    no play button between back / forward. setupCompactToggle() now keeps the state in a
-*    compactOn variable (set in enterCompact / exitCompact) and a MutationObserver on the
-*    aside's class attribute re-adds the two classes when wiped and removes a stray spf-compact
-*    when the bar is expanded. The strip click and fixStalePlay() read compactOn. The guard logs
-*    "class wiped by Spotify re-render" / "stray spf-compact class removed" via dbg().
-* b) Lyrics flash: toggling Spotify's own lyrics view briefly flashed over the player bar and
+* RESOLVED (v7.32)
+* a) Compact mode lost its state. Spotify re-renders the player bar's <aside> and overwrites
+*    its class attribute, which dropped spf-compact / spf-compact-ready while the script still
+*    considered the bar compact. Result: two "Add to playlist" checkmarks (the real button and
+*    the compact proxy) and no play button between back / forward. setupCompactToggle() now
+*    keeps the state in a compactOn variable (set in enterCompact / exitCompact), and a
+*    MutationObserver on the aside's class attribute re-adds the two classes when they are
+*    wiped and removes a stray spf-compact when the bar is expanded. The strip click and
+*    fixStalePlay() read compactOn. The guard logs "class wiped by Spotify re-render" /
+*    "stray spf-compact class removed" via dbg().
+* b) Lyrics flash. Toggling Spotify's own lyrics view briefly flashed over the player bar and
 *    the bottom nav. Spotify opens and closes that view inside document.startViewTransition(),
 *    and a view transition paints a snapshot of the page above fixed elements (a 430-580ms
-*    main-thread freeze, ViewTransitionCallback in web-player.js, found with a long-animation-
-*    frame probe). document.startViewTransition is now replaced early with a version that runs
-*    Spotify's callback immediately and paints nothing. Lyrics still open and close, only the
-*    cross-fade is gone. Tried and reverted, no effect: clip-path / max-height on the panel
-*    container, overflow-x clip, own compositor layers for the bars.
+*    main-thread freeze, a ViewTransitionCallback in web-player.js, found with a
+*    long-animation-frame probe). document.startViewTransition is now replaced early with a
+*    version that runs Spotify's callback immediately and paints nothing. Lyrics still open
+*    and close, only the cross-fade is gone. With reduced motion forced on (d) Spotify skips
+*    view transitions anyway, so this is a fallback.
 * c) The open.spotify.com ad-element remover (removeAdElements) was deleted. Its observer
 *    rescanned the whole DOM on every mutation and did not remove ads reliably. Premium
 *    spoofing is untouched.
-* d) The v7.31 matchMedia override is gone, so Spotify's other reduced-motion-gated animations
-*    follow the system setting again (its hook at web-player.js:22:9846 is shared by ~30
-*    components). The title / artist marquee is now our own copy, spfMarquee, built from
-*    Spotify's marquee component (web-player.js module 11150): distance = inner width -
-*    container width; translateX(0 -> -distance) (reversed for RTL); duration = distance / 12 *
-*    1000 ms; linear, once; starts paused, plays after 1s, reverses at the end (1s wait), then
-*    stays paused until the pointer leaves; pointerenter pauses, pointerleave plays. It finds
-*    div > span > span containers with clipped overflow anywhere on the page (player bar, Now
-*    Playing view, ad cards), re-measures once a second, and skips rows where Spotify made its
-*    own animation.
+* RESOLVED (v7.33) - Reduced motion and the marquee. 
+* v7.31 made every prefers-reduced-motion query answer "no preference", which turned on
+* Spotify's own marquee and every other animation gated on that check 
+* (the hook at web-player.js:22:9846 is shared by about 30 components).
+* window.matchMedia now answers the other way: every prefers-reduced-motion query reports
+* "reduce" ("no-preference" -> false) whatever the device says, so Spotify's animations
+* stay off everywhere. CSS @media rules are not affected. The title / artist marquee is
+* our own copy, spfMarquee, taken from Spotify's marquee component (web-player.js module
+* 11150): distance = inner width - container width; translateX(0 -> -distance), reversed
+* for RTL; duration = distance / 12 * 1000 ms; linear, played once; it starts paused,
+* plays after 1s, reverses at the end (1s wait again), then stays paused until the pointer
+* leaves; pointerenter pauses, pointerleave plays. It finds div > span > span containers
+* with clipped overflow anywhere on the page (player bar, Now Playing view, ad cards),
+* re-measures once a second, and skips rows where Spotify made its own animation.
 */
 
 (function() {
     'use strict';
 
-    // v7.32: matchMedia reduced-motion override removed (header d); marquee = spfMarquee near the end.
+    // v7.33: always report prefers-reduced-motion: reduce, so Spotify's own animations stay off on every device;
+    // the title / artist marquee is spfMarquee near the end.
+    try {
+        const RM_W = (typeof unsafeWindow !== 'undefined') ? unsafeWindow : window;
+        const rmOrig = RM_W.matchMedia;
+        if (typeof rmOrig === 'function' && !rmOrig.__spfRM) {
+            const rmWrap = function(q) {
+                const m = rmOrig.apply(this, arguments);
+                if (!/prefers-reduced-motion/i.test(String(q))) return m;
+                const want = !/no-preference/i.test(String(q));
+                return new Proxy(m, {
+                    get(t, p) {
+                        if (p === 'matches') return want;
+                        const v = t[p];
+                        return typeof v === 'function' ? v.bind(t) : v;
+                    }
+                });
+            };
+            rmWrap.__spfRM = true;
+            RM_W.matchMedia = rmWrap;
+        }
+    } catch (e) {}
 
     console.log('🎵 Spotifuck v6 - APK v1.6.4 Port');
 
@@ -3572,7 +3598,7 @@
                 }
             };
 
-            // v7.32: logical compact state, kept independent of the aside's class attribute. React
+            // v7.32 a): logical compact state, kept independent of the aside's class attribute. React
             // re-renders the aside and overwrites its class, silently dropping spf-compact /
             // spf-compact-ready while the moved play button + proxies stay -> both layouts showed.
             let compactOn = false;
@@ -3602,7 +3628,7 @@
                 dbg('compactToggle: exited compact', '#spf-compact-toggle', {});
             };
 
-            // v7.32: re-assert our classes whenever Spotify's render rewrites the aside's class attribute.
+            // v7.32 a): re-assert our classes whenever Spotify's render rewrites the aside's class attribute.
             // Undo: delete this observer and the compactOn lines.
             new MutationObserver(() => {
                 if (!player.classList.contains('spf-compact-ready')) player.classList.add('spf-compact-ready');
@@ -4498,7 +4524,7 @@ aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widge
         });
     }
 
-    // v7.32 d): own port of Spotify's marquee (web-player.js module 11150), see header.
+    // v7.33: own port of Spotify's marquee (web-player.js module 11150), see header.
     (function spfMarquee() {
         const states = new WeakMap();
         const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -4943,7 +4969,7 @@ aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widge
     // Scoped to open.spotify.com (where the web player's ad slots actually
     // render) and gated by the same open.spotify.com toggle as the rest of
     // the spoof, since it ships bundled with it in the source.
-    // v7.32: removeAdElements observer REMOVED (whole-DOM '[class*="ad-"]' scan on every mutation; see header c).
+    // v7.32 c): removeAdElements observer REMOVED (whole-DOM '[class*="ad-"]' scan on every mutation.
 
     // add-new-card-button blocker for www.spotify.com's own account pages
     // (/account/payment-methods/, aliased with /account/saved-payment-cards/ -
