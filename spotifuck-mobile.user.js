@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.32-test-removead
+// @version      7.32-moretests
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -1174,7 +1174,7 @@
 *    hit-test dropout from a body-level state change.
 *    RESULT (05:27 log): html/body never change; each flash = a 466-516ms main-thread FREEZE (frame gap) ~500ms after the
 *    tap, with html-only hit-test on the first frame after it. Suspect: un-debounced whole-DOM observers reacting to the
-*    lyrics mount burst - attempt 3 debounces removeAdElements ('[class*="ad-"]' full scan per mutation). The "flashprobe" diagnostic (document click listener on the lyrics button, only active with Debug
+*    lyrics mount burst - attempt 3 REMOVED the removeAdElements observer ('[class*="ad-"]' full scan per mutation). The "flashprobe" diagnostic (document click listener on the lyrics button, only active with Debug
 *    Logging on) logs a state timeline (who is on top at each bar, fullscreen/modal/popover/inert, bar styles) plus
 *    running animations; filter the Logger by "flashprobe". Undo: delete the flashprobe block.
 */
@@ -1372,6 +1372,41 @@
         try { return typeof GM_getValue === 'function' ? GM_getValue(DEBUG_KEY, false) : false; }
         catch (e) { return false; }
     }
+
+    // v7.32 freeze probe (diagnostic only; logs only with Debug Logging on). The lyrics flash = a ~500ms main-thread
+    // freeze. This finds WHO is busy: (1) wraps MutationObserver so any callback (ours, Spotify's) slower than 25ms is
+    // logged with its source snippet; (2) PerformanceObserver 'longtask' and 'long-animation-frame' (script attribution
+    // incl. source URL / function) when the WebView supports them. Filter the Logger by "freezeprobe". Undo: delete block.
+    try {
+        const NativeMO = window.MutationObserver;
+        window.MutationObserver = class extends NativeMO {
+            constructor(cb) {
+                super(function (recs, obs) {
+                    const t = performance.now();
+                    try { return cb.call(this, recs, obs); }
+                    finally {
+                        const d = performance.now() - t;
+                        if (d > 25 && (appLogOn() || debugLoggingEnabled())) dbg('freezeprobe: slow MutationObserver', Math.round(d) + 'ms', { records: recs.length, cb: String(cb).replace(/\s+/g, ' ').slice(0, 140) });
+                    }
+                });
+            }
+        };
+    } catch (e) {}
+    try {
+        new PerformanceObserver((list) => {
+            if (!(appLogOn() || debugLoggingEnabled())) return;
+            list.getEntries().forEach((e) => dbg('freezeprobe: longtask', Math.round(e.duration) + 'ms', { start: Math.round(e.startTime), attribution: (e.attribution || []).map(a => a.name + ':' + a.containerType).join(',') }));
+        }).observe({ entryTypes: ['longtask'] });
+    } catch (e) {}
+    try {
+        new PerformanceObserver((list) => {
+            if (!(appLogOn() || debugLoggingEnabled())) return;
+            list.getEntries().forEach((e) => dbg('freezeprobe: long-animation-frame', Math.round(e.duration) + 'ms', {
+                blocking: Math.round(e.blockingDuration || 0), renderStart: Math.round((e.renderStart || 0) - e.startTime), styleAndLayout: Math.round(e.styleAndLayoutStart ? (e.startTime + e.duration - e.styleAndLayoutStart) : 0),
+                scripts: (e.scripts || []).slice(0, 6).map(sc => ({ dur: Math.round(sc.duration), type: sc.invokerType, invoker: String(sc.invoker || '').slice(0, 60), src: String(sc.sourceURL || '').slice(-50), fn: sc.sourceFunctionName || '', forcedLayout: Math.round(sc.forcedStyleAndLayoutDuration || 0) }))
+            }));
+        }).observe({ type: 'long-animation-frame', buffered: false });
+    } catch (e) {}
 
     // --- Compact player toggle state (v7.4) - GM_setValue persists across
     // reloads/sessions (unlike sessionStorage, which is what SpotiKit's
@@ -4990,28 +5025,8 @@ aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widge
     // Scoped to open.spotify.com (where the web player's ad slots actually
     // render) and gated by the same open.spotify.com toggle as the rest of
     // the spoof, since it ships bundled with it in the source.
-    if (HOST_IS_OPEN) {
-        const removeAdElements = () => {
-            if (!premiumSpoofEnabledHere()) return;
-            const adSlots = document.querySelectorAll('[data-testid="ad-slot-container"], [class*="ad-"]');
-            const adButtons = document.querySelectorAll('.ButtonInner-sc-14ud5tc-0.fcsOIN');
-            if (adSlots.length || adButtons.length) {
-                dbg('removeAdElements: ad elements removed', '[data-testid="ad-slot-container"], [class*="ad-"], .ButtonInner-sc-14ud5tc-0.fcsOIN', { adSlots: adSlots.length, adButtons: adButtons.length });
-            }
-            adSlots.forEach(el => el.remove());
-            adButtons.forEach(el => el.remove());
-        };
-        // v7.32: this observer fires on EVERY body mutation and the '[class*="ad-"]' substring selector scans the whole
-        // DOM each time. Mounting Spotify's lyrics view causes a burst of mutations; the probe logs showed a ~470-520ms
-        // main-thread freeze right when the bars flash. Debounce to one scan per 400ms (leading call skipped, trailing run).
-        let adScanTimer = null;
-        const adObserver = new MutationObserver(() => {
-            if (adScanTimer) return;
-            adScanTimer = setTimeout(() => { adScanTimer = null; removeAdElements(); }, 400);
-        });
-        observeBody(adObserver, { childList: true, subtree: true });
-        window.addEventListener('beforeunload', () => adObserver.disconnect());
-    }
+    // v7.32: removeAdElements observer REMOVED (whole-DOM '[class*="ad-"]' scan on every mutation; froze the page ~500ms
+    // when Spotify mounted the lyrics view, and didn't remove ads reliably anyway).
 
     // add-new-card-button blocker for www.spotify.com's own account pages
     // (/account/payment-methods/, aliased with /account/saved-payment-cards/ -
