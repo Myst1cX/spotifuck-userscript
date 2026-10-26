@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.35
+// @version      7.36
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -34,7 +34,8 @@
 * !important}` rule (bottom-nav/library-overlay block, Sixth big change) used to be the
 * only thing masking that; it is no longer relied on for it. If AMOLED ever shows grey
 * again, see the comment at the AMOLED style block (find it by searching:
-* 'AMOLED pure black mode (from r0/e.java)').
+* 'AMOLED pure black mode (from r0/e.java)'). Since v7.36 the same block also pins the
+* context-menu panels directly (#context-menu ul[role="menu"]), which do not read these variables.
 * - Auto-close library on playlist selection (and load the playlist)
 * - UI improvements (sidebar, search bar, playback controls)
 * - CSS hacks for better mobile experience
@@ -1314,10 +1315,23 @@
 *    is ever added, that banner must go back to #2A2A2A (comment at its background line).
 * d) Stale comments fixed: the header feature list and its NOTE (claimed AMOLED worked without
 *    !important thanks to .YourLibraryX - it did work for that scope, but the theme now extends
-*    further, to www and payments, where no such pin exists...), the long comment inside injectCSS() 
-*    describing the six properties as lacking !important (replaced by a pointer to the new block), 
-*    and the bottom-nav comment that called the AMOLED block "above" in the same CSS. 
-*    The ordinary v6.x/v7.x entries higher up are history and were left as written.
+*    further, to www and payments, where no such pin exists), the long comment inside injectCSS()
+*    describing the six properties as lacking !important (replaced by a pointer to the new block),
+*    and the bottom-nav comment that called the AMOLED block "above" in the same CSS. The ordinary
+*    v6.x/v7.x entries higher up are history and were left as written.
+*
+* RESOLVED (v7.36) - The menu opened by the avatar (user widget) button on open.spotify.com was never AMOLED.
+* Ported from SpotiwebJS's Twenty-seventh change. A DevTools ancestor dump plus the menu's HTML showed:
+* ul[role=menu].encore-dark-theme (background rgb(40,40,40), i.e. #282828) > div[data-testid=user-widget-menu]
+* > div#context-menu > tippy root > body. --background-elevated-base already resolved to #000 on that
+* ul, so the six variables of the AMOLED block do reach it, yet its background does not come from them
+* (a hardcoded value or a token we don't override), which means no further variable override can fix it.
+* The standalone AMOLED block now also carries #context-menu ul[role="menu"]{background:#000!important},
+* keyed on the stable #context-menu id and role rather than the hashed class on the ul. #context-menu also
+* hosts other context menus, which the rule covers too, but only the avatar menu was inspected.
+* #context-menu exists only on open.spotify.com, so the all-host block needs no gating. This also corrects an implication in v7.35 b): the variables turning
+* everything black holds for surfaces that read them, not for this one. In Mobile the avatar button is only
+* reachable on the Search tab (#global-nav-bar is hidden elsewhere), so that is where the menu appears.
 */
 
 (function() {
@@ -4655,6 +4669,12 @@ aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widge
     // importance is weighed before specificity/origin/order. On open.spotify.com the
     // `.YourLibraryX{background:var(--background-elevated-base)!important}` rule used to mask this for the
     // library surface; the www / payments pages have no equivalent, hence !important on all six.
+    // #context-menu ul[role="menu"] (v7.36): the avatar/user menu is a ul[role=menu].encore-dark-theme inside
+    // div[data-testid=user-widget-menu] inside div#context-menu, in a tippy portal. Its --background-elevated-base
+    // already resolves to #000, yet the ul measured rgb(40,40,40) (#282828), so it does not take its background
+    // from the six variables and no variable override can reach it. Pinned directly by the stable #context-menu id
+    // plus role (never its hashed class). #context-menu also hosts other context menus, covered too, but only
+    // the avatar menu has been inspected.
     // Kept AFTER the open.spotify.com init block above on purpose: whenHeadReady() callbacks run in
     // registration order, so on open.spotify.com this <style> is appended after injectCSS()'s and the
     // player-bar background/box-shadow/border-top below still win over its gradient rule.
@@ -4663,6 +4683,7 @@ aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widge
         amoled.textContent = `
 .encore-dark-theme{--background-base:#000!important;--background-highlight:#000!important;--background-elevated-base:#000!important;--background-elevated-highlight:#000!important;--background-elevated-press:#000!important;--background-tinted-base:#000!important}
 aside[data-testid=now-playing-bar]{background:#000!important;box-shadow:none;border-top:1px solid #666}
+#context-menu ul[role="menu"]{background:#000!important}
         `;
         document.head.appendChild(amoled);
     });
