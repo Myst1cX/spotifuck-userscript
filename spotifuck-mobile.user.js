@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.32-animlogger
+// @version      7.32
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -1133,83 +1133,45 @@
 * code never creates them, so there is nothing for a hover or a touch to start. The WebView
 * usually reports reduce when Android's "Remove animations" (or animator scale 0 / power saving)
 * is on; the cause on the tested device was not checked. Turning that Android setting off
-* makes this fix unnecessary.
-* window.matchMedia is now wrapped at document-start so every prefers-reduced-motion query
-* answers "no preference" (reduce -> false, no-preference -> true); all other queries and the
-* real MediaQueryList (change listeners included) are untouched. Only JS checks are affected,
-* a CSS @media (prefers-reduced-motion) rule cannot be changed from here. It also re-enables
-* Spotify's other reduced-motion-gated animations. Undo: delete the block tagged
-* "v7.31 reduced-motion" right after 'use strict'. CONFIRMED in the app: with this block the
-* title / artist marquee scrolls again.
+* makes the marquee work natively. Fixed by wrapping window.matchMedia so every
+* prefers-reduced-motion query answered "no preference". Replaced in v7.32 d).
 *
-* v7.32 - three changes (b and c CONFIRMED in the app; a not yet - it needs the original bug to reappear):
-* a) UNCONFIRMED - Compact mode: Spotify re-renders the player bar's <aside> and overwrites its class
-*    attribute, dropping spf-compact and spf-compact-ready while the script's state is still "compact". Seen
-*    in a live dump (expanded layout showing): aside classes were only Spotify's two hashed ones, yet
-*    #spf-compact-play and #spf-compact-libaction still existed. Symptoms: two "Add to playlist" checkmarks
-*    (real button + compact proxy) and no play button between back/forward (it was moved out into
-*    #spf-compact-play). Fix in setupCompactToggle(): a logical compactOn variable (set in
-*    enterCompact/exitCompact) is now the source of truth; a MutationObserver on the aside's class attribute
-*    re-adds spf-compact / spf-compact-ready when wiped, and removes a stray spf-compact when compactOn is
-*    false. The strip click and fixStalePlay() read compactOn, not the class. When the guard fires it logs
-*    "class wiped by Spotify re-render" / "stray spf-compact class removed" via dbg() - search the Logger for
-*    those to confirm the fix is what saved a given occurrence. Mark RESOLVED once seen working.
-*    Undo: delete the observer (tagged "v7.32") and the compactOn lines.
-* b) RESOLVED (v7.32) - Toggling Spotify's own lyrics view (not Lyrics+ / Cigi) briefly flashed over BOTH the
-*    player bar and the bottom nav, then settled correctly. Not a layout, scroll, z-index, inert, fullscreen,
-*    modal or Cigi problem: the bars never moved, resized or changed style, and stacking was correct (nav fixed
-*    z9999 in the root context, player fixed z9998 above the z=5 lyrics layer). A frame probe showed that
-*    ~450-520ms after the tap, for 2-4 frames, only <html> was hit-testable at the bars, coinciding with a
-*    ~430-580ms main-thread freeze. A long-animation-frame probe then attributed the freeze to a
-*    "ViewTransitionCallback" (~208ms, 91ms forced layout) in Spotify's web-player.js: the lyrics open/close
-*    runs inside document.startViewTransition(). A view transition paints a snapshot overlay (::view-transition,
-*    top layer) over the whole page, ABOVE fixed elements, which is the flash (and why elementsFromPoint saw only
-*    <html>). Fix: document.startViewTransition is wrapped early (tagged "v7.32 LYRICS FLASH FIX", just
-*    before the compact-player state helpers) to run Spotify's update callback immediately and return a resolved, skippable
-*    stand-in, so no overlay is ever painted. Lyrics still open and close, only the cross-fade snapshot is gone.
-*    CONFIRMED in the app: the flash is gone. Ruled out on the way (all tried and reverted, none helped):
-*    clip-path/max-height on the right-hand panel container, overflow-x clip, own compositor layers for the bars
-*    (transform / will-change). Undo: delete the startViewTransition block.
-* c) The open.spotify.com ad-element remover (removeAdElements: removed [data-testid="ad-slot-container"],
-*    [class*="ad-"] and one button class) was REMOVED. Its observer re-scanned the whole DOM on every mutation;
-*    it was not the cause of b) but was needless freeze-prone work and did not remove ads reliably. Premium
-*    spoofing is untouched. Undo: restore the observer from v7.31.
+* RESOLVED (v7.32) - Four fixes. a) and d) have not been seen working in the app yet.
+* a) Compact mode lost its state: Spotify re-renders the player bar's <aside> and overwrites its
+*    class attribute, dropping spf-compact / spf-compact-ready while the script still considered
+*    the bar compact. Result: two "Add to playlist" checkmarks (real button + compact proxy) and
+*    no play button between back / forward. setupCompactToggle() now keeps the state in a
+*    compactOn variable (set in enterCompact / exitCompact) and a MutationObserver on the
+*    aside's class attribute re-adds the two classes when wiped and removes a stray spf-compact
+*    when the bar is expanded. The strip click and fixStalePlay() read compactOn. The guard logs
+*    "class wiped by Spotify re-render" / "stray spf-compact class removed" via dbg().
+* b) Lyrics flash: toggling Spotify's own lyrics view briefly flashed over the player bar and
+*    the bottom nav. Spotify opens and closes that view inside document.startViewTransition(),
+*    and a view transition paints a snapshot of the page above fixed elements (a 430-580ms
+*    main-thread freeze, ViewTransitionCallback in web-player.js, found with a long-animation-
+*    frame probe). document.startViewTransition is now replaced early with a version that runs
+*    Spotify's callback immediately and paints nothing. Lyrics still open and close, only the
+*    cross-fade is gone. Tried and reverted, no effect: clip-path / max-height on the panel
+*    container, overflow-x clip, own compositor layers for the bars.
+* c) The open.spotify.com ad-element remover (removeAdElements) was deleted. Its observer
+*    rescanned the whole DOM on every mutation and did not remove ads reliably. Premium
+*    spoofing is untouched.
+* d) The v7.31 matchMedia override is gone, so Spotify's other reduced-motion-gated animations
+*    follow the system setting again (its hook at web-player.js:22:9846 is shared by ~30
+*    components). The title / artist marquee is now our own copy, spfMarquee, built from
+*    Spotify's marquee component (web-player.js module 11150): distance = inner width -
+*    container width; translateX(0 -> -distance) (reversed for RTL); duration = distance / 12 *
+*    1000 ms; linear, once; starts paused, plays after 1s, reverses at the end (1s wait), then
+*    stays paused until the pointer leaves; pointerenter pauses, pointerleave plays. It finds
+*    div > span > span containers with clipped overflow anywhere on the page (player bar, Now
+*    Playing view, ad cards), re-measures once a second, and skips rows where Spotify made its
+*    own animation.
 */
 
 (function() {
     'use strict';
 
-    // v7.31 reduced-motion: the app's WebView reports prefers-reduced-motion: reduce, and with it
-    // Spotify never creates the title / artist marquee animations. Answer "no preference" to JS
-    // checks. Must stay at the top (document-start) so it is in place before Spotify's code runs.
-    try {
-        const RM_W = (typeof unsafeWindow !== 'undefined') ? unsafeWindow : window;
-        const rmOrig = RM_W.matchMedia;
-        if (typeof rmOrig === 'function' && !rmOrig.__spfRM) {
-            const rmWrap = function(q) {
-                const m = rmOrig.apply(this, arguments);
-                if (!/prefers-reduced-motion/i.test(String(q))) return m;
-                const want = /no-preference/i.test(String(q));
-                // v7.32 rm-probe (diagnostic): record who asks, to find the marquee's own query. Flushed via dbg() later.
-                try {
-                    const st = String(new Error().stack || '').split('\n').slice(2, 7).map(l => l.trim().replace(/^at\s+/, '').slice(-110));
-                    const key = String(q) + ' | ' + st.slice(0, 2).join(' < ');
-                    const L = (RM_W.__spfRMLog = RM_W.__spfRMLog || { seen: {}, queue: [] });
-                    if (L.seen[key]) L.seen[key]++;
-                    else { L.seen[key] = 1; L.queue.push({ q: String(q), stack: st }); }
-                } catch (e) {}
-                return new Proxy(m, {
-                    get(t, p) {
-                        if (p === 'matches') return want;
-                        const v = t[p];
-                        return typeof v === 'function' ? v.bind(t) : v;
-                    }
-                });
-            };
-            rmWrap.__spfRM = true;
-            RM_W.matchMedia = rmWrap;
-        }
-    } catch (e) {}
+    // v7.32: matchMedia reduced-motion override removed (header d); marquee = spfMarquee near the end.
 
     console.log('🎵 Spotifuck v6 - APK v1.6.4 Port');
 
@@ -1378,21 +1340,7 @@
         catch (e) { return false; }
     }
 
-    // v7.32 rm-probe flush (diagnostic only): logs each distinct prefers-reduced-motion query + its call stack.
-    // Filter the Logger by "rmprobe". Undo: delete this block and the "rm-probe" lines in the matchMedia wrapper.
-    [2500, 8000, 20000].forEach((ms) => setTimeout(() => {
-        try {
-            const L = window.__spfRMLog;
-            if (!L || !(appLogOn() || debugLoggingEnabled())) return;
-            L.queue.splice(0).forEach((e) => dbg('rmprobe: query', e.q, { stack: e.stack }));
-        } catch (e) {}
-    }, ms));
-
-    // v7.32 LYRICS FLASH FIX: Spotify opens/closes the lyrics view inside document.startViewTransition(). A diagnostic
-    // probe showed a "ViewTransitionCallback" (208ms, 91ms forced layout) in web-player.js right at the flash. A view
-    // transition paints a snapshot overlay (::view-transition, top layer) over the WHOLE page, above the fixed player
-    // bar + bottom nav (that is also why elementsFromPoint saw only <html> there), then reveals the new state. We run
-    // the state-change callback immediately and skip the transition. Undo: delete this block.
+    // v7.32 b): no view-transition snapshot (it painted over the fixed bars).
     try {
         if (typeof document.startViewTransition === 'function') {
             document.startViewTransition = function (arg) {
@@ -4549,6 +4497,65 @@ aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widge
         }, 100);
         });
     }
+
+    // v7.32 d): own port of Spotify's marquee (web-player.js module 11150), see header.
+    (function spfMarquee() {
+        const states = new WeakMap();
+        const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+        const innerOf = (d) => d.firstElementChild && d.firstElementChild.firstElementChild;
+        const clipped = (d) => [d, d.firstElementChild].some((e) => /hidden|clip/.test(getComputedStyle(e).overflowX));
+        const isContainer = (d) => {
+            const m = d.firstElementChild;
+            return d.childElementCount === 1 && m && m.tagName === 'SPAN' && m.childElementCount === 1 && m.firstElementChild.tagName === 'SPAN' && clipped(d);
+        };
+        const distOf = (d, inner) => Math.max(inner.getBoundingClientRect().width - d.getBoundingClientRect().width, 0);
+        const stop = (st) => { st.token++; if (st.anim) { try { st.anim.cancel(); } catch (e) {} st.anim = null; } };
+        async function run(d, inner, st, direction, autoPlay, token) {
+            if (st.token !== token || !d.isConnected) return;
+            if (st.anim) { try { st.anim.cancel(); } catch (e) {} }
+            const rtl = !!inner.querySelector('[dir]') && getComputedStyle(inner.querySelector('[dir]')).direction === 'rtl';
+            const a = { transform: 'translateX(0px)' }, b = { transform: 'translateX(' + (-st.dist) + 'px)' };
+            const anim = inner.animate(rtl ? [b, a] : [a, b], { duration: st.dist / 12 * 1000, iterations: 1, direction, fill: 'both', easing: 'linear' });
+            anim.__spf = true;
+            st.anim = anim;
+            anim.pause();
+            if (autoPlay) {
+                await sleep(1000);
+                if (st.token !== token) return;
+                if (!st.hovered) anim.play();
+            }
+            try { await anim.finished; } catch (e) { return; }
+            if (st.token !== token) return;
+            const next = direction === 'normal' ? 'reverse' : 'normal';
+            run(d, inner, st, next, next === 'reverse', token);
+        }
+        function tick() {
+            if (document.hidden) return;
+            document.querySelectorAll('div > span:only-child > span:only-child').forEach((innerEl) => {
+                const d = innerEl.parentElement.parentElement;
+                let st = states.get(d);
+                if (!st && !isContainer(d)) return;
+                const inner = innerOf(d);
+                if (!inner) return;
+                if (!st) {
+                    st = { token: 0, anim: null, dist: -1, hovered: false };
+                    states.set(d, st);
+                    d.addEventListener('pointerenter', () => { st.hovered = true; if (st.anim) st.anim.pause(); });
+                    d.addEventListener('pointerleave', () => { st.hovered = false; if (st.anim) st.anim.play(); });
+                }
+                if (inner.getAnimations().some((x) => !x.__spf)) { if (st.anim) stop(st); return; }  // Spotify's own animation is running
+                const dist = distOf(d, inner);
+                if (Math.abs(dist - st.dist) < 0.5) return;
+                stop(st);
+                st.dist = dist;
+                if (dist > 0) {
+                    dbg('spfMarquee: start', 'div>span>span', { distance: Math.round(dist), durationMs: Math.round(dist / 12 * 1000), text: (inner.textContent || '').slice(0, 30) });
+                    run(d, inner, st, 'normal', true, st.token);
+                }
+            });
+        }
+        setInterval(tick, 1000);
+    })();
 
     // Add cleanup on page unload to prevent memory leaks
     window.addEventListener('beforeunload', () => {
