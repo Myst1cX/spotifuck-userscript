@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.32-moretests
+// @version      7.32-knewitwasanimationsfault
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -1172,7 +1172,9 @@
 *    help - the user still saw the flash - so it was removed again. Probe v4 now also logs html/body computed
 *    styles + body child count + the nav's parent, and "frame gap" lines (main-thread stalls >45ms) to tell a jank/
 *    hit-test dropout from a body-level state change.
-*    RESULT (05:27 log): html/body never change; each flash = a 466-516ms main-thread FREEZE (frame gap) ~500ms after the
+*    FOUND (05:51 freezeprobe): Spotify's lyrics toggle runs inside document.startViewTransition (ViewTransitionCallback 208ms);
+*    its snapshot overlay covers the fixed bars = the flash. Attempt 4 overrides startViewTransition to run the callback
+*    with no transition. RESULT (05:27 log): html/body never change; each flash = a 466-516ms main-thread FREEZE (frame gap) ~500ms after the
 *    tap, with html-only hit-test on the first frame after it. Suspect: un-debounced whole-DOM observers reacting to the
 *    lyrics mount burst - attempt 3 REMOVED the removeAdElements observer ('[class*="ad-"]' full scan per mutation). The "flashprobe" diagnostic (document click listener on the lyrics button, only active with Debug
 *    Logging on) logs a state timeline (who is on top at each bar, fullscreen/modal/popover/inert, bar styles) plus
@@ -1372,6 +1374,25 @@
         try { return typeof GM_getValue === 'function' ? GM_getValue(DEBUG_KEY, false) : false; }
         catch (e) { return false; }
     }
+
+    // v7.32 LYRICS FLASH FIX: Spotify opens/closes the lyrics view inside document.startViewTransition(). The freeze probe
+    // showed a "ViewTransitionCallback" (208ms, 91ms forced layout) in web-player.js right at the flash. A view
+    // transition paints a snapshot overlay (::view-transition, top layer) over the WHOLE page, above the fixed player
+    // bar + bottom nav (that is also why elementsFromPoint saw only <html> there), then reveals the new state. We run
+    // the state-change callback immediately and skip the transition. Undo: delete this block.
+    try {
+        if (typeof document.startViewTransition === 'function') {
+            document.startViewTransition = function (arg) {
+                let cb = typeof arg === 'function' ? arg : (arg && arg.update);
+                let done;
+                try { done = Promise.resolve(typeof cb === 'function' ? cb() : undefined); }
+                catch (e) { done = Promise.reject(e); }
+                const settled = done.then(() => undefined);
+                settled.catch(() => {});
+                return { ready: settled.then(() => undefined), finished: settled, updateCallbackDone: settled, skipTransition() {}, types: new Set() };
+            };
+        }
+    } catch (e) {}
 
     // v7.32 freeze probe (diagnostic only; logs only with Debug Logging on). The lyrics flash = a ~500ms main-thread
     // freeze. This finds WHO is busy: (1) wraps MutationObserver so any callback (ours, Spotify's) slower than 25ms is
