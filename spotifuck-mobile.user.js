@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.32-logging-probe
+// @version      7.32-test-removead
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -1171,7 +1171,10 @@
 *    were wrong for this symptom. Attempt 2 (own compositor layer for both bars via transform/will-change) did NOT
 *    help - the user still saw the flash - so it was removed again. Probe v4 now also logs html/body computed
 *    styles + body child count + the nav's parent, and "frame gap" lines (main-thread stalls >45ms) to tell a jank/
-*    hit-test dropout from a body-level state change. The "flashprobe" diagnostic (document click listener on the lyrics button, only active with Debug
+*    hit-test dropout from a body-level state change.
+*    RESULT (05:27 log): html/body never change; each flash = a 466-516ms main-thread FREEZE (frame gap) ~500ms after the
+*    tap, with html-only hit-test on the first frame after it. Suspect: un-debounced whole-DOM observers reacting to the
+*    lyrics mount burst - attempt 3 debounces removeAdElements ('[class*="ad-"]' full scan per mutation). The "flashprobe" diagnostic (document click listener on the lyrics button, only active with Debug
 *    Logging on) logs a state timeline (who is on top at each bar, fullscreen/modal/popover/inert, bar styles) plus
 *    running animations; filter the Logger by "flashprobe". Undo: delete the flashprobe block.
 */
@@ -4998,7 +5001,14 @@ aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widge
             adSlots.forEach(el => el.remove());
             adButtons.forEach(el => el.remove());
         };
-        const adObserver = new MutationObserver(removeAdElements);
+        // v7.32: this observer fires on EVERY body mutation and the '[class*="ad-"]' substring selector scans the whole
+        // DOM each time. Mounting Spotify's lyrics view causes a burst of mutations; the probe logs showed a ~470-520ms
+        // main-thread freeze right when the bars flash. Debounce to one scan per 400ms (leading call skipped, trailing run).
+        let adScanTimer = null;
+        const adObserver = new MutationObserver(() => {
+            if (adScanTimer) return;
+            adScanTimer = setTimeout(() => { adScanTimer = null; removeAdElements(); }, 400);
+        });
         observeBody(adObserver, { childList: true, subtree: true });
         window.addEventListener('beforeunload', () => adObserver.disconnect());
     }
