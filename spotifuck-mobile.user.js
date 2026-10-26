@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.34
+// @version      7.35
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -23,16 +23,18 @@
 *
 * Features from APK:
 * - Library button toggle (expand 100%×100% / collapse 48×48px)
-* - Pure black AMOLED mode for playback controls
-* NOTE: currently works without needing !important on the
-* .encore-dark-theme custom properties, because `.YourLibraryX{
-* background:var(--background-elevated-base)!important}` in the
-* bottom-nav/library-overlay block (Sixth big change) independently pins
-* the library/sidebar surface. If AMOLED ever starts showing grey again
-* (e.g. that rule/class gets removed or renamed in a future change, or
-* Spotify adds a new panel that redeclares these vars closer to its own
-* root than .encore-dark-theme sits), see the comment at the AMOLED
-* style block (find it by searching: 'AMOLED pure black mode (from r0/e.java)')
+* - Pure black AMOLED mode (player bar + the Encore dark-theme background variables).
+* NOTE (v7.35): this is now its own standalone <style> block, injected on every
+* matched host (open, www, payments), not part of injectCSS() any more, and the six
+* .encore-dark-theme custom properties carry !important, identical to SpotiwebJS.
+* !important is what makes every themed surface go black: custom properties resolve
+* from the NEAREST ancestor that declares them, not by selector specificity, so a
+* plain declaration can lose that race to Spotify's own local redeclarations. On
+* open.spotify.com the `.YourLibraryX{background:var(--background-elevated-base)
+* !important}` rule (bottom-nav/library-overlay block, Sixth big change) used to be the
+* only thing masking that; it is no longer relied on for it. If AMOLED ever shows grey
+* again, see the comment at the AMOLED style block (find it by searching:
+* 'AMOLED pure black mode (from r0/e.java)').
 * - Auto-close library on playlist selection (and load the playlist)
 * - UI improvements (sidebar, search bar, playback controls)
 * - CSS hacks for better mobile experience
@@ -1285,6 +1287,37 @@
 * - other www.spotify.com pages: the JS pass (b): 300 ms pass, a 1200 ms retry only if the first changed
 *   nothing, and the observer (400 ms debounce) for content added later. wwwCardObserver exists only on
 *   /account/payment-methods/ and /account/saved-payment-cards/ (c).
+*
+* RESOLVED (v7.35) - AMOLED pure-black theme now applies on www.spotify.com and payments.spotify.com
+* too, matching SpotiwebJS (its Twenty-fifth change), instead of open.spotify.com only. Only the
+* AMOLED block and the www account banner's background changed; nothing else did.
+* a) Before: the AMOLED CSS was built inside injectCSS(), which only runs on open.spotify.com
+*    (HOST_IS_OPEN), so the www account pages and the payments host kept Spotify's grey theme.
+*    It is now its own <style> element, injected through whenHeadReady() on every matched host,
+*    unconditionally, not gated behind either premium-spoof toggle (pure cosmetic theming, same
+*    as SpotiwebJS). The block sits right after the open.spotify.com init block (the one that calls
+*    injectCSS()) in source order on purpose: whenHeadReady() callbacks run in registration order, so on
+*    open.spotify.com this block is appended after injectCSS()'s styles and still wins the
+*    background / box-shadow / border-top rules for the player bar, exactly as it did when it was
+*    appended inside injectCSS() (nothing injected later sets those three properties).
+* b) The six .encore-dark-theme custom properties (--background-base, --background-highlight,
+*    --background-elevated-base, --background-elevated-highlight, --background-elevated-press,
+*    --background-tinted-base) now carry !important, copied from SpotiwebJS's block. Mobile did not
+*    need it on open.spotify.com while the .YourLibraryX pin existed, but the www / payments pages
+*    have no such pin, so a plain declaration would have left their panels grey (SpotiwebJS's
+*    Eleventh change found exactly this). One identical block everywhere beats a per-host variant.
+*    Side effect on open.spotify.com: surfaces that read these variables and used to stay grey
+*    (e.g. popup menus and tooltips) now render black too, as they already do in SpotiwebJS.
+* c) The Edit profile / Payment method banner that runPremium() builds in place of the Join Premium
+*    block (www.spotify.com only) sets its own inline background, so the theme variables never
+*    reached it: it was #2A2A2A and is now #000, as in SpotiwebJS. If a non-AMOLED theme toggle
+*    is ever added, that banner must go back to #2A2A2A (comment at its background line).
+* d) Stale comments fixed: the header feature list and its NOTE (claimed AMOLED worked without
+*    !important thanks to .YourLibraryX - it did work for that scope, but the theme now extends
+*    further, to www and payments, where no such pin exists...), the long comment inside injectCSS() 
+*    describing the six properties as lacking !important (replaced by a pointer to the new block), 
+*    and the bottom-nav comment that called the AMOLED block "above" in the same CSS. 
+*    The ordinary v6.x/v7.x entries higher up are history and were left as written.
 */
 
 (function() {
@@ -3977,33 +4010,9 @@ div[data-testid=hover-or-focus-tooltip],#Desktop_LeftSidebar_Id header>div>div:l
 .YourLibraryX header{padding:14px}
         `;
         document.head.appendChild(style);
-        // AMOLED pure black mode (from r0/e.java line 207)
-        // If this ever starts showing grey instead of black (main view,
-        // sidebar, library, or any other themed surface - not the player
-        // bar below, which has its own !important and is independent of
-        // this): the six custom properties above currently lack
-        // !important, which is normally required because CSS custom
-        // properties resolve from the NEAREST ancestor that declares them,
-        // not by selector specificity - if Spotify redeclares one of these
-        // vars closer to a panel's own root than this top-level
-        // .encore-dark-theme rule sits, a plain declaration loses that
-        // proximity race. This currently isn't a problem here because
-        // `.YourLibraryX{background:var(--background-elevated-base)
-        // !important}` in the bottom-nav/library-overlay block (Sixth big
-        // change, search this file for YourLibraryX) independently pins
-        // the one surface that would otherwise lose that race. If that
-        // rule/class ever changes or a newly affected surface appears, the
-        // fix is simply adding !important to each of the six properties
-        // below (confirmed sufficient on its own, no per-element rules
-        // needed, when this exact scenario hit SpotiwebJS/desktop, which
-        // has no equivalent of the YourLibraryX pin).
-        const amoled = document.createElement('style');
-        amoled.textContent = `
-
-.encore-dark-theme{--background-base:#000;--background-highlight:#000;--background-elevated-base:#000;--background-elevated-highlight:#000;--background-elevated-press:#000;--background-tinted-base:#000}
-aside[data-testid=now-playing-bar]{background:#000!important;box-shadow:none;border-top:1px solid #666}
-        `;
-        document.head.appendChild(amoled);
+        // AMOLED pure black mode is no longer injected from here (v7.35): it lives in its own
+        // standalone block below injectCSS()'s init, so it also applies on www / payments.
+        // Search this file for 'AMOLED pure black mode (from r0/e.java)'.
         // --- Bottom nav bar + library-overlay layout + header visibility (v6.7) ---
         // Kept as its own <style> element (rather than merged into the blocks
         // above) so none of the existing v6.7 CSS above has to be touched.
@@ -4227,9 +4236,9 @@ html.sp-toast-pill div[role="alert"][aria-live] button:hover{background:rgba(29,
 #sp-bottom-nav button svg{width:24px;height:24px;fill:currentColor}
 #sp-bottom-nav button span{font-size:10px;letter-spacing:0.5px}
 
-/* Player position only - colors/box-shadow/border/control scaling above (v6.7
-   CSS + AMOLED block) are untouched. It now sits fixed, directly above the new
-   bottom nav, instead of in normal document flow. */
+/* Player position only - colors/box-shadow/border/control scaling (the v6.7 CSS
+   above and the separately injected AMOLED block) are untouched. It now sits
+   fixed, directly above the new bottom nav, instead of in normal document flow. */
 aside[data-testid=now-playing-bar]{
   margin:0!important;
   position:fixed!important;
@@ -4636,6 +4645,28 @@ aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widge
         });
     }
 
+    // AMOLED pure black mode (from r0/e.java line 207) - standalone since v7.35, injected on EVERY matched
+    // host (open, www, payments), same as SpotiwebJS, instead of only from injectCSS() on open.spotify.com.
+    // Unconditional: not gated behind either premium-spoof toggle (cosmetic theming only).
+    // IMPORTANT: the six custom properties MUST carry !important. Custom properties resolve from the NEAREST
+    // ancestor that declares them, not by selector specificity - Spotify's own code redeclares some of
+    // these vars locally on panels closer to the main view/sidebar/library roots than this rule sits, so a
+    // plain declaration loses that proximity race. !important wins regardless of proximity, since
+    // importance is weighed before specificity/origin/order. On open.spotify.com the
+    // `.YourLibraryX{background:var(--background-elevated-base)!important}` rule used to mask this for the
+    // library surface; the www / payments pages have no equivalent, hence !important on all six.
+    // Kept AFTER the open.spotify.com init block above on purpose: whenHeadReady() callbacks run in
+    // registration order, so on open.spotify.com this <style> is appended after injectCSS()'s and the
+    // player-bar background/box-shadow/border-top below still win over its gradient rule.
+    whenHeadReady(() => {
+        const amoled = document.createElement('style');
+        amoled.textContent = `
+.encore-dark-theme{--background-base:#000!important;--background-highlight:#000!important;--background-elevated-base:#000!important;--background-elevated-highlight:#000!important;--background-elevated-press:#000!important;--background-tinted-base:#000!important}
+aside[data-testid=now-playing-bar]{background:#000!important;box-shadow:none;border-top:1px solid #666}
+        `;
+        document.head.appendChild(amoled);
+    });
+
     // v7.33: own port of Spotify's marquee (web-player.js module 11150), see header.
     (function spfMarquee() {
         const states = new WeakMap();
@@ -4914,10 +4945,11 @@ aside[data-testid=now-playing-bar].spf-compact div[data-testid=now-playing-widge
             if (wrapper) {
                 wrapper.style.width = '100%';
             }
+            // AMOLED: the background below is black to match the theme (v7.35). A future non-AMOLED theme must restore #2A2A2A here.
             premiumBanner.style.cssText += `
                 display:flex !important;
                 flex-direction:row !important;
-                background:#2A2A2A !important;
+                background:#000 !important;
                 cursor:default !important;
                 padding:0 !important;
                 border-radius:8px !important;
