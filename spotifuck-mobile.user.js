@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Spotifuck Mobile
 // @namespace    https://github.com/Myst1cX/spotifuck-userscript
-// @version      7.37
+// @version      7.38
 // @description  Full Spotifuck 1.6.4 UI hack (with minor tweaks) + playback control + force English UI + visual premium spoof
 // @author       Myst1cX (adapted from Spotifuck app)
 // @match        *://open.spotify.com/*
@@ -1382,6 +1382,23 @@
 *    Spanish terms and accented text found no other non-English matchers (the text/aria matchers are
 *    'Your Library', 'Connect to a device', 'Remove recommendation', 'Home' and 'Premium Plans').
 * Net: 24 new dbg() calls, plus one logChange().
+*
+* RESOLVED (v7.38) - removed the dead .fuckd-panel-open class tracking. No behavior change: no CSS or code
+* read the class, so setting it did nothing.
+* a) setAuthorizedPanel() no longer adds .fuckd-panel-open (and no longer logs '[PanelGuard] setAuthorizedPanel:
+*    class forced on'). updateNpvLayoutState() no longer toggles the class and no longer logs
+*    'html.fuckd-panel-open added/removed' (this supersedes that part of v7.37 b); the
+*    'npBtn .active added/removed' log stays). updateNpvLayoutState() keeps its name but now only calls
+*    syncNpBtnVisualState(). The panelGuardObserver initial log reads 'syncing panel state'.
+*    Net: 2 dbg() calls removed, 1 log text changed.
+* b) Why: the native-toggle-hide CSS in injectCSS() has been unscoped since v7.18 b), so nothing reads the
+*    class. Checked: no other code in this script, in Lyrics+ (pip-gui-stable) or in the Android app source
+*    references it. SpotiwebJS (desktop) still uses it: it scopes the same rules behind
+*    html:not(.fuckd-panel-open) because a panel docks at native size while open there, so the rules must
+*    switch off on open. Here the rules stay on permanently (panels fill the screen), so nothing needs to
+*    toggle them.
+* c) Comments corrected to match (setAuthorizedPanel, isAnyPanelOpen, the injectCSS unscoped-rules note).
+*    The class mentions in v7.18 b) and v7.37 b) above are history.
 */
 
 (function() {
