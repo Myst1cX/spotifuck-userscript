@@ -1448,20 +1448,12 @@
     // the three is ever true at once, mirroring the "only one of NPV/Queue/Connect can be
     // genuinely open at a time" invariant of the shared panel container itself. Called
     // synchronously, before Spotify's own click handling runs (same "beat the mutation
-    // microtask" timing clickNP() already needed - see its own comment), it also flips
-    // .fuckd-panel-open on immediately when opening, rather than waiting for
-    // panelGuardObserver's mutation callback to react after the fact - that class drives the
-    // native-toggle-hiding CSS squeeze (see injectCSS below), and reacting to the mutation alone
-    // would leave a real window, while Spotify is actively mounting the panel into the shared
-    // slot, where that squeeze stays armed and crushes the panel Spotify is trying to show.
+    // microtask" timing clickNP() already needed - see its own comment), so the guard already
+    // knows the open is authorized before Spotify's own handler starts opening the panel.
     function setAuthorizedPanel(which) { // which: 'npv' | 'queue' | 'connect' | null
         userOpenedNPV = which === 'npv';
         userOpenedQueue = which === 'queue';
         userOpenedConnect = which === 'connect';
-        if (which) {
-            document.documentElement.classList.add('fuckd-panel-open');
-            dbg('[PanelGuard] setAuthorizedPanel: class forced on', 'html', { which });
-        }
     }
     // True whenever ANY of the three panel types was opened through an authorized trigger and
     // hasn't been closed since. Deliberately doesn't care WHICH of the three: the shared
@@ -2389,7 +2381,7 @@
     }
 
     // Tracks whether ANY of the three views sharing #Desktop_PanelContainer_Id - NPV, Queue, or
-    // Connect - is currently open, as a class on <html> (fuckd-panel-open). Driven off the
+    // Connect - is currently open. Driven off the
     // [inert] attribute directly via closest() rather than the container's own aria-hidden/
     // aria-label - confirmed via live DOM capture that all three panel types flip the same
     // [inert] attribute on the same wrapper when opened, so this one check works uniformly for
@@ -2403,10 +2395,6 @@
         return !panelContainer.closest('[inert]');
     }
     function updateNpvLayoutState() {
-        const panelOpen = isAnyPanelOpen();
-        const hadPanelClass = document.documentElement.classList.contains('fuckd-panel-open');
-        document.documentElement.classList.toggle('fuckd-panel-open', panelOpen);
-        if (panelOpen !== hadPanelClass) dbg('html.fuckd-panel-open ' + (panelOpen ? 'added' : 'removed'), 'html', { panelOpen, effect: panelOpen ? 'native-toggle 100vw/--panel-gap crop rules OFF' : 'native-toggle crop rules ARMED' });
         syncNpBtnVisualState();
     }
     updateNpvLayoutState(); // reflect default (closed) state before the panel even exists
@@ -2483,7 +2471,7 @@
         if (isAnyPanelOpen() && !isAnyPanelAuthorized()) window.closeNowPlay('panel-guard-initial');
         const initialPanelState = `open:${isAnyPanelOpen()}|npv:${userOpenedNPV}|queue:${userOpenedQueue}|connect:${userOpenedConnect}`;
         if (initialPanelState !== lastLoggedPanelState) {
-            dbg('[PanelGuard] initial: syncing fuckd-panel-open layout class', 'html', { isNpvOpen: isNpvOpen(), isAnyPanelOpen: isAnyPanelOpen() });
+            dbg('[PanelGuard] initial: syncing panel state', 'html', { isNpvOpen: isNpvOpen(), isAnyPanelOpen: isAnyPanelOpen() });
             lastLoggedPanelState = initialPanelState;
         }
         updateNpvLayoutState();
@@ -4007,9 +3995,10 @@ body{min-width:100%!important;min-height:100%!important}
    SpotiwebJS's Sixteenth change used) - matches the old behavior of this script, where
    NPV/Queue/Connect take over the whole viewport instead of docking at their native
    sidebar-panel size/position. The scoped version stopped forcing width:100vw the moment
-   a panel was genuinely open, so it fell back to Spotify's native docked width - the
-   .fuckd-panel-open class (still set/tracked by isAnyPanelOpen()/updateNpvLayoutState(),
-   in case something else needs it later) is simply no longer read by this block. */
+   a panel was genuinely open, so it fell back to Spotify's native docked width.
+   This script therefore no longer sets .fuckd-panel-open. SpotiwebJS (desktop) still does:
+   there a panel docks at native size while open, so the rules must switch off on open;
+   here they stay on permanently, so nothing needs to toggle them. */
 div[data-testid=root]{--panel-gap:0!important}
 #main-view+div,#main-view+div>div{overflow:hidden!important;width:auto!important}
 #main-view+div>div>div>div:nth-child(2)>div{width:100vw!important}
