@@ -1,6 +1,6 @@
 ## Spotifuck Mobile
 
-_Applies to script version **7.37**._
+_Applies to script version **7.38**._
 
 A mobile-layout userscript for the Spotify Web Player: ports the Spotifuck Android mod's mobile UI (bottom nav, full-screen library) and playback-reliability fixes onto the Spotify Web Player, adds a compact player mode ported separately from kitbodega/SpotiKit, and layers a premium-spoof/Force-English engine, a pill-style toast look, a hover marquee for long titles, and an AMOLED theme on top. Works on an actual phone browser or on desktop if you just prefer the mobile-style layout.
 
